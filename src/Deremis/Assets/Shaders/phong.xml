@@ -7,15 +7,14 @@
         <PrimitiveTopology>TriangleList</PrimitiveTopology>
     </config>
     <properties>
-        <vec3 name="lightColor" />
-        <vec3 name="lightPosition" />
-        <float name="ambientStrength" />
         <vec3 name="diffuseColor" />
-        <float name="specularStrength" />
         <vec3 name="specularColor" />
+        <float name="ambientStrength" />
+        <float name="specularStrength" />
     </properties>
     <resources>
         <texture2d name="diffuseTexture" />
+        <texture2d name="specularTexture" />
     </resources>
     <vertex>
 #version 450
@@ -55,15 +54,21 @@ layout(set = 0, binding = 0) uniform Transform
 };
 layout(set = 0, binding = 1) uniform Material
 {
-    vec3 lightColor;
-    vec3 lightPosition;
-    float ambientStrength;
     vec3 diffuseColor;
-    float specularStrength;
     vec3 specularColor;
+    float ambientStrength;
+    float specularStrength;
 };
+layout(set = 0, binding = 2) uniform Light {
+    vec3 lightPosition;
+    vec3 lightDirection;
+    vec3 lightColor;
+    float lightType;
+};
+
 layout(set = 1, binding = 0) uniform texture2D diffuseTexture;
-layout(set = 1, binding = 1) uniform sampler texSampler;
+layout(set = 1, binding = 1) uniform texture2D specularTexture;
+layout(set = 1, binding = 2) uniform sampler texSampler;
 
 layout(location = 0) in vec3 f_position;
 layout(location = 1) in vec3 f_normal;
@@ -74,10 +79,12 @@ layout(location = 0) out vec4 out_Color;
 void main()
 {
     vec3 diffTex = texture(sampler2D(diffuseTexture, texSampler), f_UV).rgb;
+    vec3 specTex = texture(sampler2D(specularTexture, texSampler), f_UV).rgb;
 
     vec3 ambient = ambientStrength * lightColor;
     vec3 norm = normalize(f_normal);
     vec3 lightDir = normalize(lightPosition - f_position);
+
     float diff = max(dot(norm, lightDir), 0.0);
     vec3 diffuse = (diff * diffuseColor * diffTex) * lightColor;
 
@@ -85,7 +92,7 @@ void main()
     vec3 viewDir = normalize(viewPos - f_position);
     vec3 reflectDir = reflect(-lightDir, norm); 
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-    vec3 specular = (specularStrength * spec * specularColor) * lightColor;
+    vec3 specular = (specularStrength * spec * specularColor * specTex) * lightColor;
 
     out_Color = vec4(ambient + diffuse + specular, 1);
 }

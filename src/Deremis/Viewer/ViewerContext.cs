@@ -38,23 +38,35 @@ namespace Deremis.Viewer
                 path = "Textures/sten_albedo.png",
                 type = 2
             });
+            var specularTex = AssetManager.current.Get<Texture>(new AssetDescription
+            {
+                name = "specularTex",
+                path = "Textures/sten_metalness.png",
+                type = 2
+            });
 
             var camera = app.CreateCamera();
             camera.Set(new Transform
             {
-                position = new Vector3(-10, 10, 10),
-                rotation = Quaternion.CreateFromYawPitchRoll(-MathF.PI / 4, -MathF.PI / 5, 0),
+                position = new Vector3(-10, 5, 10),
+                rotation = Quaternion.CreateFromYawPitchRoll(-MathF.PI / 4, -MathF.PI / 8, 0),
+                scale = Vector3.One
+            });
+            var light = app.CreateLight(color: Vector3.One);
+            light.Set(new Transform
+            {
+                position = new Vector3(0, 10, 10),
+                rotation = Quaternion.Identity,
                 scale = Vector3.One
             });
 
             var material = app.MaterialManager.CreateMaterial(shader.Name, shader);
-            material.SetProperty("lightColor", Vector3.One);
-            material.SetProperty("lightPosition", new Vector3(0, 10, 10));
-            material.SetProperty("ambientStrength", 0.1f);
+            material.SetProperty("ambientStrength", 0.05f);
             material.SetProperty("diffuseColor", Vector3.One);
-            material.SetProperty("specularStrength", 1f);
+            material.SetProperty("specularStrength", 0.25f);
             material.SetProperty("specularColor", Vector3.One);
             material.SetTexture("diffuseTexture", diffuseTex);
+            material.SetTexture("specularTexture", specularTex);
 
             var entity = model.Spawn(app, material.Name);
 

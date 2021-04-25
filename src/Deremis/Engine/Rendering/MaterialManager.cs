@@ -11,6 +11,7 @@ namespace Deremis.Engine.Rendering
     public class MaterialManager : IDisposable
     {
         private const uint MAX_MATERIAL_BUFFER_SIZE = 256;
+        private const uint MAX_LIGHT_BUFFER_SIZE = 256;
 
         public static MaterialManager current;
         private readonly Application app;
@@ -19,12 +20,14 @@ namespace Deremis.Engine.Rendering
 
         public DeviceBuffer TransformBuffer { get; private set; }
         public DeviceBuffer MaterialBuffer { get; private set; }
+        public DeviceBuffer LightBuffer { get; private set; }
 
         public ResourceSet GeneralResourceSet { get; private set; }
         public ResourceLayout GeneralResourceLayout { get; private set; }
         private ResourceLayoutElementDescription[] resourceLayoutElementDescriptions = {
             new ResourceLayoutElementDescription ("Transform", ResourceKind.UniformBuffer, ShaderStages.Vertex | ShaderStages.Fragment),
             new ResourceLayoutElementDescription ("Material", ResourceKind.UniformBuffer, ShaderStages.Fragment),
+            new ResourceLayoutElementDescription ("Light", ResourceKind.UniformBuffer, ShaderStages.Fragment),
         };
 
         public MaterialManager(Application app)
@@ -40,7 +43,10 @@ namespace Deremis.Engine.Rendering
             MaterialBuffer = app.Factory.CreateBuffer(new BufferDescription(
                 MAX_MATERIAL_BUFFER_SIZE,
                 BufferUsage.UniformBuffer | BufferUsage.Dynamic));
-            BindableResource[] bindableResources = { TransformBuffer, MaterialBuffer };
+            LightBuffer = app.Factory.CreateBuffer(new BufferDescription(
+                MAX_LIGHT_BUFFER_SIZE,
+                BufferUsage.UniformBuffer | BufferUsage.Dynamic));
+            BindableResource[] bindableResources = { TransformBuffer, MaterialBuffer, LightBuffer };
             ResourceSetDescription resourceSetDescription = new ResourceSetDescription(GeneralResourceLayout, bindableResources);
             GeneralResourceSet = app.Factory.CreateResourceSet(resourceSetDescription);
         }
@@ -67,6 +73,7 @@ namespace Deremis.Engine.Rendering
             GeneralResourceSet.Dispose();
             TransformBuffer.Dispose();
             MaterialBuffer.Dispose();
+            LightBuffer.Dispose();
             foreach (var material in materials.Values)
             {
                 material.Dispose();

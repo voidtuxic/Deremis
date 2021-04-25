@@ -20,10 +20,11 @@ namespace Deremis.Engine.Systems
         private readonly CommandList commandList;
 
         private readonly EntitySet cameraSet;
+        private readonly EntitySet lightSet;
 
         private readonly ConcurrentDictionary<string, Mesh> meshes = new ConcurrentDictionary<string, Mesh>();
 
-        private bool isDrawSystemValid;
+        private bool isDrawValid;
         private Material material;
         private uint indexCount;
         private Matrix4x4 viewProjMatrix;
@@ -36,6 +37,7 @@ namespace Deremis.Engine.Systems
             this.app = app;
             commandList = app.Factory.CreateCommandList();
             cameraSet = world.GetEntities().With<Camera>().With<Transform>().AsSet();
+            lightSet = world.GetEntities().With<Light>().With<Transform>().AsSet();
         }
 
         public string RegisterMesh(string name, Mesh mesh)
@@ -55,10 +57,11 @@ namespace Deremis.Engine.Systems
 
             if (cameraSet.Count == 0)
             {
-                isDrawSystemValid = false;
+                isDrawValid = false;
                 return;
             }
-            isDrawSystemValid = true;
+            isDrawValid = true;
+
             Span<Entity> cameras = stackalloc Entity[cameraSet.Count];
             cameraSet.GetEntities().CopyTo(cameras);
             foreach (ref readonly Entity camEntity in cameras)
@@ -71,15 +74,29 @@ namespace Deremis.Engine.Systems
                 // TODO handle more than one camera
                 break;
             }
+
+            Span<Entity> lights = stackalloc Entity[lightSet.Count];
+            lightSet.GetEntities().CopyTo(lights);
+            foreach (ref readonly Entity lightEntity in lights)
+            {
+                ref var transform = ref lightEntity.Get<Transform>();
+                ref var light = ref lightEntity.Get<Light>();
+
+                var values = light.GetValueArray(ref transform);
+                commandList.UpdateBuffer(app.MaterialManager.LightBuffer, 0, values);
+
+                // TODO handle more than one light
+                break;
+            }
         }
 
         protected override void PreUpdate(float state, Drawable key)
         {
-            if (!isDrawSystemValid) return;
+            if (!isDrawValid) return;
             material = app.MaterialManager.GetMaterial(key.material);
             if (material == null)
             {
-                isDrawSystemValid = false;
+                isDrawValid = false;
                 return;
             }
             commandList.UpdateBuffer(app.MaterialManager.MaterialBuffer, 0, material.GetValueArray());
@@ -94,14 +111,14 @@ namespace Deremis.Engine.Systems
                 commandList.SetGraphicsResourceSet(0, app.MaterialManager.GeneralResourceSet);
                 commandList.SetGraphicsResourceSet(1, material.ResourceSet);
                 indexCount = mesh.IndexCount;
-                isDrawSystemValid = true;
+                isDrawValid = true;
             }
-            else isDrawSystemValid = false;
+            else isDrawValid = false;
         }
 
         protected override void Update(float state, in Drawable key, ReadOnlySpan<Entity> entities)
         {
-            if (!isDrawSystemValid) return;
+            if (!isDrawValid) return;
 
             foreach (var entity in entities)
             {

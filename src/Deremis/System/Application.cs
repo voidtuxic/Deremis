@@ -143,6 +143,17 @@ namespace Deremis.System
             return entity;
         }
 
+        public Entity CreateLight(string name = "Light", Vector3 color = default, int type = 0)
+        {
+            var entity = CreateTransform(name);
+            entity.Set(new Light
+            {
+                color = color,
+                type = type
+            });
+            return entity;
+        }
+
         public Entity Spawn(string name, Mesh mesh, string material)
         {
             var entity = CreateTransform(name);

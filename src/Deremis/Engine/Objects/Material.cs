@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using Deremis.Engine.Rendering.Resources;
 using Deremis.System;
 using Deremis.System.Assets;
 using Veldrid;
@@ -140,7 +141,7 @@ namespace Deremis.Engine.Objects
                         {
                             for (var i = 0; i < remnants; i++)
                             {
-                                values.Add(0);
+                                values.Add(0f);
                             }
                         }
                     }
