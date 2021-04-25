@@ -19,9 +19,18 @@ namespace Deremis.Engine.Objects
             public object Value;
         }
 
+        public struct Resource
+        {
+            public int Order;
+            public string Name;
+            public ResourceKind Kind;
+            public BindableResource Value;
+        }
+
         public Veldrid.Shader[] Shaders { get; private set; }
         public GraphicsPipelineDescription DefaultPipeline { get; private set; }
         public Dictionary<string, Property> Properties { get; private set; } = new Dictionary<string, Property>();
+        public Dictionary<string, Resource> Resources { get; private set; } = new Dictionary<string, Resource>();
 
         public Shader(string name) : base(name)
         {

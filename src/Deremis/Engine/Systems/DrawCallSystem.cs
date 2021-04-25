@@ -91,10 +91,8 @@ namespace Deremis.Engine.Systems
                 commandList.SetVertexBuffer(0, mesh.VertexBuffer);
                 commandList.SetIndexBuffer(mesh.IndexBuffer, IndexFormat.UInt32);
                 commandList.SetPipeline(pipeline);
-                for (uint i = 0; i < app.MaterialManager.ResourceSets.Length; i++)
-                {
-                    commandList.SetGraphicsResourceSet(i, app.MaterialManager.ResourceSets[i]);
-                }
+                commandList.SetGraphicsResourceSet(0, app.MaterialManager.GeneralResourceSet);
+                commandList.SetGraphicsResourceSet(1, material.ResourceSet);
                 indexCount = mesh.IndexCount;
                 isDrawSystemValid = true;
             }

@@ -44,7 +44,7 @@ namespace Deremis.Viewer
             material.SetProperty("lightColor", Vector3.One);
             material.SetProperty("lightPosition", new Vector3(0, 10, 10));
             material.SetProperty("ambientStrength", 0.1f);
-            material.SetProperty("diffuseColor", Vector3.UnitX);
+            material.SetProperty("diffuseColor", Vector3.One);
             material.SetProperty("specularStrength", 1f);
             material.SetProperty("specularColor", Vector3.One);
 

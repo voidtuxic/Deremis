@@ -12,6 +12,7 @@ namespace Deremis.System.Assets
         private static readonly IAssetHandler[] handlers = new IAssetHandler[] {
             new AssimpHandler(),
             new ShaderHandler(),
+            new TextureHandler()
         };
         private readonly string rootPath;
 

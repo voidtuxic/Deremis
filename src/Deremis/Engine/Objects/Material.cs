@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using Deremis.System;
+using Deremis.System.Assets;
 using Veldrid;
 
 namespace Deremis.Engine.Objects
@@ -10,15 +12,18 @@ namespace Deremis.Engine.Objects
         public override string Type => "Material";
         public Shader Shader { get; private set; }
         public Pipeline Pipeline { get; private set; }
+        public Sampler Sampler { get; set; } = Application.current.GraphicsDevice.LinearSampler;
+        public ResourceSet ResourceSet { get; private set; }
 
         private bool isDirty = true;
         private readonly Dictionary<string, Shader.Property> properties = new Dictionary<string, Shader.Property>();
+        private readonly Dictionary<string, Shader.Resource> resources = new Dictionary<string, Shader.Resource>();
         private float[] rawValues;
+        private ResourceLayout resourceLayout;
 
-        public Material(string name, Shader shader, Pipeline pipeline) : base(name)
+        public Material(string name, Shader shader) : base(name)
         {
             this.Shader = shader;
-            this.Pipeline = pipeline;
 
             foreach (var property in shader.Properties)
             {
@@ -26,6 +31,56 @@ namespace Deremis.Engine.Objects
                 val.Value = GetDefaultParameterValue(property.Value.Format);
                 properties.Add(property.Key, val);
             }
+
+            foreach (var resource in shader.Resources)
+            {
+                var val = resource.Value;
+                resources.Add(resource.Key, val);
+            }
+        }
+
+        // TODO add parameters for outputs
+        public void Build()
+        {
+            var app = Application.current;
+            Pipeline?.Dispose();
+
+            var resources = new List<Shader.Resource>(this.resources.Values).ToArray();
+            Array.Sort(resources, new ShaderResourceOrderCompare());
+
+            var layoutDescriptions = new List<ResourceLayoutElementDescription>();
+            foreach (var resource in resources)
+            {
+                layoutDescriptions.Add(new ResourceLayoutElementDescription(resource.Name, resource.Kind, ShaderStages.Fragment));
+            }
+            layoutDescriptions.Add(new ResourceLayoutElementDescription("Sampler", ResourceKind.Sampler, ShaderStages.Fragment));
+            resourceLayout = app.Factory.CreateResourceLayout(new ResourceLayoutDescription(layoutDescriptions.ToArray()));
+
+            var description = Shader.DefaultPipeline;
+            description.ResourceLayouts = new ResourceLayout[] { app.MaterialManager.GeneralResourceLayout, resourceLayout };
+            description.Outputs = app.GraphicsDevice.SwapchainFramebuffer.OutputDescription;
+            Pipeline = app.Factory.CreateGraphicsPipeline(description);
+
+            BuildResourceSet();
+        }
+
+        public void BuildResourceSet()
+        {
+            var app = Application.current;
+            ResourceSet?.Dispose();
+            var bindableResources = new List<BindableResource>();
+
+            var resources = new List<Shader.Resource>(this.resources.Values).ToArray();
+            Array.Sort(resources, new ShaderResourceOrderCompare());
+
+            var layoutDescriptions = new List<ResourceLayoutElementDescription>();
+            foreach (var resource in resources)
+            {
+                bindableResources.Add(resource.Value ?? GetDefaultResourceValue(resource.Kind));
+            }
+            bindableResources.Add(Sampler);
+
+            ResourceSet = app.Factory.CreateResourceSet(new ResourceSetDescription(resourceLayout, bindableResources.ToArray()));
         }
 
         public void SetProperty<T>(string name, T value) where T : unmanaged
@@ -88,6 +143,13 @@ namespace Deremis.Engine.Objects
             return rawValues;
         }
 
+        public override void Dispose()
+        {
+            resourceLayout?.Dispose();
+            ResourceSet?.Dispose();
+            Pipeline?.Dispose();
+        }
+
         public static object GetDefaultParameterValue(VertexElementFormat format)
         {
             switch (format)
@@ -100,9 +162,27 @@ namespace Deremis.Engine.Objects
             }
         }
 
+        public static BindableResource GetDefaultResourceValue(ResourceKind kind)
+        {
+            var missingTex = AssetManager.current.Get<Texture>(Application.MissingTex);
+            if (missingTex != null)
+            {
+                return missingTex.View;
+            }
+            return null;
+        }
+
         public class ShaderPropertyOrderCompare : IComparer<Shader.Property>
         {
             public int Compare(Shader.Property x, Shader.Property y)
+            {
+                return x.Order.CompareTo(y.Order);
+            }
+        }
+
+        public class ShaderResourceOrderCompare : IComparer<Shader.Resource>
+        {
+            public int Compare(Shader.Resource x, Shader.Resource y)
             {
                 return x.Order.CompareTo(y.Order);
             }

@@ -35,6 +35,9 @@ namespace Deremis.System.Assets
                     case "properties":
                         SetupProperties(child, shader);
                         break;
+                    case "resources":
+                        SetupResources(child, shader);
+                        break;
                     case "vertex":
                         shader.SetVertexCode(child.InnerText);
                         break;
@@ -120,6 +123,29 @@ namespace Deremis.System.Assets
                 {
                     Order = index,
                     Format = format
+                });
+                index++;
+            }
+        }
+
+        private void SetupResources(XmlNode node, Shader shader)
+        {
+            int index = 0;
+            foreach (XmlNode child in node)
+            {
+                var kind = ResourceKind.TextureReadOnly;
+                // TODO more resource kinds???
+                switch (child.Name)
+                {
+                    case "texture2d":
+                        break;
+                    default: continue;
+                }
+                shader.Resources.Add(child.Attributes["name"].Value, new Shader.Resource
+                {
+                    Name = child.Attributes["name"].Value,
+                    Order = index,
+                    Kind = kind
                 });
                 index++;
             }

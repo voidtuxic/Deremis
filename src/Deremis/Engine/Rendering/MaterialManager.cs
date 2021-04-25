@@ -20,8 +20,8 @@ namespace Deremis.Engine.Rendering
         public DeviceBuffer TransformBuffer { get; private set; }
         public DeviceBuffer MaterialBuffer { get; private set; }
 
-        public ResourceSet[] ResourceSets { get; private set; }
-        private ResourceLayout[] resourceLayouts;
+        public ResourceSet GeneralResourceSet { get; private set; }
+        public ResourceLayout GeneralResourceLayout { get; private set; }
         private ResourceLayoutElementDescription[] resourceLayoutElementDescriptions = {
             new ResourceLayoutElementDescription ("Transform", ResourceKind.UniformBuffer, ShaderStages.Vertex | ShaderStages.Fragment),
             new ResourceLayoutElementDescription ("Material", ResourceKind.UniformBuffer, ShaderStages.Fragment),
@@ -32,8 +32,7 @@ namespace Deremis.Engine.Rendering
             current = this;
             this.app = app;
             ResourceLayoutDescription resourceLayoutDescription = new ResourceLayoutDescription(resourceLayoutElementDescriptions);
-            ResourceLayout sharedLayout = app.Factory.CreateResourceLayout(resourceLayoutDescription);
-            resourceLayouts = new ResourceLayout[] { sharedLayout };
+            GeneralResourceLayout = app.Factory.CreateResourceLayout(resourceLayoutDescription);
 
             TransformBuffer = app.Factory.CreateBuffer(new BufferDescription(
                 TransformResource.SizeInBytes,
@@ -42,18 +41,18 @@ namespace Deremis.Engine.Rendering
                 MAX_MATERIAL_BUFFER_SIZE,
                 BufferUsage.UniformBuffer | BufferUsage.Dynamic));
             BindableResource[] bindableResources = { TransformBuffer, MaterialBuffer };
-            ResourceSetDescription resourceSetDescription = new ResourceSetDescription(sharedLayout, bindableResources);
-            ResourceSets = new ResourceSet[] { app.Factory.CreateResourceSet(resourceSetDescription) };
+            ResourceSetDescription resourceSetDescription = new ResourceSetDescription(GeneralResourceLayout, bindableResources);
+            GeneralResourceSet = app.Factory.CreateResourceSet(resourceSetDescription);
         }
 
         public Material CreateMaterial(string name, Shader shader)
         {
             if (materials.ContainsKey(name)) return materials[name];
-            var description = shader.DefaultPipeline;
-            description.ResourceLayouts = resourceLayouts;
-            description.Outputs = app.GraphicsDevice.SwapchainFramebuffer.OutputDescription;
-            materials.TryAdd(name, new Material(name, shader, app.Factory.CreateGraphicsPipeline(description)));
-            return materials[name];
+
+            var material = new Material(name, shader);
+            material.Build();
+            materials.TryAdd(name, material);
+            return material;
         }
 
         public Material GetMaterial(string name)
@@ -64,10 +63,13 @@ namespace Deremis.Engine.Rendering
 
         public void Dispose()
         {
+            GeneralResourceLayout.Dispose();
+            GeneralResourceSet.Dispose();
             TransformBuffer.Dispose();
-            foreach (var pipeline in materials.Values)
+            MaterialBuffer.Dispose();
+            foreach (var material in materials.Values)
             {
-                pipeline.Dispose();
+                material.Dispose();
             }
         }
     }

@@ -12,11 +12,19 @@ using Veldrid;
 using Veldrid.Sdl2;
 using Veldrid.StartupUtilities;
 using Shader = Deremis.Engine.Objects.Shader;
+using Texture = Deremis.Engine.Objects.Texture;
 
 namespace Deremis.System
 {
     public sealed class Application : IDisposable
     {
+        public static AssetDescription MissingTex = new AssetDescription
+        {
+            name = "missing",
+            path = "Textures/missing.tga",
+            type = 2
+        };
+
         public static Application current;
 
         private Sdl2Window window;
@@ -76,7 +84,20 @@ namespace Deremis.System
             AssetManager = new AssetManager("./Assets/");
             MaterialManager = new MaterialManager(this);
 
+            LoadDefaultAssets();
+
             context.Initialize(this);
+        }
+
+        private void LoadDefaultAssets()
+        {
+            AssetManager.Get<Shader>(new AssetDescription
+            {
+                name = "phong",
+                path = "Shaders/phong.xml",
+                type = 1
+            });
+            AssetManager.Get<Texture>(MissingTex);
         }
 
         public void Run()
