@@ -15,7 +15,7 @@ namespace Deremis.Engine.Objects
         public Sampler Sampler { get; set; } = Application.current.GraphicsDevice.LinearSampler;
         public ResourceSet ResourceSet { get; private set; }
 
-        private bool isDirty = true;
+        private bool isBufferDirty = true;
         private readonly Dictionary<string, Shader.Property> properties = new Dictionary<string, Shader.Property>();
         private readonly Dictionary<string, Shader.Resource> resources = new Dictionary<string, Shader.Resource>();
         private float[] rawValues;
@@ -89,12 +89,21 @@ namespace Deremis.Engine.Objects
             var property = properties[name];
             property.Value = value;
             properties[name] = property;
-            isDirty = true;
+            isBufferDirty = true;
+        }
+
+        public void SetTexture(string name, Texture texture)
+        {
+            if (!resources.ContainsKey(name)) return;
+            var resource = resources[name];
+            resource.Value = texture.View;
+            resources[name] = resource;
+            BuildResourceSet();
         }
 
         public float[] GetValueArray()
         {
-            if (!isDirty && rawValues != null) return rawValues;
+            if (!isBufferDirty && rawValues != null) return rawValues;
 
             var values = new List<float>();
             var properties = new List<Shader.Property>(this.properties.Values).ToArray();
@@ -139,7 +148,7 @@ namespace Deremis.Engine.Objects
                 }
             }
             rawValues = values.ToArray();
-            isDirty = false;
+            isBufferDirty = false;
             return rawValues;
         }
 
@@ -164,6 +173,7 @@ namespace Deremis.Engine.Objects
 
         public static BindableResource GetDefaultResourceValue(ResourceKind kind)
         {
+            // TODO other kinds???
             var missingTex = AssetManager.current.Get<Texture>(Application.MissingTex);
             if (missingTex != null)
             {

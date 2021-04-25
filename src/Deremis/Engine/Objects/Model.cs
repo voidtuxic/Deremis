@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using DefaultEcs;
 using Deremis.Engine.Systems.Components;
 using Deremis.System;
 
@@ -33,15 +34,17 @@ namespace Deremis.Engine.Objects
             nodes.Add(new Node { mesh = mesh, transform = transform });
         }
 
-        public void Spawn(Application app, string material)
+        public Entity Spawn(Application app, string material)
         {
+            Entity entity = default;
             foreach (var node in nodes)
             {
                 var mesh = Meshes[node.mesh];
                 if (mesh == null) continue;
-                var entity = app.Spawn(mesh.Name, mesh, material);
+                entity = app.Spawn(mesh.Name, mesh, material);
                 entity.Set(node.transform);
             }
+            return entity;
         }
 
         public override void Dispose()

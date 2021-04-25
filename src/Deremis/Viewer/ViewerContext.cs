@@ -21,8 +21,8 @@ namespace Deremis.Viewer
 
             var model = AssetManager.current.Get<Model>(new AssetDescription
             {
-                name = "remington870",
-                path = "Meshes/remington870.obj",
+                name = "Sten",
+                path = "Meshes/sten.obj",
                 type = 0
             });
             var shader = AssetManager.current.Get<Shader>(new AssetDescription
@@ -32,11 +32,18 @@ namespace Deremis.Viewer
                 type = 1
             });
 
+            var diffuseTex = AssetManager.current.Get<Texture>(new AssetDescription
+            {
+                name = "diffuseTex",
+                path = "Textures/sten_albedo.png",
+                type = 2
+            });
+
             var camera = app.CreateCamera();
             camera.Set(new Transform
             {
-                position = new Vector3(-20, 20, 15),
-                rotation = Quaternion.CreateFromYawPitchRoll(-MathF.PI / 4, -MathF.PI / 4, 0),
+                position = new Vector3(-10, 10, 10),
+                rotation = Quaternion.CreateFromYawPitchRoll(-MathF.PI / 4, -MathF.PI / 5, 0),
                 scale = Vector3.One
             });
 
@@ -47,20 +54,21 @@ namespace Deremis.Viewer
             material.SetProperty("diffuseColor", Vector3.One);
             material.SetProperty("specularStrength", 1f);
             material.SetProperty("specularColor", Vector3.One);
+            material.SetTexture("diffuseTexture", diffuseTex);
 
-            model.Spawn(app, material.Name);
+            var entity = model.Spawn(app, material.Name);
 
-            // float rotate = 0;
-            // app.MainSystem.Add(new ActionSystem<float>(delta =>
-            // {
-            //     rotate += delta;
-            //     entity.Set(new Transform
-            //     {
-            //         position = Vector3.Zero,
-            //         rotation = Quaternion.CreateFromYawPitchRoll(rotate, MathF.PI / 2, 0),
-            //         scale = Vector3.One
-            //     });
-            // }));
+            float rotate = 0;
+            app.MainSystem.Add(new ActionSystem<float>(delta =>
+            {
+                rotate += delta;
+                entity.Set(new Transform
+                {
+                    position = Vector3.Zero,
+                    rotation = Quaternion.CreateFromYawPitchRoll(rotate, 0, 0),
+                    scale = Vector3.One
+                });
+            }));
         }
     }
 }
