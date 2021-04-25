@@ -5,10 +5,11 @@ namespace Deremis.Engine.Systems.Components
 {
     public struct Light
     {
-        public static float[] Empty = new float[10];
-
         public float type;
         public Vector3 color;
+        public float range;
+        public float innerCutoff;
+        public float outerCutoff;
 
         public float[] GetValueArray(ref Transform transform)
         {
@@ -25,6 +26,9 @@ namespace Deremis.Engine.Systems.Components
             values.AddRange(array);
 
             values.Add(type);
+            values.Add(range);
+            values.Add(innerCutoff);
+            values.Add(outerCutoff);
 
             return values.ToArray();
         }

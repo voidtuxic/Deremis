@@ -143,13 +143,16 @@ namespace Deremis.System
             return entity;
         }
 
-        public Entity CreateLight(string name = "Light", Vector3 color = default, int type = 0)
+        public Entity CreateLight(string name = "Light", Vector3 color = default, int type = 0, float range = 1, float innerCutoff = 0, float outerCutoff = 0)
         {
             var entity = CreateTransform(name);
             entity.Set(new Light
             {
                 color = color,
-                type = type
+                type = type,
+                range = range,
+                innerCutoff = innerCutoff,
+                outerCutoff = outerCutoff
             });
             return entity;
         }

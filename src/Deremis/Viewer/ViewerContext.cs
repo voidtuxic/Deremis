@@ -52,10 +52,17 @@ namespace Deremis.Viewer
                 rotation = Quaternion.CreateFromYawPitchRoll(-MathF.PI / 4, -MathF.PI / 8, 0),
                 scale = Vector3.One
             });
-            var light = app.CreateLight(color: Vector3.One);
+
+            var light = app.CreateLight(
+                color: Vector3.One,
+                type: 2,
+                range: 100,
+                innerCutoff: MathF.Cos(12.5f * MathF.PI / 180f),
+                outerCutoff: MathF.Cos(17.5f * MathF.PI / 180f)
+            );
             light.Set(new Transform
             {
-                position = new Vector3(0, 10, 10),
+                position = new Vector3(0, 0, 10),
                 rotation = Quaternion.Identity,
                 scale = Vector3.One
             });
@@ -63,7 +70,7 @@ namespace Deremis.Viewer
             var material = app.MaterialManager.CreateMaterial(shader.Name, shader);
             material.SetProperty("ambientStrength", 0.05f);
             material.SetProperty("diffuseColor", Vector3.One);
-            material.SetProperty("specularStrength", 0.25f);
+            material.SetProperty("specularStrength", 0.15f);
             material.SetProperty("specularColor", Vector3.One);
             material.SetTexture("diffuseTexture", diffuseTex);
             material.SetTexture("specularTexture", specularTex);

@@ -46,6 +46,12 @@ void main()
     <fragment>
 #version 450
 
+// based off http://wiki.ogre3d.org/Light+Attenuation+Shortcut
+#define CONSTANT 1.0
+#define LINEAR_FACTOR 4.5
+#define QUADRATIC_FACTOR 75.0
+#define MIN_RANGE 0.001
+
 layout(set = 0, binding = 0) uniform Transform
 {
     mat4 ViewProj;
@@ -63,7 +69,12 @@ layout(set = 0, binding = 2) uniform Light {
     vec3 lightPosition;
     vec3 lightDirection;
     vec3 lightColor;
+
     float lightType;
+
+    float lightRange;
+    float lightInnerCutOff;
+    float lightOuterCutOff;
 };
 
 layout(set = 1, binding = 0) uniform texture2D diffuseTexture;
@@ -76,14 +87,13 @@ layout(location = 2) in vec2 f_UV;
 
 layout(location = 0) out vec4 out_Color;
 
-void main()
-{
+vec3 CalculateLight(vec3 lightDir, float attenuation, float intensity) 
+{    
+    vec3 norm = normalize(f_normal);
     vec3 diffTex = texture(sampler2D(diffuseTexture, texSampler), f_UV).rgb;
     vec3 specTex = texture(sampler2D(specularTexture, texSampler), f_UV).rgb;
 
     vec3 ambient = ambientStrength * lightColor;
-    vec3 norm = normalize(f_normal);
-    vec3 lightDir = normalize(lightPosition - f_position);
 
     float diff = max(dot(norm, lightDir), 0.0);
     vec3 diffuse = (diff * diffuseColor * diffTex) * lightColor;
@@ -94,7 +104,44 @@ void main()
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
     vec3 specular = (specularStrength * spec * specularColor * specTex) * lightColor;
 
-    out_Color = vec4(ambient + diffuse + specular, 1);
+    ambient  *= attenuation; 
+    diffuse  *= attenuation;
+    specular *= attenuation;
+
+    diffuse  *= intensity;
+    specular *= intensity;
+
+    return ambient + diffuse + specular;
+}
+
+void main()
+{
+    vec3 lightDir;
+    vec3 color;
+    if(lightType == 0)
+    {
+        lightDir = normalize(-lightDirection);
+        color = CalculateLight(lightDir, CONSTANT, 1.0);
+    }
+    else if (lightType == 1)
+    {
+        lightDir = normalize(lightPosition - f_position);
+        float range = max(MIN_RANGE, lightRange);
+        float linear = LINEAR_FACTOR/range;
+        float quadratic = QUADRATIC_FACTOR/(range*range);
+        float distance = length(lightPosition - f_position);
+        color = CalculateLight(lightDir, 1.0 / (CONSTANT + linear * distance + quadratic * (distance * distance)), 1.0);
+    }
+    else if (lightType == 2)
+    {
+        lightDir = normalize(lightPosition - f_position);
+        float theta = dot(lightDir, normalize(-lightDirection));
+        float epsilon = lightInnerCutOff - lightOuterCutOff;
+        float intensity = clamp((theta - lightOuterCutOff) / epsilon, 0.0, 1.0); 
+        color = CalculateLight(lightDir, CONSTANT, intensity);
+    }
+
+    out_Color = vec4(color, 1);
 }
     </fragment>
 </shader>
