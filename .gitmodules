@@ -1,0 +1,3 @@
+[submodule "ext/veldrid"]
+	path = ext/veldrid
+	url = git@github.com:mellinoe/veldrid.git
