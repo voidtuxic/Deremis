@@ -70,9 +70,10 @@ namespace Deremis.System
                 PreferStandardClipSpaceYDirection = true,
                 PreferDepthRangeZeroToOne = true,
                 SwapchainDepthFormat = PixelFormat.R16_UNorm,
-                SyncToVerticalBlank = true
+                SyncToVerticalBlank = true,
+                SwapchainSrgbFormat = true
             };
-            GraphicsDevice = VeldridStartup.CreateGraphicsDevice(window, options);
+            GraphicsDevice = VeldridStartup.CreateGraphicsDevice(window, options, GraphicsBackend.Direct3D11);
             Factory = GraphicsDevice.ResourceFactory;
 
             DefaultWorld = new World();

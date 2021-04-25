@@ -44,6 +44,12 @@ namespace Deremis.Viewer
                 path = "Textures/sten_metalness.png",
                 type = 2
             });
+            var normalTex = AssetManager.current.Get<Texture>(new AssetDescription
+            {
+                name = "normalTex",
+                path = "Textures/sten_normals.jpg",
+                type = 2
+            });
 
             var camera = app.CreateCamera();
             camera.Set(new Transform
@@ -54,7 +60,7 @@ namespace Deremis.Viewer
             });
 
             var light = app.CreateLight(
-                color: Vector3.UnitZ,
+                color: Vector3.UnitY,
                 type: 0
             );
             light.Set(new Transform
@@ -77,12 +83,13 @@ namespace Deremis.Viewer
             });
 
             var material = app.MaterialManager.CreateMaterial(shader.Name, shader);
-            material.SetProperty("ambientStrength", 0.05f);
+            material.SetProperty("ambientStrength", 0f);
             material.SetProperty("diffuseColor", Vector3.One);
             material.SetProperty("specularStrength", 0.15f);
             material.SetProperty("specularColor", Vector3.One);
             material.SetTexture("diffuseTexture", diffuseTex);
             material.SetTexture("specularTexture", specularTex);
+            material.SetTexture("normalTexture", normalTex);
 
             var entity = model.Spawn(app, material.Name);
 

@@ -15,6 +15,7 @@
     <resources>
         <texture2d name="diffuseTexture" />
         <texture2d name="specularTexture" />
+        <texture2d name="normalTexture" />
     </resources>
     <vertex>
 #version 450
@@ -29,24 +30,32 @@ layout(set = 0, binding = 0) uniform Transform
 layout(location = 0) in vec3 Position;
 layout(location = 1) in vec3 Normal;
 layout(location = 2) in vec2 UV;
+layout(location = 3) in vec3 Tangent;
+layout(location = 4) in vec3 Bitangent;
 
 layout(location = 0) out vec3 f_position;
-layout(location = 1) out vec3 f_normal;
-layout(location = 2) out vec2 f_UV;
+layout(location = 1) out vec2 f_UV;
+layout(location = 2) out mat3 f_TBN;
 
 void main()
 {
     vec4 worldPos = World * vec4(Position, 1);
     gl_Position = ViewProj * worldPos;
     f_position = worldPos.xyz;
-    f_normal = mat3(NormalWorld) * Normal;
+    //f_normal = mat3(NormalWorld) * Normal;
     f_UV = UV;
+
+    vec3 T = normalize(mat3(NormalWorld) * Tangent);
+    vec3 B = normalize(mat3(NormalWorld) * Bitangent);
+    vec3 N = normalize(mat3(NormalWorld) * Normal);
+    f_TBN = mat3(T, B, N);
 }
     </vertex>
     <fragment>
 #version 450
 
 // based off http://wiki.ogre3d.org/Light+Attenuation+Shortcut
+#define GAMMA 2.2
 #define MAX_LIGHTS 4
 #define CONSTANT 1.0
 #define LINEAR_FACTOR 4.5
@@ -85,30 +94,40 @@ layout(set = 0, binding = 2) uniform Light {
 
 layout(set = 1, binding = 0) uniform texture2D diffuseTexture;
 layout(set = 1, binding = 1) uniform texture2D specularTexture;
-layout(set = 1, binding = 2) uniform sampler texSampler;
+layout(set = 1, binding = 2) uniform texture2D normalTexture;
+layout(set = 1, binding = 3) uniform sampler texSampler;
 
 layout(location = 0) in vec3 f_position;
-layout(location = 1) in vec3 f_normal;
-layout(location = 2) in vec2 f_UV;
+layout(location = 1) in vec2 f_UV;
+layout(location = 2) in mat3 f_TBN;
 
 layout(location = 0) out vec4 out_Color;
 
+vec3 CorrectGamma(vec3 color) {
+    return pow(color, vec3(GAMMA));
+}
+
 vec3 CalculateLight(vec3 lightDir, vec3 lightColor, float attenuation, float intensity) 
 {    
-    vec3 norm = normalize(f_normal);
+    // edgy
+    vec3 viewPos = vec3(ViewProj[0][3], ViewProj[1][3], ViewProj[2][3]);
+    vec3 viewDir = normalize(viewPos - f_position);
+    vec3 halfwayDir = normalize(lightDir + viewDir);
+
     vec3 diffTex = texture(sampler2D(diffuseTexture, texSampler), f_UV).rgb;
     vec3 specTex = texture(sampler2D(specularTexture, texSampler), f_UV).rgb;
+    vec3 norm = texture(sampler2D(normalTexture, texSampler), f_UV).rgb;
+
+    diffTex = CorrectGamma(diffTex);
+    norm = norm * 2.0 - 1.0;
+    norm = normalize(f_TBN * norm); 
 
     vec3 ambient = ambientStrength * lightColor;
 
     float diff = max(dot(norm, lightDir), 0.0);
     vec3 diffuse = (diff * diffuseColor * diffTex) * lightColor;
 
-    // edgy
-    vec3 viewPos = vec3(ViewProj[0][3], ViewProj[1][3], ViewProj[2][3]);
-    vec3 viewDir = normalize(viewPos - f_position);
-    vec3 reflectDir = reflect(-lightDir, norm); 
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+    float spec = pow(max(dot(norm, halfwayDir), 0.0), 32);
     vec3 specular = (specularStrength * spec * specularColor * specTex) * lightColor;
 
     ambient  *= attenuation; 

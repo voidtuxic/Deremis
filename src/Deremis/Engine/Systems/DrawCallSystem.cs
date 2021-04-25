@@ -30,7 +30,7 @@ namespace Deremis.Engine.Systems
         private uint indexCount;
         private Matrix4x4 viewProjMatrix;
 
-        public RgbaFloat ClearColor { get; set; } = new RgbaFloat(0.1f, 0.1f, 0.1f, 1);
+        public RgbaFloat ClearColor { get; set; } = RgbaFloat.Black;
 
         public DrawCallSystem(Application app, World world) : base(world)
         {

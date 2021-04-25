@@ -101,7 +101,9 @@ namespace Deremis.System.Assets
                 {
                     Position = assimpMesh.Vertices[i].ToNumerics(),
                     Normal = assimpMesh.Normals[i].ToNumerics(),
-                    UV = new Vector2(uv.X, 1f - uv.Y) // not sure about that one...
+                    UV = new Vector2(uv.X, 1f - uv.Y),
+                    Tangent = assimpMesh.Tangents[i].ToNumerics(),
+                    Bitangent = assimpMesh.BiTangents[i].ToNumerics()
                 };
 
                 mesh.Add(vertex);
