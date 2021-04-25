@@ -67,7 +67,7 @@ namespace Deremis.System.Assets
                     var fileInclude = line.Remove(0, 10);
                     fileInclude = fileInclude.Trim('"');
                     var content = GetInternal(fileInclude);
-                    codeBuilder.AppendLine(content);
+                    codeBuilder.AppendLine(BuildCode(content));
                 }
                 else
                 {

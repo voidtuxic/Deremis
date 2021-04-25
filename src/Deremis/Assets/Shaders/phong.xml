@@ -23,14 +23,10 @@
     <fragment>
 #version 450
 
-#include "lighting.glsl"
+#include "uniforms/transform.glsl"
+#include "uniforms/lights.glsl"
+#include "genericfrag.glsl"
 
-layout(set = 0, binding = 0) uniform Transform
-{
-    mat4 ViewProj;
-    mat4 World;
-    mat4 NormalWorld;
-};
 layout(set = 0, binding = 1) uniform Material
 {
     vec3 diffuseColor;
@@ -38,20 +34,11 @@ layout(set = 0, binding = 1) uniform Material
     float ambientStrength;
     float specularStrength;
 };
-layout(set = 0, binding = 2) uniform Light {
-    LightStruct Lights[MAX_LIGHTS];
-};
 
 layout(set = 1, binding = 0) uniform texture2D diffuseTexture;
 layout(set = 1, binding = 1) uniform texture2D specularTexture;
 layout(set = 1, binding = 2) uniform texture2D normalTexture;
 layout(set = 1, binding = 3) uniform sampler texSampler;
-
-layout(location = 0) in vec3 f_position;
-layout(location = 1) in vec2 f_UV;
-layout(location = 2) in mat3 f_TBN;
-
-layout(location = 0) out vec4 out_Color;
 
 vec3 CalculateLight(vec3 lightDir, vec3 lightColor, float attenuation, float intensity) 
 {    
