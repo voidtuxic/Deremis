@@ -26,7 +26,7 @@ namespace Deremis.Engine.Objects
             }
         }
 
-        public void SetProperty(string name, object value)
+        public void SetProperty<T>(string name, T value) where T : unmanaged
         {
             if (!properties.ContainsKey(name)) return;
             var property = properties[name];
