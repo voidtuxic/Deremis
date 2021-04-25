@@ -47,10 +47,24 @@ void main()
 #version 450
 
 // based off http://wiki.ogre3d.org/Light+Attenuation+Shortcut
+#define MAX_LIGHTS 4
 #define CONSTANT 1.0
 #define LINEAR_FACTOR 4.5
 #define QUADRATIC_FACTOR 75.0
 #define MIN_RANGE 0.001
+
+struct LightStruct
+{
+    vec3 Position;
+    vec3 Direction;
+    vec3 Color;
+
+    float Type;
+
+    float Range;
+    float InnerCutoff;
+    float OuterCutoff;
+};
 
 layout(set = 0, binding = 0) uniform Transform
 {
@@ -66,15 +80,7 @@ layout(set = 0, binding = 1) uniform Material
     float specularStrength;
 };
 layout(set = 0, binding = 2) uniform Light {
-    vec3 lightPosition;
-    vec3 lightDirection;
-    vec3 lightColor;
-
-    float lightType;
-
-    float lightRange;
-    float lightInnerCutOff;
-    float lightOuterCutOff;
+    LightStruct Lights[MAX_LIGHTS];
 };
 
 layout(set = 1, binding = 0) uniform texture2D diffuseTexture;
@@ -87,7 +93,7 @@ layout(location = 2) in vec2 f_UV;
 
 layout(location = 0) out vec4 out_Color;
 
-vec3 CalculateLight(vec3 lightDir, float attenuation, float intensity) 
+vec3 CalculateLight(vec3 lightDir, vec3 lightColor, float attenuation, float intensity) 
 {    
     vec3 norm = normalize(f_normal);
     vec3 diffTex = texture(sampler2D(diffuseTexture, texSampler), f_UV).rgb;
@@ -98,6 +104,7 @@ vec3 CalculateLight(vec3 lightDir, float attenuation, float intensity)
     float diff = max(dot(norm, lightDir), 0.0);
     vec3 diffuse = (diff * diffuseColor * diffTex) * lightColor;
 
+    // edgy
     vec3 viewPos = vec3(ViewProj[0][3], ViewProj[1][3], ViewProj[2][3]);
     vec3 viewDir = normalize(viewPos - f_position);
     vec3 reflectDir = reflect(-lightDir, norm); 
@@ -116,29 +123,39 @@ vec3 CalculateLight(vec3 lightDir, float attenuation, float intensity)
 
 void main()
 {
-    vec3 lightDir;
     vec3 color;
-    if(lightType == 0)
+    
+    for(int i = 0; i &lt; MAX_LIGHTS; i++)
     {
-        lightDir = normalize(-lightDirection);
-        color = CalculateLight(lightDir, CONSTANT, 1.0);
-    }
-    else if (lightType == 1)
-    {
-        lightDir = normalize(lightPosition - f_position);
-        float range = max(MIN_RANGE, lightRange);
-        float linear = LINEAR_FACTOR/range;
-        float quadratic = QUADRATIC_FACTOR/(range*range);
-        float distance = length(lightPosition - f_position);
-        color = CalculateLight(lightDir, 1.0 / (CONSTANT + linear * distance + quadratic * (distance * distance)), 1.0);
-    }
-    else if (lightType == 2)
-    {
-        lightDir = normalize(lightPosition - f_position);
-        float theta = dot(lightDir, normalize(-lightDirection));
-        float epsilon = lightInnerCutOff - lightOuterCutOff;
-        float intensity = clamp((theta - lightOuterCutOff) / epsilon, 0.0, 1.0); 
-        color = CalculateLight(lightDir, CONSTANT, intensity);
+        float lightType = Lights[i].Type;
+        vec3 lightPosition = Lights[i].Position;
+        vec3 lightDirection = Lights[i].Direction;
+        vec3 lightColor = Lights[i].Color;
+        if(lightType == 0)
+        {
+            vec3 lightDir = normalize(-lightDirection);
+            color += CalculateLight(lightDir, lightColor, CONSTANT, 1.0);
+        }
+        else if (lightType == 1)
+        {
+            float lightRange = Lights[i].Range;
+            vec3 lightDir = normalize(lightPosition - f_position);
+            float range = max(MIN_RANGE, lightRange);
+            float linear = LINEAR_FACTOR/range;
+            float quadratic = QUADRATIC_FACTOR/(range*range);
+            float distance = length(lightPosition - f_position);
+            color += CalculateLight(lightDir, lightColor, 1.0 / (CONSTANT + linear * distance + quadratic * (distance * distance)), 1.0);
+        }
+        else if (lightType == 2)
+        {
+            float lightInnerCutOff = Lights[i].InnerCutoff;
+            float lightOuterCutOff = Lights[i].OuterCutoff;
+            vec3 lightDir = normalize(lightPosition - f_position);
+            float theta = dot(lightDir, normalize(-lightDirection));
+            float epsilon = lightInnerCutOff - lightOuterCutOff;
+            float intensity = clamp((theta - lightOuterCutOff) / epsilon, 0.0, 1.0); 
+            color += CalculateLight(lightDir, lightColor, CONSTANT, intensity);
+        }
     }
 
     out_Color = vec4(color, 1);

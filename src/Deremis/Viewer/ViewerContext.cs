@@ -54,16 +54,25 @@ namespace Deremis.Viewer
             });
 
             var light = app.CreateLight(
-                color: Vector3.One,
-                type: 2,
-                range: 100,
-                innerCutoff: MathF.Cos(12.5f * MathF.PI / 180f),
-                outerCutoff: MathF.Cos(17.5f * MathF.PI / 180f)
+                color: Vector3.UnitZ,
+                type: 0
             );
             light.Set(new Transform
             {
-                position = new Vector3(0, 0, 10),
-                rotation = Quaternion.Identity,
+                position = Vector3.Zero,
+                rotation = Quaternion.CreateFromYawPitchRoll(0, -MathF.PI / 2f, 0),
+                scale = Vector3.One
+            });
+            light = app.CreateLight(
+                color: Vector3.One,
+                type: 2,
+                innerCutoff: MathF.Cos(5f * MathF.PI / 180f),
+                outerCutoff: MathF.Cos(10f * MathF.PI / 180f)
+            );
+            light.Set(new Transform
+            {
+                position = new Vector3(-10, 0, 1),
+                rotation = Quaternion.CreateFromYawPitchRoll(-MathF.PI / 2f, 0, 0),
                 scale = Vector3.One
             });
 

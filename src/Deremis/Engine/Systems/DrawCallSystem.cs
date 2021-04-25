@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Numerics;
 using DefaultEcs;
 using DefaultEcs.System;
@@ -76,18 +77,16 @@ namespace Deremis.Engine.Systems
             }
 
             Span<Entity> lights = stackalloc Entity[lightSet.Count];
+            var lightValues = new List<float>();
             lightSet.GetEntities().CopyTo(lights);
             foreach (ref readonly Entity lightEntity in lights)
             {
                 ref var transform = ref lightEntity.Get<Transform>();
                 ref var light = ref lightEntity.Get<Light>();
 
-                var values = light.GetValueArray(ref transform);
-                commandList.UpdateBuffer(app.MaterialManager.LightBuffer, 0, values);
-
-                // TODO handle more than one light
-                break;
+                lightValues.AddRange(light.GetValueArray(ref transform));
             }
+            commandList.UpdateBuffer(app.MaterialManager.LightBuffer, 0, lightValues.ToArray());
         }
 
         protected override void PreUpdate(float state, Drawable key)

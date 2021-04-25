@@ -11,6 +11,7 @@ namespace Deremis.Engine.Systems.Components
         public float innerCutoff;
         public float outerCutoff;
 
+        // this is fucking cursed
         public float[] GetValueArray(ref Transform transform)
         {
             var values = new List<float>();
@@ -29,6 +30,7 @@ namespace Deremis.Engine.Systems.Components
             values.Add(range);
             values.Add(innerCutoff);
             values.Add(outerCutoff);
+            values.Add(0f); // padding
 
             return values.ToArray();
         }
