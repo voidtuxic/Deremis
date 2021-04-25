@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Xml;
 using Deremis.Engine.Objects;
 using Veldrid;
@@ -12,6 +15,7 @@ namespace Deremis.System.Assets
     {
         public string Name => "Shader Handler";
         private readonly ConcurrentDictionary<string, Shader> loadedShaders = new ConcurrentDictionary<string, Shader>();
+        private readonly ConcurrentDictionary<string, string> internalShaders = new ConcurrentDictionary<string, string>();
 
         public T Get<T>(AssetDescription description) where T : DObject
         {
@@ -39,16 +43,50 @@ namespace Deremis.System.Assets
                         SetupResources(child, shader);
                         break;
                     case "vertex":
-                        shader.SetVertexCode(child.InnerText);
+                        shader.SetVertexCode(BuildCode(child.InnerText));
                         break;
                     case "fragment":
-                        shader.SetFragmentCode(child.InnerText);
+                        shader.SetFragmentCode(BuildCode(child.InnerText));
                         break;
                 }
             }
             shader.Build();
             loadedShaders.TryAdd(description.name, shader);
             return shader as T;
+        }
+
+        private string BuildCode(string rawCode)
+        {
+            var code = new List<string>(rawCode.Split("\r\n"));
+            var codeBuilder = new StringBuilder();
+
+            foreach (var line in code)
+            {
+                if (line.StartsWith("#include \""))
+                {
+                    var fileInclude = line.Remove(0, 10);
+                    fileInclude = fileInclude.Trim('"');
+                    var content = GetInternal(fileInclude);
+                    codeBuilder.AppendLine(content);
+                }
+                else
+                {
+                    codeBuilder.AppendLine(line);
+                }
+            }
+            // string pattern = @"\b\w+es\b";
+            // var rgx = new Regex(pattern);
+            // var match = rgx.Matches(code);
+
+            return codeBuilder.ToString();
+        }
+
+        private string GetInternal(string name)
+        {
+            if (internalShaders.ContainsKey(name)) return internalShaders[name];
+            var content = File.ReadAllText(AssetManager.current.Rebase($"Shaders/{name}"));
+            internalShaders.TryAdd(name, content);
+            return content;
         }
 
         private void SetupConfig(XmlNode node, Shader shader)

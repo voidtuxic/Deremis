@@ -60,7 +60,7 @@ namespace Deremis.Viewer
             });
 
             var light = app.CreateLight(
-                color: Vector3.UnitY,
+                color: new Vector3(1f, 0.9f, 0.75f),
                 type: 0
             );
             light.Set(new Transform
@@ -70,10 +70,10 @@ namespace Deremis.Viewer
                 scale = Vector3.One
             });
             light = app.CreateLight(
-                color: Vector3.One,
+                color: Vector3.UnitX,
                 type: 2,
-                innerCutoff: MathF.Cos(5f * MathF.PI / 180f),
-                outerCutoff: MathF.Cos(10f * MathF.PI / 180f)
+                innerCutoff: MathF.Cos(15f * MathF.PI / 180f),
+                outerCutoff: MathF.Cos(20f * MathF.PI / 180f)
             );
             light.Set(new Transform
             {
@@ -83,7 +83,7 @@ namespace Deremis.Viewer
             });
 
             var material = app.MaterialManager.CreateMaterial(shader.Name, shader);
-            material.SetProperty("ambientStrength", 0f);
+            material.SetProperty("ambientStrength", 0.001f);
             material.SetProperty("diffuseColor", Vector3.One);
             material.SetProperty("specularStrength", 0.15f);
             material.SetProperty("specularColor", Vector3.One);

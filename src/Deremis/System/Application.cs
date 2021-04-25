@@ -59,8 +59,8 @@ namespace Deremis.System
             {
                 X = 100,
                 Y = 100,
-                WindowWidth = 1280,
-                WindowHeight = 960,
+                WindowWidth = 1920,
+                WindowHeight = 1080,
                 WindowTitle = "Deremis"
             };
             window = VeldridStartup.CreateWindow(ref windowCI);
