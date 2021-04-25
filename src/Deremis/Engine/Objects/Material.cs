@@ -11,7 +11,9 @@ namespace Deremis.Engine.Objects
         public Shader Shader { get; private set; }
         public Pipeline Pipeline { get; private set; }
 
+        private bool isDirty = true;
         private readonly Dictionary<string, Shader.Property> properties = new Dictionary<string, Shader.Property>();
+        private float[] rawValues;
 
         public Material(string name, Shader shader, Pipeline pipeline) : base(name)
         {
@@ -32,10 +34,13 @@ namespace Deremis.Engine.Objects
             var property = properties[name];
             property.Value = value;
             properties[name] = property;
+            isDirty = true;
         }
 
         public float[] GetValueArray()
         {
+            if (!isDirty && rawValues != null) return rawValues;
+
             var values = new List<float>();
             var properties = new List<Shader.Property>(this.properties.Values).ToArray();
             Array.Sort(properties, new ShaderPropertyOrderCompare());
@@ -78,8 +83,9 @@ namespace Deremis.Engine.Objects
                     values.AddRange(array);
                 }
             }
-
-            return values.ToArray();
+            rawValues = values.ToArray();
+            isDirty = false;
+            return rawValues;
         }
 
         public static object GetDefaultParameterValue(VertexElementFormat format)
