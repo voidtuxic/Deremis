@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shader version="1">
+    <config>
+        <BlendState>SingleDisabled</BlendState>
+        <DepthStencilState depthTestEnabled="true" depthWriteEnabled="false" comparisonKind="Always" />
+        <RasterizerState depthClipEnabled="true" scissorTestEnabled="false" cullMode="None" fillMode="Solid" frontFace="Clockwise" />
+        <PrimitiveTopology>TriangleList</PrimitiveTopology>
+    </config>
+    <resources>
+        <texture2d name="screenTex" />
+    </resources>
+    <vertex>
+#version 450
+
+#include "uniforms/in_vert.glsl"
+
+layout(location = 0) out vec2 f_UV;
+
+void main()
+{
+    gl_Position = vec4(Position.x, Position.y, 0.0, 1.0); 
+    f_UV = UV;
+}
+    </vertex>
+    <fragment>
+#version 450
+
+#include "uniforms/transform.glsl"
+
+layout(location = 0) in vec2 f_UV;
+layout(location = 0) out vec4 out_Color;
+
+layout(set = 1, binding = 0) uniform texture2D screenTex;
+layout(set = 1, binding = 1) uniform sampler texSampler;
+
+void main()
+{    
+    out_Color = texture(sampler2D(screenTex, texSampler), f_UV);
+}
+    </fragment>
+</shader>

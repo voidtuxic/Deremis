@@ -18,6 +18,8 @@ namespace Deremis.System
 {
     public sealed class Application : IDisposable
     {
+        private const PixelFormat COLOR_PIXEL_FORMAT = PixelFormat.R8_G8_B8_A8_UNorm;
+        private const PixelFormat DEPTH_PIXEL_FORMAT = PixelFormat.R16_UNorm;
         public static AssetDescription MissingTex = new AssetDescription
         {
             name = "missing",
@@ -41,6 +43,14 @@ namespace Deremis.System
         public AssetManager AssetManager { get; private set; }
         public MaterialManager MaterialManager { get; private set; }
         private IContext context;
+
+        private Veldrid.Texture screenColorTexture;
+        private Veldrid.Texture screenDepthTexture;
+        public Framebuffer ScreenFramebuffer { get; private set; }
+        private Veldrid.Texture copyTexture;
+        public TextureView CopyView { get; private set; }
+        private Veldrid.Texture depthCopyTexture;
+        public TextureView DepthCopyView { get; private set; }
 
         public Application(string[] args, IContext context)
         {
@@ -69,7 +79,6 @@ namespace Deremis.System
             {
                 PreferStandardClipSpaceYDirection = true,
                 PreferDepthRangeZeroToOne = true,
-                SwapchainDepthFormat = PixelFormat.R16_UNorm,
                 SyncToVerticalBlank = true,
                 SwapchainSrgbFormat = true,
 #if DEBUG
@@ -79,18 +88,42 @@ namespace Deremis.System
             GraphicsDevice = VeldridStartup.CreateGraphicsDevice(window, options, GraphicsBackend.Direct3D11);
             Factory = GraphicsDevice.ResourceFactory;
 
+            CreateRenderContext();
+
+            AssetManager = new AssetManager("./Assets/");
+            MaterialManager = new MaterialManager(this);
+
             DefaultWorld = new World();
             Draw = new DrawCallSystem(this, DefaultWorld);
             ParallelSystemRunner = new DefaultParallelRunner(Environment.ProcessorCount);
             MainSystem = new SequentialListSystem<float>();
             MainSystem.Add(Draw);
 
-            AssetManager = new AssetManager("./Assets/");
-            MaterialManager = new MaterialManager(this);
-
             LoadDefaultAssets();
 
             context.Initialize(this);
+        }
+
+        private void CreateRenderContext()
+        {
+            TextureDescription colorTextureDescription = TextureDescription.Texture2D(
+                (uint)window.Width, (uint)window.Height, 1, 1,
+                COLOR_PIXEL_FORMAT, TextureUsage.RenderTarget, TextureSampleCount.Count1);
+            screenColorTexture = Factory.CreateTexture(ref colorTextureDescription);
+            screenDepthTexture = Factory.CreateTexture(TextureDescription.Texture2D(
+                (uint)window.Width, (uint)window.Height, 1, 1,
+                DEPTH_PIXEL_FORMAT, TextureUsage.DepthStencil, TextureSampleCount.Count1));
+
+            ScreenFramebuffer = Factory.CreateFramebuffer(new FramebufferDescription(screenDepthTexture, screenColorTexture));
+
+            copyTexture = Factory.CreateTexture(TextureDescription.Texture2D(
+                (uint)window.Width, (uint)window.Height, 1, 1,
+                COLOR_PIXEL_FORMAT, TextureUsage.Storage | TextureUsage.Sampled, TextureSampleCount.Count1));
+            CopyView = Factory.CreateTextureView(copyTexture);
+            depthCopyTexture = Factory.CreateTexture(TextureDescription.Texture2D(
+                (uint)window.Width, (uint)window.Height, 1, 1,
+                DEPTH_PIXEL_FORMAT, TextureUsage.Storage | TextureUsage.Sampled, TextureSampleCount.Count1));
+            DepthCopyView = Factory.CreateTextureView(depthCopyTexture);
         }
 
         private void LoadDefaultAssets()
@@ -168,8 +201,25 @@ namespace Deremis.System
             return entity;
         }
 
+        public void UpdateCopyTexture(CommandList commandList)
+        {
+            commandList.Begin();
+            commandList.CopyTexture(screenColorTexture, copyTexture);
+            commandList.End();
+            GraphicsDevice.SubmitCommands(commandList);
+            GraphicsDevice.WaitForIdle();
+        }
+
         public void Dispose()
         {
+            ScreenFramebuffer.Dispose();
+            screenColorTexture.Dispose();
+            screenDepthTexture.Dispose();
+            CopyView.Dispose();
+            copyTexture.Dispose();
+            DepthCopyView.Dispose();
+            depthCopyTexture.Dispose();
+
             MaterialManager.Dispose();
             AssetManager.Dispose();
 

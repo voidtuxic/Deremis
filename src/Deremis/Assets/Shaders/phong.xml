@@ -42,8 +42,7 @@ layout(set = 1, binding = 3) uniform sampler texSampler;
 
 vec3 CalculateLight(vec3 lightDir, vec3 lightColor, float attenuation, float intensity) 
 {    
-    // edgy
-    vec3 viewPos = vec3(ViewProj[0][3], ViewProj[1][3], ViewProj[2][3]);
+    vec3 viewPos = GetViewPos();
     vec3 viewDir = normalize(viewPos - f_position);
     vec3 halfwayDir = normalize(lightDir + viewDir);
 

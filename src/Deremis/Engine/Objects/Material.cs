@@ -41,7 +41,7 @@ namespace Deremis.Engine.Objects
         }
 
         // TODO add parameters for outputs
-        public void Build()
+        public void Build(Framebuffer framebuffer)
         {
             var app = Application.current;
             Pipeline?.Dispose();
@@ -59,7 +59,7 @@ namespace Deremis.Engine.Objects
 
             var description = Shader.DefaultPipeline;
             description.ResourceLayouts = new ResourceLayout[] { app.MaterialManager.GeneralResourceLayout, resourceLayout };
-            description.Outputs = app.GraphicsDevice.SwapchainFramebuffer.OutputDescription;
+            description.Outputs = framebuffer == null ? app.ScreenFramebuffer.OutputDescription : framebuffer.OutputDescription;
             Pipeline = app.Factory.CreateGraphicsPipeline(description);
 
             BuildResourceSet();
@@ -95,9 +95,14 @@ namespace Deremis.Engine.Objects
 
         public void SetTexture(string name, Texture texture)
         {
+            SetTexture(name, texture.View);
+        }
+
+        public void SetTexture(string name, TextureView view)
+        {
             if (!resources.ContainsKey(name)) return;
             var resource = resources[name];
-            resource.Value = texture.View;
+            resource.Value = view;
             resources[name] = resource;
             BuildResourceSet();
         }

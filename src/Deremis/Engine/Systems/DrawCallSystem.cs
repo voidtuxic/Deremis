@@ -8,7 +8,9 @@ using Deremis.Engine.Objects;
 using Deremis.Engine.Rendering.Resources;
 using Deremis.Engine.Systems.Components;
 using Deremis.System;
+using Deremis.System.Assets;
 using Veldrid;
+using Shader = Deremis.Engine.Objects.Shader;
 
 namespace Deremis.Engine.Systems
 {
@@ -16,6 +18,12 @@ namespace Deremis.Engine.Systems
     public class DrawCallSystem : AEntityMultiMapSystem<float, Drawable>
     {
         public static DrawCallSystem current;
+        public static AssetDescription ScreenShader = new AssetDescription
+        {
+            name = "screen_passthrough",
+            path = "Shaders/screen/passthrough.xml",
+            type = 1
+        };
 
         private readonly Application app;
         private readonly CommandList commandList;
@@ -33,6 +41,8 @@ namespace Deremis.Engine.Systems
         private Matrix4x4 viewProjMatrix;
 
         public RgbaFloat ClearColor { get; set; } = RgbaFloat.Black;
+        private Material screenRenderMaterial;
+        private Mesh screenRenderMesh;
 
         public DrawCallSystem(Application app, World world) : base(world)
         {
@@ -41,6 +51,49 @@ namespace Deremis.Engine.Systems
             commandList = app.Factory.CreateCommandList();
             cameraSet = world.GetEntities().With<Camera>().With<Transform>().AsSet();
             lightSet = world.GetEntities().With<Light>().With<Transform>().AsSet();
+            InitScreenData();
+        }
+
+        private void InitScreenData()
+        {
+            screenRenderMesh = new Mesh("screen");
+            screenRenderMesh.Indexed = false;
+            screenRenderMesh.Add(new Rendering.Vertex
+            {
+                Position = new Vector3(-1, 1, 0),
+                UV = new Vector2(0, 0)
+            });
+            screenRenderMesh.Add(new Rendering.Vertex
+            {
+                Position = new Vector3(-1, -1, 0),
+                UV = new Vector2(0, 1)
+            });
+            screenRenderMesh.Add(new Rendering.Vertex
+            {
+                Position = new Vector3(1, -1, 0),
+                UV = new Vector2(1, 1)
+            });
+            screenRenderMesh.Add(new Rendering.Vertex
+            {
+                Position = new Vector3(-1, 1, 0),
+                UV = new Vector2(0, 0)
+            });
+            screenRenderMesh.Add(new Rendering.Vertex
+            {
+                Position = new Vector3(1, -1, 0),
+                UV = new Vector2(1, 1)
+            });
+            screenRenderMesh.Add(new Rendering.Vertex
+            {
+                Position = new Vector3(1, 1, 0),
+                UV = new Vector2(1, 0)
+            });
+            screenRenderMesh.UpdateBuffers();
+            screenRenderMaterial = app.MaterialManager.CreateMaterial(
+                ScreenShader.name,
+                app.AssetManager.Get<Shader>(ScreenShader),
+                app.GraphicsDevice.SwapchainFramebuffer);
+            screenRenderMaterial.SetTexture("screenTex", app.CopyView);
         }
 
         public string RegisterMesh(string name, Mesh mesh)
@@ -51,7 +104,7 @@ namespace Deremis.Engine.Systems
 
         private void SetFramebuffer()
         {
-            commandList.SetFramebuffer(app.GraphicsDevice.SwapchainFramebuffer);
+            commandList.SetFramebuffer(app.ScreenFramebuffer);
             commandList.SetFullViewports();
         }
 
@@ -175,7 +228,36 @@ namespace Deremis.Engine.Systems
 
         protected override void PostUpdate(float state)
         {
+            app.UpdateCopyTexture(commandList);
+            UpdateSwapchain();
+
             app.GraphicsDevice.SwapBuffers();
+        }
+
+        private void UpdateSwapchain()
+        {
+            commandList.Begin();
+
+            commandList.SetFramebuffer(app.GraphicsDevice.SwapchainFramebuffer);
+            commandList.SetFullViewports();
+            commandList.ClearColorTarget(0, ClearColor);
+
+            commandList.UpdateBuffer(app.MaterialManager.MaterialBuffer, 0, screenRenderMaterial.GetValueArray());
+
+            commandList.SetVertexBuffer(0, screenRenderMesh.VertexBuffer);
+            commandList.SetPipeline(screenRenderMaterial.Pipeline);
+            commandList.SetGraphicsResourceSet(0, app.MaterialManager.GeneralResourceSet);
+            commandList.SetGraphicsResourceSet(1, screenRenderMaterial.ResourceSet);
+
+            commandList.Draw(
+                vertexCount: screenRenderMesh.VertexCount,
+                instanceCount: 1,
+                vertexStart: 0,
+                instanceStart: 0);
+
+            commandList.End();
+            app.GraphicsDevice.SubmitCommands(commandList);
+            app.GraphicsDevice.WaitForIdle();
         }
     }
 }

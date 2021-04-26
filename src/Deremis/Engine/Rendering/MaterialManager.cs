@@ -51,12 +51,12 @@ namespace Deremis.Engine.Rendering
             GeneralResourceSet = app.Factory.CreateResourceSet(resourceSetDescription);
         }
 
-        public Material CreateMaterial(string name, Shader shader)
+        public Material CreateMaterial(string name, Shader shader, Framebuffer framebuffer = null)
         {
             if (materials.ContainsKey(name)) return materials[name];
 
             var material = new Material(name, shader);
-            material.Build();
+            material.Build(framebuffer);
             materials.TryAdd(name, material);
             return material;
         }
