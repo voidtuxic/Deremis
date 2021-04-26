@@ -30,7 +30,7 @@ namespace Deremis.System.Assets
 
     public class AssimpHandler : IAssetHandler
     {
-        private static PostProcessSteps ASSIMP_POSTPROCESS = PostProcessPreset.TargetRealTimeMaximumQuality | PostProcessSteps.MakeLeftHanded;
+        private static PostProcessSteps ASSIMP_POSTPROCESS = PostProcessPreset.TargetRealTimeMaximumQuality | PostProcessSteps.FlipWindingOrder;
 
         public string Name => "Assimp Handler";
 
@@ -97,7 +97,7 @@ namespace Deremis.System.Assets
             for (var i = 0; i < assimpMesh.VertexCount; i++)
             {
                 var uv = assimpMesh.TextureCoordinateChannels[0][i];
-                var vertex = new PBRVertex
+                var vertex = new Vertex
                 {
                     Position = assimpMesh.Vertices[i].ToNumerics(),
                     Normal = assimpMesh.Normals[i].ToNumerics(),

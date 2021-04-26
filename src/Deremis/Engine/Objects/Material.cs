@@ -13,7 +13,7 @@ namespace Deremis.Engine.Objects
         public override string Type => "Material";
         public Shader Shader { get; private set; }
         public Pipeline Pipeline { get; private set; }
-        public Sampler Sampler { get; set; } = Application.current.GraphicsDevice.LinearSampler;
+        public Sampler Sampler { get; set; } = Application.current.GraphicsDevice.Aniso4xSampler;
         public ResourceSet ResourceSet { get; private set; }
 
         private bool isBufferDirty = true;
@@ -99,6 +99,12 @@ namespace Deremis.Engine.Objects
             var resource = resources[name];
             resource.Value = texture.View;
             resources[name] = resource;
+            BuildResourceSet();
+        }
+
+        public void SetSampler(SamplerDescription description)
+        {
+            Sampler = Application.current.Factory.CreateSampler(description);
             BuildResourceSet();
         }
 

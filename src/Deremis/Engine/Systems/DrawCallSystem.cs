@@ -27,7 +27,9 @@ namespace Deremis.Engine.Systems
 
         private bool isDrawValid;
         private Material material;
-        private uint indexCount;
+        private Mesh mesh;
+        private Matrix4x4 viewMatrix;
+        private Matrix4x4 projMatrix;
         private Matrix4x4 viewProjMatrix;
 
         public RgbaFloat ClearColor { get; set; } = RgbaFloat.Black;
@@ -47,12 +49,17 @@ namespace Deremis.Engine.Systems
             return name;
         }
 
+        private void SetFramebuffer()
+        {
+            commandList.SetFramebuffer(app.GraphicsDevice.SwapchainFramebuffer);
+            commandList.SetFullViewports();
+        }
+
         protected override void PreUpdate(float state)
         {
             commandList.Begin();
 
-            commandList.SetFramebuffer(app.GraphicsDevice.SwapchainFramebuffer);
-            commandList.SetFullViewports();
+            SetFramebuffer();
             commandList.ClearColorTarget(0, ClearColor);
             commandList.ClearDepthStencil(1f);
 
@@ -68,9 +75,9 @@ namespace Deremis.Engine.Systems
             foreach (ref readonly Entity camEntity in cameras)
             {
                 ref var transform = ref camEntity.Get<Transform>();
-                var view = transform.ToViewMatrix();
-                var projection = camEntity.Get<Camera>().projection;
-                viewProjMatrix = Matrix4x4.Multiply(view, projection);
+                viewMatrix = transform.ToViewMatrix();
+                projMatrix = camEntity.Get<Camera>().projection;
+                viewProjMatrix = Matrix4x4.Multiply(viewMatrix, projMatrix);
 
                 // TODO handle more than one camera
                 break;
@@ -87,6 +94,8 @@ namespace Deremis.Engine.Systems
                 lightValues.AddRange(light.GetValueArray(ref transform));
             }
             commandList.UpdateBuffer(app.MaterialManager.LightBuffer, 0, lightValues.ToArray());
+            commandList.End();
+            app.GraphicsDevice.SubmitCommands(commandList);
         }
 
         protected override void PreUpdate(float state, Drawable key)
@@ -98,18 +107,20 @@ namespace Deremis.Engine.Systems
                 isDrawValid = false;
                 return;
             }
-            commandList.UpdateBuffer(app.MaterialManager.MaterialBuffer, 0, material.GetValueArray());
             var pipeline = material.Pipeline;
-            Mesh mesh = null;
+            mesh = null;
             if (meshes.ContainsKey(key.mesh)) mesh = meshes[key.mesh];
             if (pipeline != null && mesh != null)
             {
+                commandList.Begin();
+                SetFramebuffer();
+                commandList.UpdateBuffer(app.MaterialManager.MaterialBuffer, 0, material.GetValueArray());
                 commandList.SetVertexBuffer(0, mesh.VertexBuffer);
-                commandList.SetIndexBuffer(mesh.IndexBuffer, IndexFormat.UInt32);
+                if (mesh.Indexed)
+                    commandList.SetIndexBuffer(mesh.IndexBuffer, IndexFormat.UInt32);
                 commandList.SetPipeline(pipeline);
                 commandList.SetGraphicsResourceSet(0, app.MaterialManager.GeneralResourceSet);
                 commandList.SetGraphicsResourceSet(1, material.ResourceSet);
-                indexCount = mesh.IndexCount;
                 isDrawValid = true;
             }
             else isDrawValid = false;
@@ -136,24 +147,34 @@ namespace Deremis.Engine.Systems
                         viewProjMatrix = viewProjMatrix,
                         worldMatrix = world,
                         normalWorldMatrix = normalWorld,
+                        viewMatrix = viewMatrix,
+                        projMatrix = projMatrix
                     });
-                commandList.DrawIndexed(
-                    indexCount: indexCount,
-                    instanceCount: 1,
-                    indexStart: 0,
-                    vertexOffset: 0,
-                    instanceStart: 0);
+
+                if (mesh.Indexed)
+                    commandList.DrawIndexed(
+                        indexCount: mesh.IndexCount,
+                        instanceCount: 1,
+                        indexStart: 0,
+                        vertexOffset: 0,
+                        instanceStart: 0);
+                else
+                    commandList.Draw(
+                        vertexCount: mesh.VertexCount,
+                        instanceCount: 1,
+                        vertexStart: 0,
+                        instanceStart: 0);
             }
         }
 
         protected override void PostUpdate(float state, Drawable key)
         {
+            commandList.End();
+            app.GraphicsDevice.SubmitCommands(commandList);
         }
 
         protected override void PostUpdate(float state)
         {
-            commandList.End();
-            app.GraphicsDevice.SubmitCommands(commandList);
             app.GraphicsDevice.SwapBuffers();
         }
     }

@@ -176,6 +176,7 @@ namespace Deremis.System.Assets
                 switch (child.Name)
                 {
                     case "texture2d":
+                    case "cubemap":
                         break;
                     default: continue;
                 }

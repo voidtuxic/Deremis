@@ -66,7 +66,7 @@ namespace Deremis.Engine.Objects
 
             var pipeline = DefaultPipeline;
             pipeline.ShaderSet = new ShaderSetDescription(
-                vertexLayouts: new VertexLayoutDescription[] { PBRVertex.VertexLayout },
+                vertexLayouts: new VertexLayoutDescription[] { Vertex.VertexLayout },
                 shaders: Shaders
             );
             SetDefaultPipeline(pipeline);

@@ -4,7 +4,7 @@ using Veldrid;
 
 namespace Deremis.Engine.Rendering
 {
-    public struct PBRVertex
+    public struct Vertex
     {
         public Vector3 Position;
         public Vector3 Normal;
@@ -12,7 +12,7 @@ namespace Deremis.Engine.Rendering
         public Vector3 Tangent;
         public Vector3 Bitangent;
 
-        public static uint SizeInBytes = (uint)Unsafe.SizeOf<PBRVertex>();
+        public static uint SizeInBytes = (uint)Unsafe.SizeOf<Vertex>();
 
         public static VertexLayoutDescription VertexLayout = new VertexLayoutDescription(
             new VertexElementDescription("Position", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float3),

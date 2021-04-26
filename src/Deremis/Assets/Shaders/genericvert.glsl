@@ -22,7 +22,6 @@ void main()
     vec4 worldPos = World * vec4(Position, 1);
     gl_Position = ViewProj * worldPos;
     f_position = worldPos.xyz;
-    //f_normal = mat3(NormalWorld) * Normal;
     f_UV = UV;
 
     vec3 T = normalize(mat3(NormalWorld) * Tangent);

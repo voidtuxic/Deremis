@@ -59,7 +59,7 @@ namespace Deremis.System
             {
                 X = 100,
                 Y = 100,
-                WindowWidth = 1920,
+                WindowWidth = 1600,
                 WindowHeight = 1080,
                 WindowTitle = "Deremis"
             };
@@ -71,7 +71,10 @@ namespace Deremis.System
                 PreferDepthRangeZeroToOne = true,
                 SwapchainDepthFormat = PixelFormat.R16_UNorm,
                 SyncToVerticalBlank = true,
-                SwapchainSrgbFormat = true
+                SwapchainSrgbFormat = true,
+#if DEBUG
+                Debug = true,
+#endif
             };
             GraphicsDevice = VeldridStartup.CreateGraphicsDevice(window, options, GraphicsBackend.Direct3D11);
             Factory = GraphicsDevice.ResourceFactory;
@@ -92,12 +95,7 @@ namespace Deremis.System
 
         private void LoadDefaultAssets()
         {
-            AssetManager.Get<Shader>(new AssetDescription
-            {
-                name = "phong",
-                path = "Shaders/phong.xml",
-                type = 1
-            });
+            AssetManager.Get<Shader>(new AssetDescription("Shaders/phong.xml", 1));
             AssetManager.Get<Texture>(MissingTex);
         }
 

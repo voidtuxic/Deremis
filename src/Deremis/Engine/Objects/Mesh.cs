@@ -9,8 +9,10 @@ namespace Deremis.Engine.Objects
     {
         public override string Type => "Mesh";
 
-        private readonly List<PBRVertex> vertices = new List<PBRVertex>();
+        private readonly List<Vertex> vertices = new List<Vertex>();
         private readonly List<int> indices = new List<int>();
+
+        public bool Indexed { get; set; } = true;
 
         public DeviceBuffer VertexBuffer { get; private set; }
         public DeviceBuffer IndexBuffer { get; private set; }
@@ -22,7 +24,7 @@ namespace Deremis.Engine.Objects
         {
         }
 
-        public void Add(PBRVertex vertex)
+        public void Add(Vertex vertex)
         {
             vertices.Add(vertex);
         }
@@ -34,20 +36,26 @@ namespace Deremis.Engine.Objects
 
         public bool UpdateBuffers(bool resize = true)
         {
-            if (vertices.Count == 0 || indices.Count == 0) return false;
+            if (vertices.Count == 0) return false;
             if (resize)
             {
                 VertexBuffer?.Dispose();
                 IndexBuffer?.Dispose();
                 VertexBuffer = Application.current.Factory.CreateBuffer(new BufferDescription(
-                    (uint)vertices.Count * PBRVertex.SizeInBytes, BufferUsage.VertexBuffer));
-                IndexBuffer = Application.current.Factory.CreateBuffer(new BufferDescription(
-                    (uint)indices.Count * sizeof(int), BufferUsage.IndexBuffer));
+                    (uint)vertices.Count * Vertex.SizeInBytes, BufferUsage.VertexBuffer));
+                if (Indexed)
+                {
+                    IndexBuffer = Application.current.Factory.CreateBuffer(new BufferDescription(
+                        (uint)indices.Count * sizeof(int), BufferUsage.IndexBuffer));
+                }
             }
             if (VertexBuffer != null)
             {
                 Application.current.GraphicsDevice.UpdateBuffer(VertexBuffer, 0, vertices.ToArray());
-                Application.current.GraphicsDevice.UpdateBuffer(IndexBuffer, 0, indices.ToArray());
+                if (Indexed)
+                {
+                    Application.current.GraphicsDevice.UpdateBuffer(IndexBuffer, 0, indices.ToArray());
+                }
                 return true;
             }
             return false;
