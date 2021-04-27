@@ -5,6 +5,8 @@ using Deremis.Engine.Objects;
 using Veldrid;
 using Shader = Deremis.Engine.Objects.Shader;
 using Deremis.Engine.Rendering.Resources;
+using System.Collections.Generic;
+using Texture = Deremis.Engine.Objects.Texture;
 
 namespace Deremis.Engine.Rendering
 {
@@ -40,12 +42,15 @@ namespace Deremis.Engine.Rendering
             TransformBuffer = app.Factory.CreateBuffer(new BufferDescription(
                 TransformResource.SizeInBytes,
                 BufferUsage.UniformBuffer | BufferUsage.Dynamic));
+            TransformBuffer.Name = "TransformBuffer";
             MaterialBuffer = app.Factory.CreateBuffer(new BufferDescription(
                 MAX_MATERIAL_BUFFER_SIZE,
                 BufferUsage.UniformBuffer | BufferUsage.Dynamic));
+            MaterialBuffer.Name = "MaterialBuffer";
             LightBuffer = app.Factory.CreateBuffer(new BufferDescription(
                 MAX_LIGHT_BUFFER_SIZE,
                 BufferUsage.UniformBuffer | BufferUsage.Dynamic));
+            LightBuffer.Name = "LightBuffer";
             BindableResource[] bindableResources = { TransformBuffer, MaterialBuffer, LightBuffer };
             ResourceSetDescription resourceSetDescription = new ResourceSetDescription(GeneralResourceLayout, bindableResources);
             GeneralResourceSet = app.Factory.CreateResourceSet(resourceSetDescription);
@@ -56,7 +61,25 @@ namespace Deremis.Engine.Rendering
             if (materials.ContainsKey(name)) return materials[name];
 
             var material = new Material(name, shader);
-            material.Build(framebuffer);
+
+            Framebuffer fb = framebuffer;
+            List<TextureView> gbufferTextureViews = null;
+            // assume the user know what they're doing with the framebuffer
+            if (shader.IsDeferred && fb == null)
+            {
+                gbufferTextureViews = new List<TextureView>();
+                var colorTargets = new List<Veldrid.Texture>();
+                for (int i = 0; i < shader.Outputs.Count; i++)
+                {
+                    PixelFormat outputFormat = shader.Outputs[i];
+                    var rt = app.CreateRenderTexture($"gbuffer{i}", outputFormat);
+                    colorTargets.Add(rt.RenderTarget.VeldridTexture);
+                    gbufferTextureViews.Add(rt.CopyTexture.View);
+                }
+                fb = app.Factory.CreateFramebuffer(new FramebufferDescription(app.ScreenDepthTexture, colorTargets.ToArray()));
+            }
+
+            material.Build(fb, gbufferTextureViews);
             materials.TryAdd(name, material);
             return material;
         }

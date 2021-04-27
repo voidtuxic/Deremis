@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shader version="1">
+    <config>
+        <BlendState>SingleAlphaBlend</BlendState>
+        <DepthStencilState depthTestEnabled="true" depthWriteEnabled="false" comparisonKind="Always" />
+        <RasterizerState depthClipEnabled="true" scissorTestEnabled="false" cullMode="None" fillMode="Solid" frontFace="Clockwise" />
+        <PrimitiveTopology>TriangleList</PrimitiveTopology>
+    </config>
+    <properties>
+        <vec3 name="specularColor" />
+        <float name="ambientStrength" />
+        <float name="specularStrength" />
+    </properties>
+    <resources>
+        <texture2d name="diffuseSpecTexture" />
+        <texture2d name="positionTexture" />
+        <texture2d name="normalTexture" />
+    </resources>
+    <vertex>
+#include "screen/genericvert.glsl"
+    </vertex>
+    <fragment>
+#version 450
+
+#include "uniforms/transform.glsl"
+#include "uniforms/lights.glsl"
+
+layout(set = 0, binding = 1) uniform Material
+{
+    vec3 specularColor;
+    float ambientStrength;
+    float specularStrength;
+};
+
+layout(set = 1, binding = 0) uniform texture2D diffuseSpecTexture;
+layout(set = 1, binding = 1) uniform texture2D positionTexture;
+layout(set = 1, binding = 2) uniform texture2D normalTexture;
+layout(set = 1, binding = 3) uniform sampler texSampler;
+
+layout(location = 0) in vec2 f_UV;
+layout(location = 0) out vec4 out_Color;
+
+// later include to have layout definition
+#include "libs/phong.glsl"
+
+void main()
+{
+    vec4 diffuseSpec = texture(sampler2D(diffuseSpecTexture, texSampler), f_UV);
+    vec4 position = texture(sampler2D(positionTexture, texSampler), f_UV);
+    mat3 dsn = mat3(
+        diffuseSpec.rgb,
+        diffuseSpec.a * specularColor,
+        texture(sampler2D(normalTexture, texSampler), f_UV).rgb
+    );
+    vec3 color = Calculate(dsn, position.rgb);
+
+    out_Color = vec4(color, position.a);
+}
+    </fragment>
+</shader>

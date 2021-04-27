@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Numerics;
 using DefaultEcs;
 using DefaultEcs.Threading;
@@ -18,8 +19,8 @@ namespace Deremis.System
 {
     public sealed class Application : IDisposable
     {
-        private const PixelFormat COLOR_PIXEL_FORMAT = PixelFormat.R8_G8_B8_A8_UNorm;
-        private const PixelFormat DEPTH_PIXEL_FORMAT = PixelFormat.R16_UNorm;
+        public const PixelFormat COLOR_PIXEL_FORMAT = PixelFormat.R32_G32_B32_A32_Float;
+        public const PixelFormat DEPTH_PIXEL_FORMAT = PixelFormat.R16_UNorm;
         public static AssetDescription MissingTex = new AssetDescription
         {
             name = "missing",
@@ -45,12 +46,14 @@ namespace Deremis.System
         private IContext context;
 
         private Veldrid.Texture screenColorTexture;
-        private Veldrid.Texture screenDepthTexture;
+        public Veldrid.Texture ScreenDepthTexture { get; private set; }
         public Framebuffer ScreenFramebuffer { get; private set; }
         private Veldrid.Texture copyTexture;
         public TextureView CopyView { get; private set; }
         private Veldrid.Texture depthCopyTexture;
         public TextureView DepthCopyView { get; private set; }
+
+        private readonly List<RenderTexture> renderTextures = new List<RenderTexture>();
 
         public Application(string[] args, IContext context)
         {
@@ -104,25 +107,30 @@ namespace Deremis.System
             context.Initialize(this);
         }
 
-        private void CreateRenderContext()
+        public void CreateRenderContext()
         {
+            DisposeScreenTargets();
+
             TextureDescription colorTextureDescription = TextureDescription.Texture2D(
                 (uint)window.Width, (uint)window.Height, 1, 1,
                 COLOR_PIXEL_FORMAT, TextureUsage.RenderTarget, TextureSampleCount.Count1);
             screenColorTexture = Factory.CreateTexture(ref colorTextureDescription);
-            screenDepthTexture = Factory.CreateTexture(TextureDescription.Texture2D(
+            screenColorTexture.Name = "screenColor";
+            ScreenDepthTexture = Factory.CreateTexture(TextureDescription.Texture2D(
                 (uint)window.Width, (uint)window.Height, 1, 1,
                 DEPTH_PIXEL_FORMAT, TextureUsage.DepthStencil, TextureSampleCount.Count1));
-
-            ScreenFramebuffer = Factory.CreateFramebuffer(new FramebufferDescription(screenDepthTexture, screenColorTexture));
+            ScreenDepthTexture.Name = "screenDepth";
+            ScreenFramebuffer = Factory.CreateFramebuffer(new FramebufferDescription(ScreenDepthTexture, screenColorTexture));
 
             copyTexture = Factory.CreateTexture(TextureDescription.Texture2D(
                 (uint)window.Width, (uint)window.Height, 1, 1,
                 COLOR_PIXEL_FORMAT, TextureUsage.Storage | TextureUsage.Sampled, TextureSampleCount.Count1));
+            copyTexture.Name = "screenColorCopy";
             CopyView = Factory.CreateTextureView(copyTexture);
             depthCopyTexture = Factory.CreateTexture(TextureDescription.Texture2D(
                 (uint)window.Width, (uint)window.Height, 1, 1,
                 DEPTH_PIXEL_FORMAT, TextureUsage.Storage | TextureUsage.Sampled, TextureSampleCount.Count1));
+            depthCopyTexture.Name = "screenDepthCopy";
             DepthCopyView = Factory.CreateTextureView(depthCopyTexture);
         }
 
@@ -146,6 +154,13 @@ namespace Deremis.System
 
                 lastTime = now;
             }
+        }
+
+        public RenderTexture CreateRenderTexture(string name, PixelFormat format, bool isDepth = false)
+        {
+            var rt = new RenderTexture(this, name, (uint)window.Width, (uint)window.Height, format, isDepth);
+            renderTextures.Add(rt);
+            return rt;
         }
 
         public Entity CreateEntity(string name = "Entity")
@@ -189,14 +204,19 @@ namespace Deremis.System
             return entity;
         }
 
-        public Entity Spawn(string name, Mesh mesh, string material)
+        public Entity Spawn(string name, Mesh mesh, string materialName)
         {
+            var material = MaterialManager.GetMaterial(materialName);
             var entity = CreateTransform(name);
             entity.Set(new Drawable
             {
                 mesh = Draw.RegisterMesh(mesh.Name, mesh),
-                material = material
+                material = materialName
             });
+            if (material.Shader.IsDeferred)
+            {
+                entity.Set(new Deferred());
+            }
 
             return entity;
         }
@@ -210,15 +230,30 @@ namespace Deremis.System
             GraphicsDevice.WaitForIdle();
         }
 
+        public void UpdateDepthCopyTexture(CommandList commandList)
+        {
+            commandList.Begin();
+            commandList.CopyTexture(ScreenDepthTexture, depthCopyTexture);
+            commandList.End();
+            GraphicsDevice.SubmitCommands(commandList);
+            GraphicsDevice.WaitForIdle();
+        }
+
+        public void UpdateRenderTextures(CommandList commandList)
+        {
+            commandList.Begin();
+            foreach (var rt in renderTextures)
+            {
+                rt.UpdateCopyTexture(commandList);
+            }
+            commandList.End();
+            GraphicsDevice.SubmitCommands(commandList);
+            GraphicsDevice.WaitForIdle();
+        }
+
         public void Dispose()
         {
-            ScreenFramebuffer.Dispose();
-            screenColorTexture.Dispose();
-            screenDepthTexture.Dispose();
-            CopyView.Dispose();
-            copyTexture.Dispose();
-            DepthCopyView.Dispose();
-            depthCopyTexture.Dispose();
+            DisposeScreenTargets();
 
             MaterialManager.Dispose();
             AssetManager.Dispose();
@@ -227,6 +262,21 @@ namespace Deremis.System
             DefaultWorld.Dispose();
 
             GraphicsDevice.Dispose();
+        }
+
+        private void DisposeScreenTargets()
+        {
+            foreach (var rt in renderTextures)
+            {
+                rt.Dispose();
+            }
+            ScreenFramebuffer?.Dispose();
+            screenColorTexture?.Dispose();
+            ScreenDepthTexture?.Dispose();
+            CopyView?.Dispose();
+            copyTexture?.Dispose();
+            DepthCopyView?.Dispose();
+            depthCopyTexture?.Dispose();
         }
     }
 }

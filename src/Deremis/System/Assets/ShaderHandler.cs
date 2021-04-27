@@ -36,6 +36,9 @@ namespace Deremis.System.Assets
                     case "config":
                         SetupConfig(child, shader);
                         break;
+                    case "outputs":
+                        SetupOutputs(child, shader);
+                        break;
                     case "properties":
                         SetupProperties(child, shader);
                         break;
@@ -67,7 +70,7 @@ namespace Deremis.System.Assets
                     var fileInclude = line.Remove(0, 10);
                     fileInclude = fileInclude.Trim('"');
                     var content = GetInternal(fileInclude);
-                    codeBuilder.AppendLine(BuildCode(content));
+                    codeBuilder.AppendLine(content);
                 }
                 else
                 {
@@ -84,7 +87,7 @@ namespace Deremis.System.Assets
         private string GetInternal(string name)
         {
             if (internalShaders.ContainsKey(name)) return internalShaders[name];
-            var content = File.ReadAllText(AssetManager.current.Rebase($"Shaders/{name}"));
+            var content = BuildCode(File.ReadAllText(AssetManager.current.Rebase($"Shaders/{name}")));
             internalShaders.TryAdd(name, content);
             return content;
         }
@@ -134,6 +137,18 @@ namespace Deremis.System.Assets
                 }
             }
             shader.SetDefaultPipeline(pipelineDescription);
+        }
+
+        private void SetupOutputs(XmlNode node, Shader shader)
+        {
+            var lightingShaderFile = $"Shaders/{node.Attributes["light"].Value}";
+            shader.SetDeferred(AssetManager.current.Get<Shader>(new AssetDescription(lightingShaderFile, 1)));
+            foreach (XmlNode child in node)
+            {
+                if (child.Name != "output") continue;
+                var format = Application.COLOR_PIXEL_FORMAT;
+                shader.Outputs.Add(format);
+            }
         }
 
         private void SetupProperties(XmlNode node, Shader shader)

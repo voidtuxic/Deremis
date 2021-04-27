@@ -20,7 +20,7 @@ namespace Deremis.Engine.Systems.Components
             transform.position.CopyTo(array);
             values.AddRange(array);
             values.Add(0f); // padding
-            transform.forward.CopyTo(array);
+            transform.Forward.CopyTo(array);
             values.AddRange(array);
             values.Add(0f); // padding
             color.CopyTo(array);

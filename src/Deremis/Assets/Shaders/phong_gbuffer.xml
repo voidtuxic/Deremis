@@ -1,16 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shader version="1">
     <config>
-        <BlendState>SingleAlphaBlend</BlendState>
+        <BlendState>SingleOverrideBlend</BlendState>
         <DepthStencilState depthTestEnabled="true" depthWriteEnabled="true" comparisonKind="LessEqual" />
         <RasterizerState depthClipEnabled="true" scissorTestEnabled="false" cullMode="Back" fillMode="Solid" frontFace="Clockwise" />
         <PrimitiveTopology>TriangleList</PrimitiveTopology>
     </config>
+    <outputs light="phong_deferredlighting.xml">
+        <output name="out_color" />
+        <output name="out_position" />
+        <output name="out_normal" />
+    </outputs>
     <properties>
         <vec3 name="diffuseColor" />
-        <vec3 name="specularColor" />
-        <float name="ambientStrength" />
-        <float name="specularStrength" />
     </properties>
     <resources>
         <texture2d name="diffuseTexture" />
@@ -23,16 +25,11 @@
     <fragment>
 #version 450
 
-#include "uniforms/transform.glsl"
-#include "uniforms/lights.glsl"
 #include "genericfrag.glsl"
 
 layout(set = 0, binding = 1) uniform Material
 {
     vec3 diffuseColor;
-    vec3 specularColor;
-    float ambientStrength;
-    float specularStrength;
 };
 
 layout(set = 1, binding = 0) uniform texture2D diffuseTexture;
@@ -40,22 +37,18 @@ layout(set = 1, binding = 1) uniform texture2D specularTexture;
 layout(set = 1, binding = 2) uniform texture2D normalTexture;
 layout(set = 1, binding = 3) uniform sampler texSampler;
 
-// later include to have layout definition
-#include "libs/phong.glsl"
+layout(location = 1) out vec4 out_Position;
+layout(location = 2) out vec4 out_Normal;
 
 void main()
 {
     vec3 norm = texture(sampler2D(normalTexture, texSampler), f_UV).rgb;
     norm = norm * 2.0 - 1.0;
     norm = normalize(f_TBN * norm);
-    mat3 dsn = mat3(
-        texture(sampler2D(diffuseTexture, texSampler), f_UV).rgb * diffuseColor,
-        texture(sampler2D(specularTexture, texSampler), f_UV).rgb * specularColor,
-        norm
-    );
-    vec3 color = Calculate(dsn, f_position);
-
-    out_Color = vec4(color, 1);
+    out_Color.rgb = texture(sampler2D(diffuseTexture, texSampler), f_UV).rgb * diffuseColor;
+    out_Color.a = texture(sampler2D(specularTexture, texSampler), f_UV).r;
+    out_Position = vec4(f_position, 1.0);
+    out_Normal = vec4(norm, 1.0);
 }
     </fragment>
 </shader>

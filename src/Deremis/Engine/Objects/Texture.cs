@@ -12,7 +12,12 @@ namespace Deremis.Engine.Objects
         {
             this.VeldridTexture = veldridTexture;
             this.View = view;
+        }
 
+        public override void Dispose()
+        {
+            VeldridTexture?.Dispose();
+            View?.Dispose();
         }
     }
 }

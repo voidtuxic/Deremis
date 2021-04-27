@@ -43,10 +43,12 @@ namespace Deremis.Engine.Objects
                 IndexBuffer?.Dispose();
                 VertexBuffer = Application.current.Factory.CreateBuffer(new BufferDescription(
                     (uint)vertices.Count * Vertex.SizeInBytes, BufferUsage.VertexBuffer));
+                VertexBuffer.Name = $"{Name}_vertex";
                 if (Indexed)
                 {
                     IndexBuffer = Application.current.Factory.CreateBuffer(new BufferDescription(
                         (uint)indices.Count * sizeof(int), BufferUsage.IndexBuffer));
+                    IndexBuffer.Name = $"{Name}_index";
                 }
             }
             if (VertexBuffer != null)

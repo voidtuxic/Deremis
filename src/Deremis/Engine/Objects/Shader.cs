@@ -31,9 +31,18 @@ namespace Deremis.Engine.Objects
         public GraphicsPipelineDescription DefaultPipeline { get; private set; }
         public Dictionary<string, Property> Properties { get; private set; } = new Dictionary<string, Property>();
         public Dictionary<string, Resource> Resources { get; private set; } = new Dictionary<string, Resource>();
+        public List<PixelFormat> Outputs { get; private set; } = new List<PixelFormat>();
+        public bool IsDeferred { get; private set; }
+        public Shader DeferredLightingShader { get; private set; }
 
         public Shader(string name) : base(name)
         {
+        }
+
+        public void SetDeferred(Shader deferredLightingShader)
+        {
+            IsDeferred = true;
+            DeferredLightingShader = deferredLightingShader;
         }
 
         public void SetVertexCode(string code)

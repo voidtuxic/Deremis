@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
-using Deremis.Engine.Rendering.Resources;
 using Deremis.System;
 using Deremis.System.Assets;
 using Veldrid;
@@ -15,6 +14,8 @@ namespace Deremis.Engine.Objects
         public Pipeline Pipeline { get; private set; }
         public Sampler Sampler { get; set; } = Application.current.GraphicsDevice.Aniso4xSampler;
         public ResourceSet ResourceSet { get; private set; }
+        public Framebuffer Framebuffer { get; private set; }
+        public Material DeferredLightingMaterial { get; private set; }
 
         private bool isBufferDirty = true;
         private readonly Dictionary<string, Shader.Property> properties = new Dictionary<string, Shader.Property>();
@@ -40,11 +41,12 @@ namespace Deremis.Engine.Objects
             }
         }
 
-        // TODO add parameters for outputs
-        public void Build(Framebuffer framebuffer)
+        public void Build(Framebuffer framebuffer, List<TextureView> gbufferTextureViews)
         {
             var app = Application.current;
             Pipeline?.Dispose();
+            Framebuffer?.Dispose();
+            Framebuffer = framebuffer ?? app.ScreenFramebuffer;
 
             var resources = new List<Shader.Resource>(this.resources.Values).ToArray();
             Array.Sort(resources, new ShaderResourceOrderCompare());
@@ -59,10 +61,28 @@ namespace Deremis.Engine.Objects
 
             var description = Shader.DefaultPipeline;
             description.ResourceLayouts = new ResourceLayout[] { app.MaterialManager.GeneralResourceLayout, resourceLayout };
-            description.Outputs = framebuffer == null ? app.ScreenFramebuffer.OutputDescription : framebuffer.OutputDescription;
+            description.Outputs = Framebuffer.OutputDescription;
             Pipeline = app.Factory.CreateGraphicsPipeline(description);
 
+            if (Shader.IsDeferred && gbufferTextureViews != null)
+            {
+                DeferredLightingMaterial = app.MaterialManager.CreateMaterial("deferred_lighting", Shader.DeferredLightingShader);
+                DeferredLightingMaterial.SetupGbuffer(gbufferTextureViews);
+                app.Draw.RegisterDeferred(this);
+            }
+
             BuildResourceSet();
+        }
+
+        public void SetupGbuffer(List<TextureView> gbufferTextureViews)
+        {
+            if (gbufferTextureViews.Count != resources.Count) return;
+
+            var resourceNames = new List<string>(resources.Keys).ToArray();
+            for (var i = 0; i < gbufferTextureViews.Count; i++)
+            {
+                SetTexture(resourceNames[i], gbufferTextureViews[i]);
+            }
         }
 
         public void BuildResourceSet()
@@ -82,10 +102,16 @@ namespace Deremis.Engine.Objects
             bindableResources.Add(Sampler);
 
             ResourceSet = app.Factory.CreateResourceSet(new ResourceSetDescription(resourceLayout, bindableResources.ToArray()));
+            ResourceSet.Name = $"{Name}_RS";
         }
 
         public void SetProperty<T>(string name, T value) where T : unmanaged
         {
+            if (DeferredLightingMaterial != null)
+            {
+                DeferredLightingMaterial.SetProperty(name, value);
+            }
+
             if (!properties.ContainsKey(name)) return;
             var property = properties[name];
             property.Value = value;
@@ -169,6 +195,7 @@ namespace Deremis.Engine.Objects
             resourceLayout?.Dispose();
             ResourceSet?.Dispose();
             Pipeline?.Dispose();
+            Framebuffer?.Dispose();
         }
 
         public static object GetDefaultParameterValue(VertexElementFormat format)
