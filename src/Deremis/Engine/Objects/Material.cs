@@ -68,7 +68,7 @@ namespace Deremis.Engine.Objects
             {
                 DeferredLightingMaterial = app.MaterialManager.CreateMaterial("deferred_lighting", Shader.DeferredLightingShader);
                 DeferredLightingMaterial.SetupGbuffer(gbufferTextureViews);
-                app.Draw.RegisterDeferred(this);
+                app.Render.RegisterDeferred(this);
             }
 
             BuildResourceSet();

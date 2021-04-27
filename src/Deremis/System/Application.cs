@@ -36,7 +36,7 @@ namespace Deremis.System
         public ResourceFactory Factory { get; private set; }
 
         public World DefaultWorld { get; private set; }
-        public DrawCallSystem Draw { get; private set; }
+        public RenderSystem Render { get; private set; }
         public IParallelRunner ParallelSystemRunner { get; private set; }
         public SequentialListSystem<float> MainSystem { get; private set; }
         private int entityCounter = 0;
@@ -97,10 +97,10 @@ namespace Deremis.System
             MaterialManager = new MaterialManager(this);
 
             DefaultWorld = new World();
-            Draw = new DrawCallSystem(this, DefaultWorld);
+            Render = new RenderSystem(this, DefaultWorld);
             ParallelSystemRunner = new DefaultParallelRunner(Environment.ProcessorCount);
             MainSystem = new SequentialListSystem<float>();
-            MainSystem.Add(Draw);
+            MainSystem.Add(Render);
 
             LoadDefaultAssets();
 
@@ -210,7 +210,7 @@ namespace Deremis.System
             var entity = CreateTransform(name);
             entity.Set(new Drawable
             {
-                mesh = Draw.RegisterMesh(mesh.Name, mesh),
+                mesh = Render.RegisterMesh(mesh.Name, mesh),
                 material = materialName
             });
             if (material.Shader.IsDeferred)

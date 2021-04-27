@@ -16,9 +16,9 @@ namespace Deremis.Engine.Systems
 {
     [With(typeof(Transform))]
     [Without(typeof(Deferred))]
-    public class DrawCallSystem : AEntityMultiMapSystem<float, Drawable>
+    public class RenderSystem : AEntityMultiMapSystem<float, Drawable>
     {
-        public static DrawCallSystem current;
+        public static RenderSystem current;
         public static AssetDescription ScreenShader = new AssetDescription
         {
             name = "screen_passthrough",
@@ -47,7 +47,7 @@ namespace Deremis.Engine.Systems
         private Material screenRenderMaterial;
         private Mesh screenRenderMesh;
 
-        public DrawCallSystem(Application app, World world) : base(world)
+        public RenderSystem(Application app, World world) : base(world)
         {
             current = this;
             this.app = app;
@@ -273,6 +273,16 @@ namespace Deremis.Engine.Systems
             app.UpdateDepthCopyTexture(commandList);
 
             // draw deferred after forward... feels dumb
+            DrawDeferred();
+
+            app.UpdateCopyTexture(commandList);
+            UpdateScreenBuffer(screenRenderMaterial, app.GraphicsDevice.SwapchainFramebuffer);
+
+            app.GraphicsDevice.SwapBuffers();
+        }
+
+        private void DrawDeferred()
+        {
             if (deferredMaterials.Count != 0)
             {
                 foreach (var key in deferredObjectsMap.Keys)
@@ -289,11 +299,6 @@ namespace Deremis.Engine.Systems
                     UpdateScreenBuffer(material.DeferredLightingMaterial, app.ScreenFramebuffer);
                 }
             }
-
-            app.UpdateCopyTexture(commandList);
-            UpdateScreenBuffer(screenRenderMaterial, app.GraphicsDevice.SwapchainFramebuffer);
-
-            app.GraphicsDevice.SwapBuffers();
         }
 
         private void UpdateScreenBuffer(Material material, Framebuffer framebuffer)
