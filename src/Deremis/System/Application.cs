@@ -20,7 +20,7 @@ namespace Deremis.System
     public sealed class Application : IDisposable
     {
         public const PixelFormat COLOR_PIXEL_FORMAT = PixelFormat.R32_G32_B32_A32_Float;
-        public const PixelFormat DEPTH_PIXEL_FORMAT = PixelFormat.R16_UNorm;
+        public const PixelFormat DEPTH_PIXEL_FORMAT = PixelFormat.R32_Float;
         public static AssetDescription MissingTex = new AssetDescription
         {
             name = "missing",
@@ -183,7 +183,7 @@ namespace Deremis.System
             return entity;
         }
 
-        public Entity CreateCamera(string name = "Camera", float fov = MathF.PI / 4f, float near = 0.1f, float far = 1000)
+        public Entity CreateCamera(string name = "Camera", float fov = MathF.PI / 4f, float near = 0.1f, float far = 100)
         {
             var entity = CreateTransform(name);
             entity.Set(Camera.CreatePerspective(fov, window.Width / (float)window.Height, near, far));

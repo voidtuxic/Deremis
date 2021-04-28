@@ -11,11 +11,13 @@
         <vec3 name="specularColor" />
         <float name="ambientStrength" />
         <float name="specularStrength" />
+        <float name="emissiveStrength" />
     </properties>
     <resources>
         <texture2d name="diffuseTexture" />
         <texture2d name="specularTexture" />
         <texture2d name="normalTexture" />
+        <texture2d name="emissiveTexture" />
     </resources>
     <vertex>
 #include "genericvert.glsl"
@@ -33,12 +35,14 @@ layout(set = 0, binding = 1) uniform Material
     vec3 specularColor;
     float ambientStrength;
     float specularStrength;
+    float emissiveStrength;
 };
 
 layout(set = 1, binding = 0) uniform texture2D diffuseTexture;
 layout(set = 1, binding = 1) uniform texture2D specularTexture;
 layout(set = 1, binding = 2) uniform texture2D normalTexture;
-layout(set = 1, binding = 3) uniform sampler texSampler;
+layout(set = 1, binding = 3) uniform texture2D emissiveTexture;
+layout(set = 1, binding = 4) uniform sampler texSampler;
 
 // later include to have layout definition
 #include "libs/phong.glsl"
@@ -54,6 +58,8 @@ void main()
         norm
     );
     vec3 color = Calculate(dsn, f_position);
+
+    color += texture(sampler2D(emissiveTexture, texSampler), f_UV).rgb * emissiveStrength;
 
     out_Color = vec4(color, 1);
 }

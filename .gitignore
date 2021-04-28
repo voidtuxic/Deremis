@@ -41,3 +41,4 @@ msbuild.wrn
 *.png
 *.jpg
 *.jpeg
+*.dae

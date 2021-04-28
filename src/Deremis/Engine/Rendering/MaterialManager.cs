@@ -72,7 +72,7 @@ namespace Deremis.Engine.Rendering
                 for (int i = 0; i < shader.Outputs.Count; i++)
                 {
                     PixelFormat outputFormat = shader.Outputs[i];
-                    var rt = app.CreateRenderTexture($"gbuffer{i}", outputFormat);
+                    var rt = app.CreateRenderTexture($"{name}_gbuffer{i}", outputFormat);
                     colorTargets.Add(rt.RenderTarget.VeldridTexture);
                     gbufferTextureViews.Add(rt.CopyTexture.View);
                 }

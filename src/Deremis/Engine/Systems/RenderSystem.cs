@@ -7,6 +7,7 @@ using DefaultEcs.System;
 using Deremis.Engine.Objects;
 using Deremis.Engine.Rendering.Resources;
 using Deremis.Engine.Systems.Components;
+using Deremis.Engine.Systems.Extensions;
 using Deremis.System;
 using Deremis.System.Assets;
 using Veldrid;
@@ -219,13 +220,13 @@ namespace Deremis.Engine.Systems
 
             foreach (var entity in entities)
             {
-                ref var transform = ref entity.Get<Transform>();
-                Draw(ref transform);
+                Draw(entity);
             }
         }
 
-        private void Draw(ref Transform transform)
+        private void Draw(Entity entity)
         {
+            var transform = entity.GetWorldTransform();
             var world = transform.ToMatrix();
             var normalWorld = Matrix4x4.Identity;
             if (Matrix4x4.Invert(world, out normalWorld))
@@ -269,7 +270,6 @@ namespace Deremis.Engine.Systems
 
         protected override void PostUpdate(float state)
         {
-            app.UpdateRenderTextures(commandList);
             app.UpdateDepthCopyTexture(commandList);
 
             // draw deferred after forward... feels dumb
@@ -293,6 +293,8 @@ namespace Deremis.Engine.Systems
                         Update(0, in key, entities);
                     }
                 }
+
+                app.UpdateRenderTextures(commandList);
 
                 foreach (var material in deferredMaterials.Values)
                 {

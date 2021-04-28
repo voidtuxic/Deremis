@@ -66,7 +66,7 @@ namespace Deremis.Engine.Objects
 
             if (Shader.IsDeferred && gbufferTextureViews != null)
             {
-                DeferredLightingMaterial = app.MaterialManager.CreateMaterial("deferred_lighting", Shader.DeferredLightingShader);
+                DeferredLightingMaterial = app.MaterialManager.CreateMaterial($"{Name}_deferred_lighting", Shader.DeferredLightingShader);
                 DeferredLightingMaterial.SetupGbuffer(gbufferTextureViews);
                 app.Render.RegisterDeferred(this);
             }
@@ -102,7 +102,6 @@ namespace Deremis.Engine.Objects
             bindableResources.Add(Sampler);
 
             ResourceSet = app.Factory.CreateResourceSet(new ResourceSetDescription(resourceLayout, bindableResources.ToArray()));
-            ResourceSet.Name = $"{Name}_RS";
         }
 
         public void SetProperty<T>(string name, T value) where T : unmanaged
@@ -202,7 +201,7 @@ namespace Deremis.Engine.Objects
         {
             switch (format)
             {
-                case VertexElementFormat.Float1: return 1;
+                case VertexElementFormat.Float1: return 0f;
                 case VertexElementFormat.Float2: return Vector2.Zero;
                 case VertexElementFormat.Float3: return Vector3.Zero;
                 case VertexElementFormat.Float4: return Vector4.Zero;

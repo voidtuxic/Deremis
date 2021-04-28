@@ -82,6 +82,12 @@ namespace Deremis.Engine.Systems.Components
             return Vector3.Cross(v, other);
         }
 
-
+        public static Transform operator +(Transform l, Transform r)
+        {
+            return new Transform(
+                r.position + Vector3.Transform(l.position, r.rotation),
+                Quaternion.Concatenate(l.rotation, r.rotation),
+                l.scale * r.scale);
+        }
     }
 }

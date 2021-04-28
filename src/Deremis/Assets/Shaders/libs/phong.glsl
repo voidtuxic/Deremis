@@ -10,7 +10,7 @@ vec3 CalculateLight(vec3 lightDir, vec3 lightColor, float attenuation, float int
 
     diffTex = CorrectGamma(diffTex); // should probably not be here
 
-    vec3 ambient = ambientStrength * lightColor;
+    vec3 ambient = ambientStrength * diffTex * lightColor;
 
     float diff = max(dot(norm, lightDir), 0.0);
     vec3 diffuse = (diff * diffTex) * lightColor;

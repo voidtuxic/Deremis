@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using DefaultEcs;
 using Deremis.Engine.Systems.Components;
+using Deremis.Engine.Systems.Extensions;
 using Deremis.System;
 
 namespace Deremis.Engine.Objects
@@ -34,15 +35,17 @@ namespace Deremis.Engine.Objects
             nodes.Add(new Node { mesh = mesh, transform = transform });
         }
 
-        public Entity Spawn(Application app, string material)
+        public Entity Spawn(Application app, string material, Transform transform)
         {
-            Entity entity = default;
+            Entity entity = app.CreateTransform(Name);
+            entity.Set(transform);
             foreach (var node in nodes)
             {
                 var mesh = Meshes[node.mesh];
                 if (mesh == null) continue;
-                entity = app.Spawn(mesh.Name, mesh, material);
-                entity.Set(node.transform);
+                var child = app.Spawn(mesh.Name, mesh, material);
+                child.Set(node.transform);
+                child.SetAsChildOf(entity);
             }
             return entity;
         }
