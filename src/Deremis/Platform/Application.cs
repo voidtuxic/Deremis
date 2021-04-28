@@ -8,14 +8,14 @@ using Deremis.Engine.Objects;
 using Deremis.Engine.Rendering;
 using Deremis.Engine.Systems;
 using Deremis.Engine.Systems.Components;
-using Deremis.System.Assets;
+using Deremis.Platform.Assets;
 using Veldrid;
 using Veldrid.Sdl2;
 using Veldrid.StartupUtilities;
 using Shader = Deremis.Engine.Objects.Shader;
 using Texture = Deremis.Engine.Objects.Texture;
 
-namespace Deremis.System
+namespace Deremis.Platform
 {
     public sealed class Application : IDisposable
     {
@@ -24,8 +24,7 @@ namespace Deremis.System
         public static AssetDescription MissingTex = new AssetDescription
         {
             name = "missing",
-            path = "Textures/missing.tga",
-            type = 2
+            path = "Textures/missing.tga"
         };
 
         public static Application current;
@@ -136,7 +135,7 @@ namespace Deremis.System
 
         private void LoadDefaultAssets()
         {
-            AssetManager.Get<Shader>(new AssetDescription("Shaders/phong.xml", 1));
+            AssetManager.Get<Shader>(new AssetDescription("Shaders/phong.xml"));
             AssetManager.Get<Texture>(MissingTex);
         }
 

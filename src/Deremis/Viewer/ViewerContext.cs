@@ -7,8 +7,8 @@ using Deremis.Engine.Rendering;
 using Deremis.Engine.Rendering.Helpers;
 using Deremis.Engine.Systems.Components;
 using Deremis.Engine.Systems.Extensions;
-using Deremis.System;
-using Deremis.System.Assets;
+using Deremis.Platform;
+using Deremis.Platform.Assets;
 using Veldrid;
 using Shader = Deremis.Engine.Objects.Shader;
 using Texture = Deremis.Engine.Objects.Texture;
@@ -26,26 +26,26 @@ namespace Deremis.Viewer
 
             // AssetManager.current.Get<Shader>(new AssetDescription("Shaders/phong_gbuffer.xml", 1));
 
-            var stenModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/sten.obj", 0));
-            var panaModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/pana.obj", 0));
-            var tableModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/table.obj", 0));
-            var shader = AssetManager.current.Get<Shader>(new AssetDescription("Shaders/phong_gbuffer.xml", 1));
-            var shaderfwd = AssetManager.current.Get<Shader>(new AssetDescription("Shaders/phong.xml", 1));
+            var stenModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/sten.obj"));
+            var panaModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/pana.obj"));
+            var tableModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/table.obj"));
+            var shader = AssetManager.current.Get<Shader>(new AssetDescription("Shaders/phong_gbuffer.xml"));
+            var shaderfwd = AssetManager.current.Get<Shader>(new AssetDescription("Shaders/phong.xml"));
 
-            var stenDiffuseTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/sten_albedo.png", 2));
-            var stenSpecularTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/sten_metalness.png", 2));
-            var stenNormalTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/sten_normals.jpg", 2));
+            var stenDiffuseTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/sten_albedo.png"));
+            var stenSpecularTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/sten_metalness.png"));
+            var stenNormalTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/sten_normals.jpg"));
 
-            var panaDiffuseTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_C.png", 2));
-            var panaSpecularTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_R.png", 2));
-            var panaNormalTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_N.png", 2));
-            var panaEmissiveTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_EM.png", 2));
+            var panaDiffuseTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_C.png"));
+            var panaSpecularTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_R.png"));
+            var panaNormalTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_N.png"));
+            var panaEmissiveTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_EM.png"));
 
-            var tableDiffuseTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Table_Mt_albedo.jpg", 2));
-            var tableSpecularTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Table_Mt_roughness.jpg", 2));
-            var tableNormalTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Table_Mt_normal.jpg", 2));
+            var tableDiffuseTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Table_Mt_albedo.jpg"));
+            var tableSpecularTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Table_Mt_roughness.jpg"));
+            var tableNormalTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Table_Mt_normal.jpg"));
 
-            var cubemap = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/skybox_###.jpg", 2, new TextureHandler.Options(mipmaps: false, cubemap: true)));
+            var cubemap = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/skybox_###.jpg", new TextureHandler.Options(mipmaps: false, cubemap: true)));
 
             Skybox.Init(app, cubemap);
 

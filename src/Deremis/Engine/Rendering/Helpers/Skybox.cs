@@ -1,7 +1,7 @@
 using System.Numerics;
 using Deremis.Engine.Objects;
-using Deremis.System;
-using Deremis.System.Assets;
+using Deremis.Platform;
+using Deremis.Platform.Assets;
 
 namespace Deremis.Engine.Rendering.Helpers
 {
@@ -12,8 +12,7 @@ namespace Deremis.Engine.Rendering.Helpers
         public static AssetDescription Shader = new AssetDescription
         {
             name = "skybox_cubemap",
-            path = "Shaders/skybox_cubemap.xml",
-            type = 1
+            path = "Shaders/skybox_cubemap.xml"
         };
 
         private static bool initialized = false;

@@ -9,7 +9,7 @@ using Mesh = Deremis.Engine.Objects.Mesh;
 using AssimpMesh = Assimp.Mesh;
 using Matrix4x4 = System.Numerics.Matrix4x4;
 
-namespace Deremis.System.Assets
+namespace Deremis.Platform.Assets
 {
     public static class AssimpExtensions
     {

@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using DefaultEcs;
 using Deremis.Engine.Systems.Components;
 using Deremis.Engine.Systems.Extensions;
-using Deremis.System;
+using Deremis.Platform;
 
 namespace Deremis.Engine.Objects
 {

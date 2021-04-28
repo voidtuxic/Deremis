@@ -9,7 +9,7 @@ using Deremis.Engine.Objects;
 using Veldrid;
 using Shader = Deremis.Engine.Objects.Shader;
 
-namespace Deremis.System.Assets
+namespace Deremis.Platform.Assets
 {
     public class ShaderHandler : IAssetHandler
     {
@@ -142,7 +142,7 @@ namespace Deremis.System.Assets
         private void SetupOutputs(XmlNode node, Shader shader)
         {
             var lightingShaderFile = $"Shaders/{node.Attributes["light"].Value}";
-            shader.SetDeferred(AssetManager.current.Get<Shader>(new AssetDescription(lightingShaderFile, 1)));
+            shader.SetDeferred(AssetManager.current.Get<Shader>(new AssetDescription(lightingShaderFile)));
             foreach (XmlNode child in node)
             {
                 if (child.Name != "output") continue;

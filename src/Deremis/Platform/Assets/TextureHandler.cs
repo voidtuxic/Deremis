@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using Deremis.Engine.Objects;
 using Veldrid.ImageSharp;
 
-namespace Deremis.System.Assets
+namespace Deremis.Platform.Assets
 {
     public class TextureHandler : IAssetHandler
     {

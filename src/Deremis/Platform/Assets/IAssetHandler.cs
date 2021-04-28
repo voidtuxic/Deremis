@@ -1,7 +1,7 @@
 using System;
 using Deremis.Engine.Objects;
 
-namespace Deremis.System.Assets
+namespace Deremis.Platform.Assets
 {
     public interface IAssetHandler : IDisposable
     {

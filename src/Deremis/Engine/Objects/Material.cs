@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
-using Deremis.System;
-using Deremis.System.Assets;
+using Deremis.Platform;
+using Deremis.Platform.Assets;
 using Veldrid;
 
 namespace Deremis.Engine.Objects

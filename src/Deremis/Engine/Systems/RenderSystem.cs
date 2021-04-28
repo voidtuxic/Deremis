@@ -8,8 +8,8 @@ using Deremis.Engine.Objects;
 using Deremis.Engine.Rendering.Resources;
 using Deremis.Engine.Systems.Components;
 using Deremis.Engine.Systems.Extensions;
-using Deremis.System;
-using Deremis.System.Assets;
+using Deremis.Platform;
+using Deremis.Platform.Assets;
 using Veldrid;
 using Shader = Deremis.Engine.Objects.Shader;
 
@@ -23,8 +23,7 @@ namespace Deremis.Engine.Systems
         public static AssetDescription ScreenShader = new AssetDescription
         {
             name = "screen_passthrough",
-            path = "Shaders/screen/passthrough.xml",
-            type = 1
+            path = "Shaders/screen/passthrough.xml"
         };
 
         private readonly Application app;

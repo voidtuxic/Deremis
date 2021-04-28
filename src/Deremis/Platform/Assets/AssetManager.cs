@@ -1,19 +1,16 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Deremis.Engine.Objects;
 
-namespace Deremis.System.Assets
+namespace Deremis.Platform.Assets
 {
     public class AssetManager : IDisposable
     {
         public static AssetManager current;
 
         // 0 : Assimp
-        private static readonly IAssetHandler[] handlers = new IAssetHandler[] {
-            new AssimpHandler(),
-            new ShaderHandler(),
-            new TextureHandler()
-        };
+        private readonly Dictionary<Type, IAssetHandler> handlers = new Dictionary<Type, IAssetHandler>();
         private readonly string rootPath;
 
         public string RootPath => rootPath;
@@ -26,13 +23,16 @@ namespace Deremis.System.Assets
             }
             current = this;
             this.rootPath = rootPath;
+            handlers.Add(typeof(Model), new AssimpHandler());
+            handlers.Add(typeof(Shader), new ShaderHandler());
+            handlers.Add(typeof(Texture), new TextureHandler());
         }
 
         public T Get<T>(AssetDescription description) where T : DObject
         {
-            if (description.type >= handlers.Length) return default;
+            if (!handlers.ContainsKey(typeof(T))) return null;
 
-            return handlers[description.type].Get<T>(description);
+            return handlers[typeof(T)].Get<T>(description);
         }
 
         public string Rebase(string path)
@@ -42,7 +42,7 @@ namespace Deremis.System.Assets
 
         public void Dispose()
         {
-            foreach (var handler in handlers)
+            foreach (var handler in handlers.Values)
             {
                 handler.Dispose();
             }
