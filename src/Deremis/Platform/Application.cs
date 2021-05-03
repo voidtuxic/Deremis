@@ -21,7 +21,7 @@ namespace Deremis.Platform
     {
         public const PixelFormat COLOR_PIXEL_FORMAT = PixelFormat.R32_G32_B32_A32_Float;
         public const PixelFormat DEPTH_PIXEL_FORMAT = PixelFormat.R32_Float;
-        public const uint SHADOW_MAP_FAR = 30;
+        public const uint SHADOW_MAP_FAR = 50;
         public const uint SHADOW_MAP_WIDTH = 2048;
         public const string SHADOW_MAP_NAME = "shadowMap";
         public static AssetDescription MissingTex = new AssetDescription
@@ -67,7 +67,8 @@ namespace Deremis.Platform
         private Veldrid.Texture shadowDepthTexture;
         public Texture ShadowDepthTexture { get; private set; }
 
-        private readonly List<RenderTexture> renderTextures = new List<RenderTexture>();
+        private readonly Dictionary<string, RenderTexture> renderTextures = new Dictionary<string, RenderTexture>();
+        private readonly Dictionary<Shader, Framebuffer> deferredFramebuffers = new Dictionary<Shader, Framebuffer>();
 
         public uint Width => (uint)window.Width;
         public uint Height => (uint)window.Height;
@@ -187,10 +188,33 @@ namespace Deremis.Platform
             }
         }
 
-        public RenderTexture CreateRenderTexture(string name, PixelFormat format, bool isDepth = false)
+        public void GetDeferredFramebuffer(Shader shader, out Framebuffer fb, out List<TextureView> gbufferTextureViews)
         {
+            gbufferTextureViews = new List<TextureView>();
+            var colorTargets = new List<Veldrid.Texture>();
+            for (int i = 0; i < shader.Outputs.Count; i++)
+            {
+                PixelFormat outputFormat = shader.Outputs[i].Item2;
+                var rt = GetRenderTexture(shader.Outputs[i].Item1, outputFormat);
+                colorTargets.Add(rt.RenderTarget.VeldridTexture);
+                gbufferTextureViews.Add(rt.CopyTexture.View);
+            }
+            if (deferredFramebuffers.ContainsKey(shader))
+            {
+                fb = deferredFramebuffers[shader];
+            }
+            else
+            {
+                fb = Factory.CreateFramebuffer(new FramebufferDescription(ScreenDepthTexture, colorTargets.ToArray()));
+                deferredFramebuffers.Add(shader, fb);
+            }
+        }
+
+        public RenderTexture GetRenderTexture(string name, PixelFormat format, bool isDepth = false)
+        {
+            if (renderTextures.ContainsKey(name)) return renderTextures[name];
             var rt = new RenderTexture(this, name, Width, Height, format, isDepth);
-            renderTextures.Add(rt);
+            renderTextures.Add(name, rt);
             return rt;
         }
 
@@ -277,9 +301,24 @@ namespace Deremis.Platform
         public void UpdateRenderTextures(CommandList commandList)
         {
             commandList.Begin();
-            foreach (var rt in renderTextures)
+            foreach (var rt in renderTextures.Values)
             {
                 rt.UpdateCopyTexture(commandList);
+            }
+            commandList.End();
+            Render.SubmitAndWait();
+        }
+
+        public void ClearDeferredFramebuffers(CommandList commandList)
+        {
+            commandList.Begin();
+            foreach (var item in deferredFramebuffers)
+            {
+                commandList.SetFramebuffer(item.Value);
+                for (uint i = 0; i < item.Key.Outputs.Count; i++)
+                {
+                    commandList.ClearColorTarget(i, RgbaFloat.Clear);
+                }
             }
             commandList.End();
             Render.SubmitAndWait();
@@ -300,7 +339,7 @@ namespace Deremis.Platform
 
         private void DisposeScreenTargets()
         {
-            foreach (var rt in renderTextures)
+            foreach (var rt in renderTextures.Values)
             {
                 rt.Dispose();
             }

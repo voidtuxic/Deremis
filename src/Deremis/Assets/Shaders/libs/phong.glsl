@@ -23,7 +23,7 @@ float CalculateShadows(vec3 normal, vec3 lightDir, vec4 fragPosLightSpace)
             for(int y = -1; y <= 1; ++y)
             {
                 float pcfDepth = texture(sampler2D(shadowMap, shadowMapSampler), projCoords.xy + vec2(x, y) * texelSize).r;
-                shadow += currentDepth - bias < pcfDepth ? 0.5 : 0.0;
+                shadow += currentDepth - bias < pcfDepth ? 0.75 : 0.0;
             }
         }
         shadow /= 9.0;

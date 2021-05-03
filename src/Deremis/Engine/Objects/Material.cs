@@ -28,7 +28,6 @@ namespace Deremis.Engine.Objects
         public ResourceSet ResourceSet { get; private set; }
         public Framebuffer Framebuffer { get; private set; }
         public Material DeferredLightingMaterial { get; private set; }
-        public bool IsFramebufferCleared { get; set; } = false;
 
         private bool isBufferDirty = true;
         private readonly Dictionary<string, Shader.Property> properties = new Dictionary<string, Shader.Property>();

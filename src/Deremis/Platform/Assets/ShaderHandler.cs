@@ -147,7 +147,7 @@ namespace Deremis.Platform.Assets
             {
                 if (child.Name != "output") continue;
                 var format = Application.COLOR_PIXEL_FORMAT;
-                shader.Outputs.Add(format);
+                shader.Outputs.Add((child.Attributes["name"].Value, format));
             }
         }
 

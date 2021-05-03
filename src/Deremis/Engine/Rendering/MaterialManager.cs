@@ -67,16 +67,7 @@ namespace Deremis.Engine.Rendering
             // assume the user know what they're doing with the framebuffer
             if (shader.IsDeferred && fb == null)
             {
-                gbufferTextureViews = new List<TextureView>();
-                var colorTargets = new List<Veldrid.Texture>();
-                for (int i = 0; i < shader.Outputs.Count; i++)
-                {
-                    PixelFormat outputFormat = shader.Outputs[i];
-                    var rt = app.CreateRenderTexture($"{name}_gbuffer{i}", outputFormat);
-                    colorTargets.Add(rt.RenderTarget.VeldridTexture);
-                    gbufferTextureViews.Add(rt.CopyTexture.View);
-                }
-                fb = app.Factory.CreateFramebuffer(new FramebufferDescription(app.ScreenDepthTexture, colorTargets.ToArray()));
+                app.GetDeferredFramebuffer(shader, out fb, out gbufferTextureViews);
             }
 
             material.Build(fb, gbufferTextureViews);
@@ -88,14 +79,6 @@ namespace Deremis.Engine.Rendering
         {
             if (!materials.ContainsKey(name)) return null;
             return materials[name];
-        }
-
-        public void PrepareMaterials()
-        {
-            foreach (var material in materials.Values)
-            {
-                material.IsFramebufferCleared = false;
-            }
         }
 
         public void Dispose()

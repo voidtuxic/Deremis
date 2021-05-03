@@ -128,7 +128,7 @@ namespace Deremis.Engine.Systems
 
         protected override void PreUpdate(float state)
         {
-            app.MaterialManager.PrepareMaterials();
+            app.ClearDeferredFramebuffers(commandList);
 
             commandList.Begin();
 
@@ -215,14 +215,6 @@ namespace Deremis.Engine.Systems
         {
             commandList.Begin();
             SetFramebuffer(material.Framebuffer);
-            if (!material.IsFramebufferCleared && material.Shader.IsDeferred)
-            {
-                for (uint i = 0; i < material.Shader.Outputs.Count; i++)
-                {
-                    commandList.ClearColorTarget(i, RgbaFloat.Clear);
-                }
-                material.IsFramebufferCleared = true;
-            }
             commandList.UpdateBuffer(app.MaterialManager.MaterialBuffer, 0, material.GetValueArray());
             commandList.SetVertexBuffer(0, mesh.VertexBuffer);
             if (mesh.Indexed)

@@ -6,7 +6,7 @@
         <RasterizerState depthClipEnabled="true" scissorTestEnabled="false" cullMode="Back" fillMode="Solid" frontFace="Clockwise" />
         <PrimitiveTopology>TriangleList</PrimitiveTopology>
     </config>
-    <outputs light="phong_deferredlighting.xml">
+    <outputs light="screen/phong_deferredlighting.xml">
         <output name="out_color" />
         <output name="out_position" />
         <output name="out_normal" />
@@ -18,7 +18,7 @@
     <resources>
         <texture2d name="diffuseTexture" />
         <texture2d name="specularTexture" />
-        <texture2d name="normalTexture" />
+        <texture2d name="normalTexture" isNormal="true" />
     </resources>
     <vertex>
 #include "genericvert.glsl"
