@@ -25,6 +25,7 @@ namespace Deremis.Engine.Objects
             public string Name;
             public ResourceKind Kind;
             public BindableResource Value;
+            public bool IsNormal;
         }
 
         public Veldrid.Shader[] Shaders { get; private set; }

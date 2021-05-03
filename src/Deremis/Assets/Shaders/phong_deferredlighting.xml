@@ -15,6 +15,8 @@
         <texture2d name="diffuseSpecTexture" />
         <texture2d name="positionTexture" />
         <texture2d name="normalTexture" />
+        <texture2d name="lightSpaceTexture" />
+        <texture2d name="shadowMap" />
     </resources>
     <vertex>
 #include "screen/genericvert.glsl"
@@ -35,9 +37,13 @@ layout(set = 0, binding = 1) uniform Material
 layout(set = 1, binding = 0) uniform texture2D diffuseSpecTexture;
 layout(set = 1, binding = 1) uniform texture2D positionTexture;
 layout(set = 1, binding = 2) uniform texture2D normalTexture;
-layout(set = 1, binding = 3) uniform sampler texSampler;
+layout(set = 1, binding = 3) uniform texture2D lightSpaceTexture;
+layout(set = 1, binding = 4) uniform texture2D shadowMap;
+layout(set = 1, binding = 5) uniform sampler texSampler;
+layout(set = 1, binding = 6) uniform sampler shadowMapSampler;
 
 layout(location = 0) in vec2 f_UV;
+
 layout(location = 0) out vec4 out_Color;
 
 // later include to have layout definition
@@ -52,7 +58,7 @@ void main()
         diffuseSpec.a * specularColor,
         texture(sampler2D(normalTexture, texSampler), f_UV).rgb
     );
-    vec3 color = Calculate(dsn, position.rgb);
+    vec3 color = Calculate(dsn, position.rgb, texture(sampler2D(lightSpaceTexture, texSampler), f_UV));
 
     out_Color = vec4(color, position.a);
 }

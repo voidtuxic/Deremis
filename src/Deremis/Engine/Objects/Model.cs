@@ -35,7 +35,7 @@ namespace Deremis.Engine.Objects
             nodes.Add(new Node { mesh = mesh, transform = transform });
         }
 
-        public Entity Spawn(Application app, string material, Transform transform)
+        public Entity Spawn(Application app, string material, Transform transform, bool shadows = true)
         {
             Entity entity = app.CreateTransform(Name);
             entity.Set(transform);
@@ -43,7 +43,7 @@ namespace Deremis.Engine.Objects
             {
                 var mesh = Meshes[node.mesh];
                 if (mesh == null) continue;
-                var child = app.Spawn(mesh.Name, mesh, material);
+                var child = app.Spawn(mesh.Name, mesh, material, shadows);
                 child.Set(node.transform);
                 child.SetAsChildOf(entity);
             }

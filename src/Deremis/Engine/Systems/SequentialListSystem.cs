@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using DefaultEcs.System;
+using Deremis.Engine.Systems.Extensions;
 
 namespace Deremis.Engine.Systems
 {

@@ -90,6 +90,14 @@ namespace Deremis.Engine.Rendering
             return materials[name];
         }
 
+        public void PrepareMaterials()
+        {
+            foreach (var material in materials.Values)
+            {
+                material.IsFramebufferCleared = false;
+            }
+        }
+
         public void Dispose()
         {
             GeneralResourceLayout.Dispose();

@@ -5,7 +5,8 @@
 
 layout(location = 0) out vec3 f_position;
 layout(location = 1) out vec2 f_UV;
-layout(location = 2) out mat3 f_TBN;
+layout(location = 2) out vec4 f_FragPosLightSpace;
+layout(location = 3) out mat3 f_TBN;
 
 void main()
 {
@@ -14,8 +15,10 @@ void main()
     f_position = worldPos.xyz;
     f_UV = UV;
 
-    vec3 T = normalize(mat3(NormalWorld) * Tangent);
-    vec3 B = normalize(mat3(NormalWorld) * Bitangent);
-    vec3 N = normalize(mat3(NormalWorld) * Normal);
+    mat3 normalWorld = mat3(NormalWorld);
+    vec3 T = normalize(normalWorld * Tangent);
+    vec3 B = normalize(normalWorld * Bitangent);
+    vec3 N = normalize(normalWorld * Normal);
     f_TBN = mat3(T, B, N);
+    f_FragPosLightSpace = LightSpace * vec4(f_position, 1);
 }

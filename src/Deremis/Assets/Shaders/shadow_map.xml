@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shader version="1">
+    <config>
+        <BlendState>SingleDisabled</BlendState>
+        <DepthStencilState depthTestEnabled="true" depthWriteEnabled="true" comparisonKind="GreaterEqual" />
+        <RasterizerState depthClipEnabled="true" scissorTestEnabled="false" cullMode="Front" fillMode="Solid" frontFace="Clockwise" />
+        <PrimitiveTopology>TriangleList</PrimitiveTopology>
+    </config>
+    <vertex>
+#version 450
+
+#include "uniforms/transform.glsl"
+#include "uniforms/in_vert.glsl"
+
+void main()
+{
+    gl_Position = LightSpace * World * vec4(Position, 1.0);
+} 
+    </vertex>
+    <fragment>
+#version 450
+
+void main()
+{
+    // nada
+}
+    </fragment>
+</shader>

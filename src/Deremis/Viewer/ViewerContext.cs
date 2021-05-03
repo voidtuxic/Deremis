@@ -28,7 +28,7 @@ namespace Deremis.Viewer
 
             var stenModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/sten.obj"));
             var panaModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/pana.obj"));
-            var tableModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/table.obj"));
+            var tableModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/plane.obj"));
             var shader = AssetManager.current.Get<Shader>(new AssetDescription("Shaders/phong_gbuffer.xml"));
             var shaderfwd = AssetManager.current.Get<Shader>(new AssetDescription("Shaders/phong.xml"));
 
@@ -56,14 +56,14 @@ namespace Deremis.Viewer
                 color: new Vector3(1f, 0.9f, 0.75f),
                 type: 0
             );
-            light.Set(new Transform(Vector3.Zero, Quaternion.CreateFromYawPitchRoll(-MathF.PI / 4f, -MathF.PI / 3f, 0), Vector3.One));
-            light = app.CreateLight(
-                color: new Vector3(1f, 0.75f, 0.9f),
-                type: 2,
-                innerCutoff: MathF.Cos(7.5f * MathF.PI / 180f),
-                outerCutoff: MathF.Cos(10f * MathF.PI / 180f)
-            );
-            light.Set(new Transform(new Vector3(-10, 0, 1), Quaternion.CreateFromYawPitchRoll(-MathF.PI / 2f, 0, 0), Vector3.One));
+            light.Set(new Transform(Vector3.Zero, Quaternion.CreateFromYawPitchRoll(MathF.PI, -MathF.PI / 3f, 0), Vector3.One));
+            // light = app.CreateLight(
+            //     color: new Vector3(1f, 0.75f, 0.9f),
+            //     type: 2,
+            //     innerCutoff: MathF.Cos(7.5f * MathF.PI / 180f),
+            //     outerCutoff: MathF.Cos(10f * MathF.PI / 180f)
+            // );
+            // light.Set(new Transform(new Vector3(-10, 0, 1), Quaternion.CreateFromYawPitchRoll(-MathF.PI / 2f, 0, 0), Vector3.One));
 
             SamplerDescription sampler = new SamplerDescription
             {
@@ -85,7 +85,7 @@ namespace Deremis.Viewer
             stenMat.SetTexture("specularTexture", stenSpecularTex);
             stenMat.SetTexture("normalTexture", stenNormalTex);
             stenMat.SetSampler(sampler);
-            var panaMat = app.MaterialManager.CreateMaterial(shaderfwd.Name, shaderfwd);
+            var panaMat = app.MaterialManager.CreateMaterial(shaderfwd.Name, shader);
             panaMat.SetProperty("ambientStrength", 0.1f);
             panaMat.SetProperty("diffuseColor", Vector3.One);
             panaMat.SetProperty("specularStrength", 0.5f);
@@ -94,24 +94,23 @@ namespace Deremis.Viewer
             panaMat.SetTexture("diffuseTexture", panaDiffuseTex);
             panaMat.SetTexture("specularTexture", panaSpecularTex);
             panaMat.SetTexture("normalTexture", panaNormalTex);
-            panaMat.SetTexture("emissiveTexture", panaEmissiveTex);
             panaMat.SetSampler(sampler);
             var tableMat = app.MaterialManager.CreateMaterial("table", shader);
             tableMat.SetProperty("ambientStrength", 0.1f);
-            tableMat.SetProperty("diffuseColor", Vector3.One);
+            tableMat.SetProperty("diffuseColor", Vector3.One * 0.9f);
             tableMat.SetProperty("specularStrength", 0.1f);
             tableMat.SetProperty("specularColor", Vector3.One);
-            tableMat.SetTexture("diffuseTexture", tableDiffuseTex);
-            tableMat.SetTexture("specularTexture", tableSpecularTex);
-            tableMat.SetTexture("normalTexture", tableNormalTex);
+            // tableMat.SetTexture("diffuseTexture", tableDiffuseTex);
+            // tableMat.SetTexture("specularTexture", tableSpecularTex);
+            // tableMat.SetTexture("normalTexture", tableNormalTex);
             tableMat.SetSampler(sampler);
 
             var entity = stenModel.Spawn(app, stenMat.Name, new Transform(
                 new Vector3(1.35f, 0, 2),
                 Quaternion.CreateFromYawPitchRoll(MathF.PI, 0, MathF.PI / 5.5f),
                 Vector3.One));
-            var entityfwd = panaModel.Spawn(app, panaMat.Name, new Transform(new Vector3(0, 10, 2), Quaternion.CreateFromYawPitchRoll(2f * MathF.PI / 3f, 0, 0), Vector3.One));
-            var tableEntity = tableModel.Spawn(app, tableMat.Name, new Transform(Vector3.Zero, Quaternion.Identity, Vector3.One));
+            var entityfwd = panaModel.Spawn(app, panaMat.Name, new Transform(new Vector3(0, 4.5f, 2), Quaternion.CreateFromYawPitchRoll(MathF.PI / 2f, 0, 0), Vector3.One));
+            var tableEntity = tableModel.Spawn(app, tableMat.Name, new Transform(new Vector3(0, 0, 0), Quaternion.Identity, Vector3.One));
 
             entityfwd.SetAsChildOf(tableEntity);
             entity.SetAsChildOf(entityfwd);
@@ -120,10 +119,12 @@ namespace Deremis.Viewer
             app.MainSystem.Add(new ActionSystem<float>(delta =>
             {
                 rotate += delta;
-                var transform = Transform.FromTarget(new Vector3(20 * MathF.Cos(-rotate / 4f), 5, 20 * MathF.Sin(-rotate / 4f)), Vector3.Zero, Vector3.UnitY);
-                light.Set(transform);
+                var transform = Transform.FromTarget(new Vector3(20 * MathF.Cos(-rotate / 4f), 10, 20 * MathF.Sin(-rotate / 4f)), Vector3.Zero, Vector3.UnitY);
+                // light.Set(transform);
                 camera.Set(transform);
-                tableEntity.Set(new Transform(new Vector3(0, -6, 0), Quaternion.CreateFromYawPitchRoll(rotate / 2f, 0, 0), Vector3.One));
+
+                // light.Set(new Transform(Vector3.Zero, Quaternion.CreateFromYawPitchRoll(rotate / 2f, -MathF.PI / 4f, 0), Vector3.One));
+                // tableEntity.Set(new Transform(new Vector3(0, -6, 0), Quaternion.CreateFromYawPitchRoll(rotate / 2f, 0, 0), Vector3.One));
             }));
         }
     }

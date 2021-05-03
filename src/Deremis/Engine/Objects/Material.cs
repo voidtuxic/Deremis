@@ -9,6 +9,18 @@ namespace Deremis.Engine.Objects
 {
     public class Material : DObject
     {
+        private static SamplerDescription shadowMapSampler = new SamplerDescription
+        {
+            AddressModeU = SamplerAddressMode.Border,
+            AddressModeV = SamplerAddressMode.Border,
+            AddressModeW = SamplerAddressMode.Border,
+            Filter = SamplerFilter.MinLinear_MagLinear_MipLinear,
+            LodBias = 0,
+            MinimumLod = 0,
+            MaximumLod = uint.MaxValue,
+            BorderColor = SamplerBorderColor.TransparentBlack
+        };
+
         public override string Type => "Material";
         public Shader Shader { get; private set; }
         public Pipeline Pipeline { get; private set; }
@@ -16,6 +28,7 @@ namespace Deremis.Engine.Objects
         public ResourceSet ResourceSet { get; private set; }
         public Framebuffer Framebuffer { get; private set; }
         public Material DeferredLightingMaterial { get; private set; }
+        public bool IsFramebufferCleared { get; set; } = false;
 
         private bool isBufferDirty = true;
         private readonly Dictionary<string, Shader.Property> properties = new Dictionary<string, Shader.Property>();
@@ -51,12 +64,21 @@ namespace Deremis.Engine.Objects
             var resources = new List<Shader.Resource>(this.resources.Values).ToArray();
             Array.Sort(resources, new ShaderResourceOrderCompare());
 
+            bool hasShadowmap = false;
             var layoutDescriptions = new List<ResourceLayoutElementDescription>();
             foreach (var resource in resources)
             {
                 layoutDescriptions.Add(new ResourceLayoutElementDescription(resource.Name, resource.Kind, ShaderStages.Fragment));
+                if (resource.Name.Equals(Application.SHADOW_MAP_NAME))
+                {
+                    hasShadowmap = true;
+                }
             }
-            layoutDescriptions.Add(new ResourceLayoutElementDescription("Sampler", ResourceKind.Sampler, ShaderStages.Fragment));
+            layoutDescriptions.Add(new ResourceLayoutElementDescription("texSampler", ResourceKind.Sampler, ShaderStages.Fragment));
+            if (hasShadowmap)
+            {
+                layoutDescriptions.Add(new ResourceLayoutElementDescription("shadowMapSampler", ResourceKind.Sampler, ShaderStages.Fragment));
+            }
             resourceLayout = app.Factory.CreateResourceLayout(new ResourceLayoutDescription(layoutDescriptions.ToArray()));
 
             var description = Shader.DefaultPipeline;
@@ -76,7 +98,7 @@ namespace Deremis.Engine.Objects
 
         public void SetupGbuffer(List<TextureView> gbufferTextureViews)
         {
-            if (gbufferTextureViews.Count != resources.Count) return;
+            if (gbufferTextureViews.Count > resources.Count) return;
 
             var resourceNames = new List<string>(resources.Keys).ToArray();
             for (var i = 0; i < gbufferTextureViews.Count; i++)
@@ -95,11 +117,22 @@ namespace Deremis.Engine.Objects
             Array.Sort(resources, new ShaderResourceOrderCompare());
 
             var layoutDescriptions = new List<ResourceLayoutElementDescription>();
+            bool hasShadowmap = false;
             foreach (var resource in resources)
             {
-                bindableResources.Add(resource.Value ?? GetDefaultResourceValue(resource.Kind));
+                if (resource.Name.Equals(Application.SHADOW_MAP_NAME))
+                {
+                    bindableResources.Add(app.ShadowDepthTexture.View);
+                    hasShadowmap = true;
+                    continue;
+                }
+                bindableResources.Add(resource.Value ?? GetDefaultResourceValue(resource));
             }
             bindableResources.Add(Sampler);
+            if (hasShadowmap)
+            {
+                bindableResources.Add(Application.current.Factory.CreateSampler(shadowMapSampler));
+            }
 
             ResourceSet = app.Factory.CreateResourceSet(new ResourceSetDescription(resourceLayout, bindableResources.ToArray()));
         }
@@ -209,10 +242,18 @@ namespace Deremis.Engine.Objects
             }
         }
 
-        public static BindableResource GetDefaultResourceValue(ResourceKind kind)
+        public static BindableResource GetDefaultResourceValue(Shader.Resource resource)
         {
+            Texture missingTex = null;
             // TODO other kinds???
-            var missingTex = AssetManager.current.Get<Texture>(Application.MissingTex);
+            if (resource.IsNormal)
+            {
+                missingTex = AssetManager.current.Get<Texture>(Application.MissingNormalTex);
+            }
+            else
+            {
+                missingTex = AssetManager.current.Get<Texture>(Application.MissingTex);
+            }
             if (missingTex != null)
             {
                 return missingTex.View;

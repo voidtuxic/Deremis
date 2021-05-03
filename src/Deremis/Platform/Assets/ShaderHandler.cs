@@ -187,11 +187,16 @@ namespace Deremis.Platform.Assets
             foreach (XmlNode child in node)
             {
                 var kind = ResourceKind.TextureReadOnly;
+                var isNormal = false;
                 // TODO more resource kinds???
                 switch (child.Name)
                 {
                     case "texture2d":
                     case "cubemap":
+                        if (child.Attributes != null && child.Attributes["isNormal"] != null)
+                        {
+                            isNormal = bool.Parse(child.Attributes["isNormal"].Value);
+                        }
                         break;
                     default: continue;
                 }
@@ -199,7 +204,8 @@ namespace Deremis.Platform.Assets
                 {
                     Name = child.Attributes["name"].Value,
                     Order = index,
-                    Kind = kind
+                    Kind = kind,
+                    IsNormal = isNormal
                 });
                 index++;
             }

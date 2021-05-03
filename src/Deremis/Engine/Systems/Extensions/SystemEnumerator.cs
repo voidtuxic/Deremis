@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using DefaultEcs.System;
 
-namespace Deremis.Engine.Systems
+namespace Deremis.Engine.Systems.Extensions
 {
     public class SystemEnumerator<T> : IEnumerator<ISystem<T>>
     {

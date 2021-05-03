@@ -98,7 +98,7 @@ namespace Deremis.Engine.Rendering.Helpers
             if (!initialized)
             {
                 var mesh = GetMesh();
-                app.Spawn(name, mesh, name);
+                app.Spawn(name, mesh, name, false);
                 initialized = true;
             }
         }

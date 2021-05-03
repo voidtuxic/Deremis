@@ -8,6 +8,7 @@
     </config>
     <resources>
         <texture2d name="screenTex" />
+        <texture2d name="extraTex" />
     </resources>
     <vertex>
 #include "screen/genericvert.glsl"
@@ -21,11 +22,18 @@ layout(location = 0) in vec2 f_UV;
 layout(location = 0) out vec4 out_Color;
 
 layout(set = 1, binding = 0) uniform texture2D screenTex;
-layout(set = 1, binding = 1) uniform sampler texSampler;
+layout(set = 1, binding = 1) uniform texture2D extraTex;
+layout(set = 1, binding = 2) uniform sampler texSampler;
 
 void main()
 {    
-    out_Color = texture(sampler2D(screenTex, texSampler), f_UV);
+    vec3 color = texture(sampler2D(screenTex, texSampler), f_UV).rgb;
+
+    //if(f_UV.x &lt;= 0.2 &amp;&amp; f_UV.y &lt;= 0.2) {
+    //    color = texture(sampler2D(extraTex, texSampler), f_UV * 5.0).rrr;
+    //}
+
+    out_Color = vec4(color, 1.0);
 }
     </fragment>
 </shader>

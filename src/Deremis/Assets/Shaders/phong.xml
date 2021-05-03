@@ -16,8 +16,9 @@
     <resources>
         <texture2d name="diffuseTexture" />
         <texture2d name="specularTexture" />
-        <texture2d name="normalTexture" />
+        <texture2d name="normalTexture" isNormal="true"/>
         <texture2d name="emissiveTexture" />
+        <texture2d name="shadowMap" />
     </resources>
     <vertex>
 #include "genericvert.glsl"
@@ -42,7 +43,9 @@ layout(set = 1, binding = 0) uniform texture2D diffuseTexture;
 layout(set = 1, binding = 1) uniform texture2D specularTexture;
 layout(set = 1, binding = 2) uniform texture2D normalTexture;
 layout(set = 1, binding = 3) uniform texture2D emissiveTexture;
-layout(set = 1, binding = 4) uniform sampler texSampler;
+layout(set = 1, binding = 4) uniform texture2D shadowMap;
+layout(set = 1, binding = 5) uniform sampler texSampler;
+layout(set = 1, binding = 6) uniform sampler shadowMapSampler;
 
 // later include to have layout definition
 #include "libs/phong.glsl"
@@ -57,7 +60,7 @@ void main()
         texture(sampler2D(specularTexture, texSampler), f_UV).rgb * specularColor,
         norm
     );
-    vec3 color = Calculate(dsn, f_position);
+    vec3 color = Calculate(dsn, f_position, f_FragPosLightSpace);
 
     color += texture(sampler2D(emissiveTexture, texSampler), f_UV).rgb * emissiveStrength;
 

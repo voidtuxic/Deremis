@@ -10,6 +10,7 @@
         <output name="out_color" />
         <output name="out_position" />
         <output name="out_normal" />
+        <output name="out_lightspace" />
     </outputs>
     <properties>
         <vec3 name="diffuseColor" />
@@ -39,6 +40,7 @@ layout(set = 1, binding = 3) uniform sampler texSampler;
 
 layout(location = 1) out vec4 out_Position;
 layout(location = 2) out vec4 out_Normal;
+layout(location = 3) out vec4 out_LightSpace;
 
 void main()
 {
@@ -49,6 +51,7 @@ void main()
     out_Color.a = texture(sampler2D(specularTexture, texSampler), f_UV).r;
     out_Position = vec4(f_position, 1.0);
     out_Normal = vec4(norm, 1.0);
+    out_LightSpace = f_FragPosLightSpace;
 }
     </fragment>
 </shader>
