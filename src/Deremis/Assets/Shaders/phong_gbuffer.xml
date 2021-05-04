@@ -7,10 +7,10 @@
         <PrimitiveTopology>TriangleList</PrimitiveTopology>
     </config>
     <outputs light="screen/phong_deferredlighting.xml">
-        <output name="out_color" />
-        <output name="out_position" />
-        <output name="out_normal" />
-        <output name="out_lightspace" />
+        <output name="color" />
+        <output name="position" />
+        <output name="normal" />
+        <output name="lightspace" />
     </outputs>
     <properties>
         <vec3 name="diffuseColor" />

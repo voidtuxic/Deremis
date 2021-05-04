@@ -27,6 +27,7 @@ namespace Deremis.Engine.Objects
             var copyTex = app.Factory.CreateTexture(ref texDescription);
             var copyView = app.Factory.CreateTextureView(copyTex);
             copyTex.Name = $"{name}_copy";
+            copyView.Name = $"{name}_copy";
             CopyTexture = new Texture($"{name}_copy", copyTex, copyView);
         }
 

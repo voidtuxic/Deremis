@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 
 namespace Deremis.Engine.Rendering.Resources
 {
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct TransformResource
     {
         public Matrix4x4 viewProjMatrix;

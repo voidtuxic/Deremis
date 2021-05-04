@@ -12,6 +12,9 @@ namespace Deremis.Engine.Objects
         private byte[] vertexCode;
         private byte[] fragmentCode;
 
+        // TODO add platform check
+        public bool IsPlatformDependent { get; set; }
+
         public struct Property
         {
             public int Order;
@@ -72,7 +75,17 @@ namespace Deremis.Engine.Objects
                 fragmentCode,
                 "main");
 
-            Shaders = Application.current.Factory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc);
+            if (IsPlatformDependent)
+            {
+                Shaders = new Veldrid.Shader[] {
+                    Application.current.Factory.CreateShader(vertexShaderDesc),
+                    Application.current.Factory.CreateShader(fragmentShaderDesc)
+                };
+            }
+            else
+            {
+                Shaders = Application.current.Factory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc);
+            }
 
             var pipeline = DefaultPipeline;
             pipeline.ShaderSet = new ShaderSetDescription(

@@ -210,6 +210,34 @@ namespace Deremis.Platform
             }
         }
 
+        public Material GetScreenPass(string name, Shader shader)
+        {
+            var material = Render.GetScreenPass(name);
+            if (material == null)
+            {
+                material = MaterialManager.CreateMaterial(name, shader);
+                material.SetScreenSampler();
+                var gbufferTextureViews = new List<TextureView>();
+                foreach (var resource in shader.Resources)
+                {
+                    if (resource.Key.Equals("screen"))
+                    {
+                        gbufferTextureViews.Add(CopyTexture.View);
+                        continue;
+                    }
+                    if (resource.Value.Kind == ResourceKind.TextureReadOnly)
+                    {
+                        var rt = GetRenderTexture(resource.Key, COLOR_PIXEL_FORMAT);
+                        gbufferTextureViews.Add(rt.CopyTexture.View);
+                    }
+                }
+                material.Build(ScreenFramebuffer, gbufferTextureViews);
+                GraphicsDevice.WaitForIdle();
+                Render.RegisterScreenPass(material);
+            }
+            return material;
+        }
+
         public RenderTexture GetRenderTexture(string name, PixelFormat format, bool isDepth = false)
         {
             if (renderTextures.ContainsKey(name)) return renderTextures[name];

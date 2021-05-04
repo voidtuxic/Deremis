@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shader version="1" platform="Direct3D11">
+    <config>
+        <BlendState>SingleDisabled</BlendState>
+        <DepthStencilState depthTestEnabled="true" depthWriteEnabled="false" comparisonKind="Always" />
+        <RasterizerState depthClipEnabled="true" scissorTestEnabled="false" cullMode="None" fillMode="Solid" frontFace="Clockwise" />
+        <PrimitiveTopology>TriangleList</PrimitiveTopology>
+    </config>
+    <resources>
+        <texture2d name="screen" />
+        <texture2d name="position" />
+        <texture2d name="normal" isNormal="true" />
+    </resources>
+    <vertex>
+cbuffer Transform : register(b0)
+{
+    row_major float4x4 ViewProj : packoffset(c0);
+    row_major float4x4 World : packoffset(c4);
+    row_major float4x4 NormalWorld : packoffset(c8);
+    row_major float4x4 View : packoffset(c12);
+    row_major float4x4 Proj : packoffset(c16);
+    row_major float4x4 LightSpace : packoffset(c20);
+};
+
+
+static float4 gl_Position;
+static float3 Position;
+static float2 UV;
+static float2 f_UV;
+
+struct SPIRV_Cross_Input
+{
+    float3 Position : POSITION;
+    float3 Normal : NORMAL;
+    float2 UV : TEXCOORD0;
+    float3 Tangent : TEXCOORD1;
+    float3 Bitangent : TEXCOORD2;
+};
+
+struct SPIRV_Cross_Output
+{
+    float2 f_UV : TEXCOORD0;
+    float4 gl_Position : SV_Position;
+};
+
+void vert_main()
+{
+    gl_Position = float4(Position.x, Position.y, 0.0f, 1.0f);
+    f_UV = UV;
+}
+
+SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
+{
+    Position = stage_input.Position;
+    UV = stage_input.UV;
+    vert_main();
+    SPIRV_Cross_Output stage_output;
+    stage_output.gl_Position = gl_Position;
+    stage_output.f_UV = f_UV;
+    return stage_output;
+}
+    </vertex>
+    <fragment>
+#include "screen/ssao.hlsl"
+    </fragment>
+</shader>

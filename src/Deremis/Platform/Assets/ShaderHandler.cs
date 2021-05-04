@@ -29,6 +29,11 @@ namespace Deremis.Platform.Assets
             doc.LoadXml(content);
             var root = doc["shader"];
 
+            if (root.Attributes != null && root.Attributes["platform"] != null)
+            {
+                shader.IsPlatformDependent = true;
+            }
+
             foreach (XmlNode child in root)
             {
                 switch (child.Name)
@@ -197,6 +202,9 @@ namespace Deremis.Platform.Assets
                         {
                             isNormal = bool.Parse(child.Attributes["isNormal"].Value);
                         }
+                        break;
+                    case "sampler":
+                        kind = ResourceKind.Sampler;
                         break;
                     default: continue;
                 }

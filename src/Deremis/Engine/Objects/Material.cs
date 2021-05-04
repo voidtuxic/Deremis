@@ -20,6 +20,16 @@ namespace Deremis.Engine.Objects
             MaximumLod = uint.MaxValue,
             BorderColor = SamplerBorderColor.TransparentBlack
         };
+        private static SamplerDescription screenSampler = new SamplerDescription
+        {
+            AddressModeU = SamplerAddressMode.Wrap,
+            AddressModeV = SamplerAddressMode.Wrap,
+            AddressModeW = SamplerAddressMode.Wrap,
+            Filter = SamplerFilter.MinLinear_MagLinear_MipLinear,
+            LodBias = 0,
+            MinimumLod = 0,
+            MaximumLod = uint.MaxValue,
+        };
 
         public override string Type => "Material";
         public Shader Shader { get; private set; }
@@ -57,7 +67,10 @@ namespace Deremis.Engine.Objects
         {
             var app = Application.current;
             Pipeline?.Dispose();
-            Framebuffer?.Dispose();
+            if (Framebuffer != app.ScreenFramebuffer)
+            {
+                Framebuffer?.Dispose();
+            }
             Framebuffer = framebuffer ?? app.ScreenFramebuffer;
 
             var resources = new List<Shader.Resource>(this.resources.Values).ToArray();
@@ -87,9 +100,13 @@ namespace Deremis.Engine.Objects
 
             if (Shader.IsDeferred && gbufferTextureViews != null)
             {
-                DeferredLightingMaterial = app.MaterialManager.CreateMaterial($"{Name}_deferred_lighting", Shader.DeferredLightingShader);
+                DeferredLightingMaterial = app.MaterialManager.CreateMaterial("deferred_lighting", Shader.DeferredLightingShader);
                 DeferredLightingMaterial.SetupGbuffer(gbufferTextureViews);
                 app.Render.RegisterDeferred(this);
+            }
+            else if (gbufferTextureViews != null)
+            {
+                SetupGbuffer(gbufferTextureViews);
             }
 
             BuildResourceSet();
@@ -115,7 +132,6 @@ namespace Deremis.Engine.Objects
             var resources = new List<Shader.Resource>(this.resources.Values).ToArray();
             Array.Sort(resources, new ShaderResourceOrderCompare());
 
-            var layoutDescriptions = new List<ResourceLayoutElementDescription>();
             bool hasShadowmap = false;
             foreach (var resource in resources)
             {
@@ -134,6 +150,7 @@ namespace Deremis.Engine.Objects
             }
 
             ResourceSet = app.Factory.CreateResourceSet(new ResourceSetDescription(resourceLayout, bindableResources.ToArray()));
+            ResourceSet.Name = Name;
         }
 
         public void SetProperty<T>(string name, T value) where T : unmanaged
@@ -162,6 +179,11 @@ namespace Deremis.Engine.Objects
             resource.Value = view;
             resources[name] = resource;
             BuildResourceSet();
+        }
+
+        public void SetScreenSampler()
+        {
+            SetSampler(screenSampler);
         }
 
         public void SetSampler(SamplerDescription description)
@@ -243,8 +265,8 @@ namespace Deremis.Engine.Objects
 
         public static BindableResource GetDefaultResourceValue(Shader.Resource resource)
         {
+            if (resource.Kind == ResourceKind.Sampler) return Application.current.GraphicsDevice.LinearSampler;
             Texture missingTex = null;
-            // TODO other kinds???
             if (resource.IsNormal)
             {
                 missingTex = AssetManager.current.Get<Texture>(Application.MissingNormalTex);

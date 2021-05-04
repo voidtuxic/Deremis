@@ -38,6 +38,7 @@ namespace Deremis.Engine.Systems
 
         private readonly ConcurrentDictionary<string, Mesh> meshes = new ConcurrentDictionary<string, Mesh>();
         private readonly Dictionary<string, Material> deferredMaterials = new Dictionary<string, Material>();
+        private readonly Dictionary<string, Material> screenPassMaterials = new Dictionary<string, Material>();
 
         private bool isDrawValid;
         private Material material;
@@ -106,7 +107,7 @@ namespace Deremis.Engine.Systems
                 app.AssetManager.Get<Shader>(ScreenShader),
                 app.GraphicsDevice.SwapchainFramebuffer);
             screenRenderMaterial.SetTexture("screenTex", app.CopyTexture);
-            screenRenderMaterial.SetTexture("extraTex", app.ShadowDepthTexture);
+            // screenRenderMaterial.SetTexture("extraTex", app.ShadowDepthTexture);
         }
 
         public string RegisterMesh(string name, Mesh mesh)
@@ -117,7 +118,24 @@ namespace Deremis.Engine.Systems
 
         public void RegisterDeferred(Material deferredMat)
         {
-            deferredMaterials.Add(deferredMat.Name, deferredMat);
+            foreach (var mat in deferredMaterials.Values)
+            {
+                if (mat.DeferredLightingMaterial == deferredMat.DeferredLightingMaterial)
+                    return;
+            }
+            deferredMaterials.TryAdd(deferredMat.Name, deferredMat);
+        }
+
+        public Material GetScreenPass(string name)
+        {
+            if (screenPassMaterials.ContainsKey(name)) return screenPassMaterials[name];
+
+            return null;
+        }
+
+        public void RegisterScreenPass(Material material)
+        {
+            screenPassMaterials.TryAdd(material.Name, material);
         }
 
         private void SetFramebuffer(Framebuffer framebuffer = null)
@@ -192,7 +210,7 @@ namespace Deremis.Engine.Systems
             }
         }
 
-        private bool InitDrawable(Drawable key, Material drawMat = null, bool checkDeferred = true)
+        private bool InitDrawable(Drawable key, Material drawMat = null, bool checkDeferred = true, bool begin = true)
         {
             material = drawMat ?? app.MaterialManager.GetMaterial(key.material);
             if (material == null || (checkDeferred && material.Shader.IsDeferred))
@@ -204,16 +222,17 @@ namespace Deremis.Engine.Systems
             var pipeline = material.Pipeline;
             if (pipeline != null && mesh != null)
             {
-                SetPipeline(pipeline);
+                SetPipeline(pipeline, begin);
                 isDrawValid = true;
             }
             else return false;
             return true;
         }
 
-        private void SetPipeline(Pipeline pipeline)
+        private void SetPipeline(Pipeline pipeline, bool begin)
         {
-            commandList.Begin();
+            if (begin)
+                commandList.Begin();
             SetFramebuffer(material.Framebuffer);
             commandList.UpdateBuffer(app.MaterialManager.MaterialBuffer, 0, material.GetValueArray());
             commandList.SetVertexBuffer(0, mesh.VertexBuffer);
@@ -281,10 +300,11 @@ namespace Deremis.Engine.Systems
 
         protected override void PostUpdate(float state)
         {
-            // draw deferred after forward... feels dumb
             DrawDeferred();
-
             app.UpdateScreenTexture(commandList);
+            DrawScreenPasses();
+            app.UpdateScreenTexture(commandList);
+
             UpdateScreenBuffer(screenRenderMaterial, app.GraphicsDevice.SwapchainFramebuffer);
 
             app.GraphicsDevice.SwapBuffers();
@@ -304,9 +324,10 @@ namespace Deremis.Engine.Systems
             commandList.End();
             SubmitAndWait();
 
+            commandList.Begin();
             foreach (var key in shadowedObjectsMap.Keys)
             {
-                if (InitDrawable(key, app.ShadowMapMaterial, false) && shadowedObjectsMap.TryGetEntities(key, out var entities))
+                if (InitDrawable(key, app.ShadowMapMaterial, false, false) && shadowedObjectsMap.TryGetEntities(key, out var entities))
                 {
                     isDrawValid = true;
                     Update(0, in key, entities);
@@ -389,9 +410,10 @@ namespace Deremis.Engine.Systems
         {
             if (deferredMaterials.Count != 0)
             {
+                commandList.Begin();
                 foreach (var key in deferredObjectsMap.Keys)
                 {
-                    if (InitDrawable(key, null, false) && deferredObjectsMap.TryGetEntities(key, out var entities))
+                    if (InitDrawable(key, null, false, false) && deferredObjectsMap.TryGetEntities(key, out var entities))
                     {
                         isDrawValid = true;
                         Update(0, in key, entities);
@@ -409,19 +431,48 @@ namespace Deremis.Engine.Systems
             }
         }
 
+        private void DrawScreenPasses()
+        {
+            if (screenPassMaterials.Count != 0)
+            {
+                foreach (var material in screenPassMaterials.Values)
+                {
+                    UpdateScreenBuffer(material, app.ScreenFramebuffer);
+                }
+            }
+        }
+
         private void UpdateScreenBuffer(Material material, Framebuffer framebuffer)
         {
             commandList.Begin();
 
             SetFramebuffer(framebuffer);
-            // commandList.ClearColorTarget(0, ClearColor);
+
+            var world = Matrix4x4.Identity;
+            var normalWorld = Matrix4x4.Identity;
+            if (Matrix4x4.Invert(world, out normalWorld))
+            {
+                normalWorld = Matrix4x4.Transpose(normalWorld);
+            }
+            commandList.UpdateBuffer(
+                app.MaterialManager.TransformBuffer,
+                0,
+                new TransformResource
+                {
+                    viewProjMatrix = viewProjMatrix,
+                    worldMatrix = world,
+                    normalWorldMatrix = normalWorld,
+                    viewMatrix = viewMatrix,
+                    projMatrix = projMatrix,
+                    lightSpaceMatrix = lightSpaceMatrix
+                });
+            commandList.UpdateBuffer(app.MaterialManager.MaterialBuffer, 0, material.GetValueArray());
 
             commandList.SetVertexBuffer(0, screenRenderMesh.VertexBuffer);
             commandList.SetPipeline(material.Pipeline);
             commandList.SetGraphicsResourceSet(0, app.MaterialManager.GeneralResourceSet);
             commandList.SetGraphicsResourceSet(1, material.ResourceSet);
 
-            commandList.UpdateBuffer(app.MaterialManager.MaterialBuffer, 0, material.GetValueArray());
             commandList.Draw(
                 vertexCount: screenRenderMesh.VertexCount,
                 instanceCount: 1,
