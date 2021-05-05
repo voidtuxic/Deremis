@@ -11,13 +11,14 @@ cbuffer Transform : register(b0)
 Texture2D<float4> screenTex : register(t0);
 Texture2D<float4> positionTex : register(t1);
 Texture2D<float4> normalTex : register(t2);
-SamplerState texSampler : register(s3);
+Texture2D<float4> ssaoPassTex : register(t3);
+SamplerState texSampler : register(s0);
 
 static float2 f_UV;
 static float4 out_Color;
-static float scale = 0.50;
-static float intensity = 20.0f;
-static float radius = 0.5;
+static float scale = 1.0;
+static float intensity = 5.0f;
+static float radius = 0.95;
 static float bias = 0.025f;
 
 struct SPIRV_Cross_Input
@@ -63,8 +64,6 @@ float doAmbientOcclusion(in float2 tcoord,in float2 uv, in float3 p, in float3 c
 
 void frag_main()
 {
-    float3 screen = screenTex.Sample(texSampler, f_UV).xyz;
-
     const float2 vec[4] = {float2(1,0),float2(-1,0), float2(0,1),float2(0,-1)};
     const int iterations = 16; 
     float ao = 0.0f; 
@@ -84,8 +83,8 @@ void frag_main()
         ao += doAmbientOcclusion(f_UV,coord2, p, n); 
     }
     ao /=(float)iterations*4.0;
-    ao = pow(ao, 4);
-    ao = 1.0 - ao * 2;
+    ao = pow(ao, 3);
+    ao = 1.0 - ao;
     
     out_Color = float4(ao,ao, ao, 1.0f); // screen* min(0.5, ao)
 }

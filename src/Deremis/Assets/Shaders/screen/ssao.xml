@@ -10,7 +10,9 @@
         <texture2d name="screen" />
         <texture2d name="position" />
         <texture2d name="normal" isNormal="true" />
+        <texture2d name="ssaoPass" />
     </resources>
+    <multipass name="ssaoPass" colorTargetCount="1" />
     <vertex>
 cbuffer Transform : register(b0)
 {
@@ -30,11 +32,11 @@ static float2 f_UV;
 
 struct SPIRV_Cross_Input
 {
-    float3 Position : POSITION;
-    float3 Normal : NORMAL;
-    float2 UV : TEXCOORD0;
-    float3 Tangent : TEXCOORD1;
-    float3 Bitangent : TEXCOORD2;
+    float3 Position : TEXCOORD0;
+    float3 Normal : TEXCOORD1;
+    float2 UV : TEXCOORD2;
+    float3 Tangent : TEXCOORD3;
+    float3 Bitangent : TEXCOORD4;
 };
 
 struct SPIRV_Cross_Output
@@ -60,7 +62,10 @@ SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
     return stage_output;
 }
     </vertex>
-    <fragment>
-#include "screen/ssao.hlsl"
+    <fragment passIndex="0">
+#include "screen/ssao.1.hlsl"
+    </fragment>
+    <fragment passIndex="1">
+#include "screen/ssao.2.hlsl"
     </fragment>
 </shader>

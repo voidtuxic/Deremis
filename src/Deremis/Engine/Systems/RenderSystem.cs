@@ -219,7 +219,7 @@ namespace Deremis.Engine.Systems
             }
             mesh = null;
             if (meshes.ContainsKey(key.mesh)) mesh = meshes[key.mesh];
-            var pipeline = material.Pipeline;
+            var pipeline = material.GetPipeline(0);
             if (pipeline != null && mesh != null)
             {
                 SetPipeline(pipeline, begin);
@@ -446,8 +446,6 @@ namespace Deremis.Engine.Systems
         {
             commandList.Begin();
 
-            SetFramebuffer(framebuffer);
-
             var world = Matrix4x4.Identity;
             var normalWorld = Matrix4x4.Identity;
             if (Matrix4x4.Invert(world, out normalWorld))
@@ -467,20 +465,29 @@ namespace Deremis.Engine.Systems
                     lightSpaceMatrix = lightSpaceMatrix
                 });
             commandList.UpdateBuffer(app.MaterialManager.MaterialBuffer, 0, material.GetValueArray());
-
-            commandList.SetVertexBuffer(0, screenRenderMesh.VertexBuffer);
-            commandList.SetPipeline(material.Pipeline);
-            commandList.SetGraphicsResourceSet(0, app.MaterialManager.GeneralResourceSet);
-            commandList.SetGraphicsResourceSet(1, material.ResourceSet);
-
-            commandList.Draw(
-                vertexCount: screenRenderMesh.VertexCount,
-                instanceCount: 1,
-                vertexStart: 0,
-                instanceStart: 0);
-
             commandList.End();
-            SubmitAndWait();
+
+            for (var i = 0; i < material.Shader.PassCount; i++)
+            {
+                commandList.Begin();
+                bool isLastPass = i == material.Shader.PassCount - 1;
+                SetFramebuffer(isLastPass ? framebuffer : material.PassFramebuffer);
+
+                commandList.SetVertexBuffer(0, screenRenderMesh.VertexBuffer);
+                commandList.SetPipeline(material.GetPipeline(i));
+                commandList.SetGraphicsResourceSet(0, app.MaterialManager.GeneralResourceSet);
+                commandList.SetGraphicsResourceSet(1, material.ResourceSet);
+
+                commandList.Draw(
+                    vertexCount: screenRenderMesh.VertexCount,
+                    instanceCount: 1,
+                    vertexStart: 0,
+                    instanceStart: 0);
+                commandList.End();
+                SubmitAndWait();
+                if (material.Shader.IsMultipass && !isLastPass)
+                    app.UpdateRenderTextures(commandList, material.Shader.PassColorTargetBaseName);
+            }
         }
 
         public void SubmitAndWait()

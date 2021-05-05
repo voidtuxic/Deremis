@@ -57,7 +57,7 @@ namespace Deremis.Viewer
                 color: new Vector3(1f, 0.9f, 0.75f),
                 type: 0
             );
-            light.Set(new Transform(Vector3.Zero, Quaternion.CreateFromYawPitchRoll(MathF.PI, -MathF.PI / 3f, 0), Vector3.One));
+            light.Set(new Transform(Vector3.Zero, Quaternion.CreateFromYawPitchRoll(MathF.PI + MathF.PI / 3f, -MathF.PI / 3f, 0), Vector3.One));
             // light = app.CreateLight(
             //     color: new Vector3(1f, 0.75f, 0.9f),
             //     type: 2,
@@ -110,7 +110,7 @@ namespace Deremis.Viewer
                 new Vector3(1.35f, 0, 2),
                 Quaternion.CreateFromYawPitchRoll(MathF.PI, 0, MathF.PI / 5.5f),
                 Vector3.One));
-            var entityfwd = panaModel.Spawn(app, panaMat.Name, new Transform(new Vector3(0, 4f, 20), Quaternion.CreateFromYawPitchRoll(MathF.PI / 2f, 0, 0), Vector3.One));
+            var entityfwd = panaModel.Spawn(app, panaMat.Name, new Transform(new Vector3(0, 4.5f, 20), Quaternion.CreateFromYawPitchRoll(MathF.PI / 2f, 0, 0), Vector3.One));
             var tableEntity = tableModel.Spawn(app, tableMat.Name, new Transform(new Vector3(0, 0, 0), Quaternion.Identity, Vector3.One));
 
             entityfwd.SetAsChildOf(tableEntity);

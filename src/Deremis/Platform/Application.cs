@@ -218,6 +218,7 @@ namespace Deremis.Platform
                 material = MaterialManager.CreateMaterial(name, shader);
                 material.SetScreenSampler();
                 var gbufferTextureViews = new List<TextureView>();
+                var gbufferTextures = new List<Veldrid.Texture>();
                 foreach (var resource in shader.Resources)
                 {
                     if (resource.Key.Equals("screen"))
@@ -228,10 +229,18 @@ namespace Deremis.Platform
                     if (resource.Value.Kind == ResourceKind.TextureReadOnly)
                     {
                         var rt = GetRenderTexture(resource.Key, COLOR_PIXEL_FORMAT);
+                        if (material.Shader.IsMultipass && resource.Key.Contains(material.Shader.PassColorTargetBaseName))
+                        {
+                            gbufferTextures.Add(rt.RenderTarget.VeldridTexture);
+                        }
                         gbufferTextureViews.Add(rt.CopyTexture.View);
                     }
                 }
                 material.Build(ScreenFramebuffer, gbufferTextureViews);
+                if (material.Shader.IsMultipass)
+                {
+                    material.SetupMultipass(gbufferTextures);
+                }
                 GraphicsDevice.WaitForIdle();
                 Render.RegisterScreenPass(material);
             }
@@ -332,6 +341,18 @@ namespace Deremis.Platform
             foreach (var rt in renderTextures.Values)
             {
                 rt.UpdateCopyTexture(commandList);
+            }
+            commandList.End();
+            Render.SubmitAndWait();
+        }
+
+        public void UpdateRenderTextures(CommandList commandList, string baseName)
+        {
+            commandList.Begin();
+            foreach (var rt in renderTextures)
+            {
+                if (rt.Key.Contains(baseName))
+                    rt.Value.UpdateCopyTexture(commandList);
             }
             commandList.End();
             Render.SubmitAndWait();

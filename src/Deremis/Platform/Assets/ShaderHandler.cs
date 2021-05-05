@@ -50,11 +50,19 @@ namespace Deremis.Platform.Assets
                     case "resources":
                         SetupResources(child, shader);
                         break;
+                    case "multipass":
+                        shader.SetMultipass(child.Attributes["name"].Value, int.Parse(child.Attributes["colorTargetCount"].Value));
+                        break;
                     case "vertex":
                         shader.SetVertexCode(BuildCode(child.InnerText));
                         break;
                     case "fragment":
-                        shader.SetFragmentCode(BuildCode(child.InnerText));
+                        int passIndex = 0;
+                        if (child.Attributes != null && child.Attributes["passIndex"] != null)
+                        {
+                            passIndex = int.Parse(child.Attributes["passIndex"].Value);
+                        }
+                        shader.SetFragmentCode(passIndex, BuildCode(child.InnerText));
                         break;
                 }
             }

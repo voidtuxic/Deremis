@@ -31,12 +31,14 @@ namespace Deremis.Engine.Objects
             MaximumLod = uint.MaxValue,
         };
 
+        private readonly List<Pipeline> pipelines = new List<Pipeline>();
+
         public override string Type => "Material";
         public Shader Shader { get; private set; }
-        public Pipeline Pipeline { get; private set; }
         public Sampler Sampler { get; set; } = Application.current.GraphicsDevice.Aniso4xSampler;
         public ResourceSet ResourceSet { get; private set; }
         public Framebuffer Framebuffer { get; private set; }
+        public Framebuffer PassFramebuffer { get; private set; }
         public Material DeferredLightingMaterial { get; private set; }
 
         private bool isBufferDirty = true;
@@ -66,7 +68,9 @@ namespace Deremis.Engine.Objects
         public void Build(Framebuffer framebuffer, List<TextureView> gbufferTextureViews)
         {
             var app = Application.current;
-            Pipeline?.Dispose();
+
+            ClearPipelines();
+
             if (Framebuffer != app.ScreenFramebuffer)
             {
                 Framebuffer?.Dispose();
@@ -93,10 +97,10 @@ namespace Deremis.Engine.Objects
             }
             resourceLayout = app.Factory.CreateResourceLayout(new ResourceLayoutDescription(layoutDescriptions.ToArray()));
 
-            var description = Shader.DefaultPipeline;
+            var description = Shader.GetPipelineDescription(0);
             description.ResourceLayouts = new ResourceLayout[] { app.MaterialManager.GeneralResourceLayout, resourceLayout };
             description.Outputs = Framebuffer.OutputDescription;
-            Pipeline = app.Factory.CreateGraphicsPipeline(description);
+            pipelines.Add(app.Factory.CreateGraphicsPipeline(description));
 
             if (Shader.IsDeferred && gbufferTextureViews != null)
             {
@@ -120,6 +124,24 @@ namespace Deremis.Engine.Objects
             for (var i = 0; i < gbufferTextureViews.Count; i++)
             {
                 SetTexture(resourceNames[i], gbufferTextureViews[i]);
+            }
+        }
+
+        public void SetupMultipass(List<Veldrid.Texture> colorTargets)
+        {
+            if (!Shader.IsMultipass) return;
+            var app = Application.current;
+
+            ClearPipelines();
+            PassFramebuffer?.Dispose();
+            PassFramebuffer = app.Factory.CreateFramebuffer(new FramebufferDescription(app.ScreenDepthTexture, colorTargets.ToArray()));
+
+            for (var i = 0; i < Shader.PassCount; i++)
+            {
+                var description = Shader.GetPipelineDescription(i);
+                description.ResourceLayouts = new ResourceLayout[] { app.MaterialManager.GeneralResourceLayout, resourceLayout };
+                description.Outputs = i == Shader.PassCount - 1 ? Framebuffer.OutputDescription : PassFramebuffer.OutputDescription;
+                pipelines.Add(app.Factory.CreateGraphicsPipeline(description));
             }
         }
 
@@ -243,12 +265,28 @@ namespace Deremis.Engine.Objects
             return rawValues;
         }
 
+        public Pipeline GetPipeline(int passIndex)
+        {
+            if (pipelines.Count <= passIndex) return null;
+            return pipelines[passIndex];
+        }
+
+        private void ClearPipelines()
+        {
+            foreach (var pipeline in pipelines)
+            {
+                pipeline.Dispose();
+            }
+            pipelines.Clear();
+        }
+
         public override void Dispose()
         {
             resourceLayout?.Dispose();
             ResourceSet?.Dispose();
-            Pipeline?.Dispose();
+            ClearPipelines();
             Framebuffer?.Dispose();
+            PassFramebuffer?.Dispose();
         }
 
         public static object GetDefaultParameterValue(VertexElementFormat format)

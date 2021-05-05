@@ -10,7 +10,8 @@ namespace Deremis.Engine.Objects
     public class Shader : DObject
     {
         private byte[] vertexCode;
-        private byte[] fragmentCode;
+        private readonly List<byte[]> fragmentCodes = new List<byte[]>();
+        private readonly List<GraphicsPipelineDescription> pipelines = new List<GraphicsPipelineDescription>();
 
         // TODO add platform check
         public bool IsPlatformDependent { get; set; }
@@ -31,13 +32,17 @@ namespace Deremis.Engine.Objects
             public bool IsNormal;
         }
 
-        public Veldrid.Shader[] Shaders { get; private set; }
+        public List<Veldrid.Shader[]> Shaders { get; } = new List<Veldrid.Shader[]>();
         public GraphicsPipelineDescription DefaultPipeline { get; private set; }
+        public int PassCount => pipelines.Count;
         public Dictionary<string, Property> Properties { get; private set; } = new Dictionary<string, Property>();
         public Dictionary<string, Resource> Resources { get; private set; } = new Dictionary<string, Resource>();
         public List<(string, PixelFormat)> Outputs { get; private set; } = new List<(string, PixelFormat)>();
         public bool IsDeferred { get; private set; }
         public Shader DeferredLightingShader { get; private set; }
+        public bool IsMultipass { get; private set; }
+        public int PassColorTargetCount { get; private set; }
+        public string PassColorTargetBaseName { get; private set; }
 
         public Shader(string name) : base(name)
         {
@@ -49,19 +54,40 @@ namespace Deremis.Engine.Objects
             DeferredLightingShader = deferredLightingShader;
         }
 
+        public void SetMultipass(string name, int targetCount)
+        {
+            IsMultipass = true;
+            PassColorTargetBaseName = name;
+            PassColorTargetCount = targetCount;
+        }
+
         public void SetVertexCode(string code)
         {
             vertexCode = Encoding.UTF8.GetBytes(code);
         }
 
-        public void SetFragmentCode(string code)
+        public void SetFragmentCode(int passIndex, string code)
         {
-            fragmentCode = Encoding.UTF8.GetBytes(code);
+            if (fragmentCodes.Count <= passIndex)
+            {
+                for (var i = fragmentCodes.Count; i <= passIndex; i++)
+                {
+                    fragmentCodes.Add(null);
+                }
+            }
+            fragmentCodes[passIndex] = Encoding.UTF8.GetBytes(code);
         }
 
         public void SetDefaultPipeline(GraphicsPipelineDescription pipelineDescription)
         {
             DefaultPipeline = pipelineDescription;
+        }
+
+        public GraphicsPipelineDescription GetPipelineDescription(int passIndex)
+        {
+            if (pipelines.Count <= passIndex) return DefaultPipeline;
+
+            return pipelines[passIndex];
         }
 
         public void Build()
@@ -70,37 +96,50 @@ namespace Deremis.Engine.Objects
                 ShaderStages.Vertex,
                 vertexCode,
                 "main");
-            var fragmentShaderDesc = new ShaderDescription(
-                ShaderStages.Fragment,
-                fragmentCode,
-                "main");
-
-            if (IsPlatformDependent)
+            ClearShaders();
+            for (var i = 0; i < fragmentCodes.Count; i++)
             {
-                Shaders = new Veldrid.Shader[] {
-                    Application.current.Factory.CreateShader(vertexShaderDesc),
-                    Application.current.Factory.CreateShader(fragmentShaderDesc)
-                };
-            }
-            else
-            {
-                Shaders = Application.current.Factory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc);
-            }
+                var fragmentShaderDesc = new ShaderDescription(
+                    ShaderStages.Fragment,
+                    fragmentCodes[i],
+                    "main");
 
-            var pipeline = DefaultPipeline;
-            pipeline.ShaderSet = new ShaderSetDescription(
-                vertexLayouts: new VertexLayoutDescription[] { Vertex.VertexLayout },
-                shaders: Shaders
-            );
-            SetDefaultPipeline(pipeline);
+                if (IsPlatformDependent)
+                {
+                    Shaders.Add(new Veldrid.Shader[] {
+                        Application.current.Factory.CreateShader(vertexShaderDesc),
+                        Application.current.Factory.CreateShader(fragmentShaderDesc)
+                    });
+                }
+                else
+                {
+                    Shaders.Add(Application.current.Factory.CreateFromSpirv(vertexShaderDesc, fragmentShaderDesc));
+                }
+
+                var pipeline = DefaultPipeline;
+                pipeline.ShaderSet = new ShaderSetDescription(
+                    vertexLayouts: new VertexLayoutDescription[] { Vertex.VertexLayout },
+                    shaders: Shaders[i]
+                );
+                pipelines.Add(pipeline);
+            }
         }
 
         public override void Dispose()
         {
-            foreach (var shader in Shaders)
+            ClearShaders();
+        }
+
+        private void ClearShaders()
+        {
+            foreach (var pair in Shaders)
             {
-                shader.Dispose();
+                foreach (var shader in pair)
+                {
+                    shader.Dispose();
+                }
             }
+            Shaders.Clear();
         }
     }
 }
