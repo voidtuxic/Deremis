@@ -42,7 +42,7 @@ vec3 FresnelSchlick(vec3 SpecularColor,vec3 E,vec3 H, float roughness)
     return SpecularColor + (1.0 - SpecularColor) * pow(1.0 - saturate(dot(E, H)), 5);
 }
 
-vec3 Calculate(vec3 fragPos, vec3 normal, vec3 viewPos, vec3 albedo, float metal, float rough, float ao, vec3 irradiance) {
+vec3 Calculate(vec3 fragPos, vec3 normal, vec3 viewPos, vec3 albedo, float metal, float rough, float ao, vec3 irradiance, vec4 fragPosLightSpace) {
     vec3 N = normal; 
     vec3 V = normalize(viewPos - fragPos);
     vec3 Lo = vec3(0.0);
@@ -55,9 +55,11 @@ vec3 Calculate(vec3 fragPos, vec3 normal, vec3 viewPos, vec3 albedo, float metal
         float lightType = Lights[i].Type;
         vec3 L;
         float attenuation = 1;
+        float shadow = 0;
         if (lightType == 0)
         {
             L = normalize(-Lights[i].Direction);
+            shadow = CalculateShadows(N, L, fragPosLightSpace);
         }
         else if(lightType == 1)
         {
@@ -70,7 +72,6 @@ vec3 Calculate(vec3 fragPos, vec3 normal, vec3 viewPos, vec3 albedo, float metal
         }
         // TODO support spotlights
 
-        float shadow = CalculateShadows(N, L, f_FragPosLightSpace);
         float NdotL = max(dot(N, L), 0.0);
     
         vec3 H = normalize(V + L);
@@ -88,7 +89,7 @@ vec3 Calculate(vec3 fragPos, vec3 normal, vec3 viewPos, vec3 albedo, float metal
         kD *= 1.0 - metal;
         vec3 ambient = (kD * diffuse) * ao * F0; 
         
-        Lo += ambient + (kD * albedo + specular) * radiance * NdotL * (1.0 - shadow);
+        Lo += (ambient + (kD * albedo + specular) * radiance * NdotL) * (1.0 - shadow);
     }
     
     return Lo;

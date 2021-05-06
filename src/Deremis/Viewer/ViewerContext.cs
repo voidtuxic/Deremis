@@ -30,14 +30,13 @@ namespace Deremis.Viewer
             var panaModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/pana.obj"));
             var tableModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/plane.obj"));
 
-            var shader = AssetManager.current.Get<Shader>(new AssetDescription("Shaders/phong_gbuffer.xml"));
+            var shader = AssetManager.current.Get<Shader>(new AssetDescription("Shaders/pbr_gbuffer.xml"));
             var shaderfwd = AssetManager.current.Get<Shader>(new AssetDescription("Shaders/pbr.xml"));
             var ssaoShader = AssetManager.current.Get<Shader>(new AssetDescription("Shaders/screen/ssao.xml"));
 
             var stenDiffuseTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/sten_albedo.png"));
-            var stenSpecularTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/sten_metalness.png"));
+            var stenSpecularTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/sten_mra.png"));
             var stenNormalTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/sten_normals.jpg"));
-            var stenAOTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/sten_occlusion.png"));
 
             var panaDiffuseTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_C.png"));
             // var panaSpecularTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_R.png"));
@@ -46,9 +45,9 @@ namespace Deremis.Viewer
             // var panaMetallicTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_M.png"));
             var panaEmissiveTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_EM.png"));
 
-            // var tableDiffuseTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Table_Mt_albedo.jpg"));
-            // var tableSpecularTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Table_Mt_roughness.jpg"));
-            // var tableNormalTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Table_Mt_normal.jpg"));
+            var tableDiffuseTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/rocky_albedo.png"));
+            var tableSpecularTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/rocky_mra.png"));
+            var tableNormalTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/rocky_normal.png"));
 
             // var cubemap = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/skybox_###.jpg", new TextureHandler.Options(mipmaps: false, cubemap: true)));
 
@@ -63,17 +62,17 @@ namespace Deremis.Viewer
             );
             light.Set(new Transform(Vector3.Zero, Quaternion.CreateFromYawPitchRoll(MathF.PI + MathF.PI / 3f, -MathF.PI / 3f, 0), Vector3.One));
             light = app.CreateLight(
-                color: Vector3.UnitY * 10f,
+                color: Vector3.UnitY * 2f,
                 type: 1,
                 range: 50
             );
             light.Set(new Transform(new Vector3(-2, 4, 15), Quaternion.Identity, Vector3.One));
-            light = app.CreateLight(
-                color: Vector3.UnitX * 10f,
-                type: 1,
-                range: 50
-            );
-            light.Set(new Transform(new Vector3(0, 4, 25), Quaternion.Identity, Vector3.One));
+            // light = app.CreateLight(
+            //     color: Vector3.UnitX * 10f,
+            //     type: 1,
+            //     range: 50
+            // );
+            // light.Set(new Transform(new Vector3(0, 4, 25), Quaternion.Identity, Vector3.One));
 
             SamplerDescription sampler = new SamplerDescription
             {
@@ -86,42 +85,34 @@ namespace Deremis.Viewer
                 MaximumLod = uint.MaxValue,
                 MaximumAnisotropy = 16,
             };
-            var stenMat = app.MaterialManager.CreateMaterial("sten", shaderfwd);
+            var stenMat = app.MaterialManager.CreateMaterial("sten", shader);
             stenMat.SetProperty("albedo", Vector3.One);
             stenMat.SetProperty("metallic", 0.35f);
             stenMat.SetProperty("roughness", 0.5f);
             stenMat.SetProperty("ao", 1.0f);
             stenMat.SetTexture("albedoTexture", stenDiffuseTex);
-            // stenMat.SetTexture("roughnessTexture", stenSpecularTex);
+            stenMat.SetTexture("mraTexture", stenSpecularTex);
             stenMat.SetTexture("normalTexture", stenNormalTex);
-            // stenMat.SetTexture("aoTexture", stenAOTex);
             stenMat.SetSampler(sampler);
-            var panaMat = app.MaterialManager.CreateMaterial("pana", shaderfwd);
+            var panaMat = app.MaterialManager.CreateMaterial("pana", shader);
             panaMat.SetProperty("albedo", Vector3.One);
             panaMat.SetProperty("metallic", 0.75f);
             panaMat.SetProperty("roughness", 1.0f);
             panaMat.SetProperty("ao", 1.0f);
-            panaMat.SetProperty("emissiveStrength", 1.0f);
             panaMat.SetTexture("albedoTexture", panaDiffuseTex);
             panaMat.SetTexture("mraTexture", panaMRATex);
             panaMat.SetTexture("normalTexture", panaNormalTex);
-            panaMat.SetTexture("emissiveTexture", panaEmissiveTex);
-            // panaMat.SetTexture("metallicTexture", panaMetallicTex);
-            // panaMat.SetTexture("aoTexture", panaAOTex);
             panaMat.SetSampler(sampler);
-            var tableMat = app.MaterialManager.CreateMaterial("table", shaderfwd);
+            var tableMat = app.MaterialManager.CreateMaterial("table", shader);
             tableMat.SetProperty("albedo", Vector3.One);
             tableMat.SetProperty("metallic", 0.0f);
-            tableMat.SetProperty("roughness", 0.1f);
+            tableMat.SetProperty("roughness", 1.0f);
             tableMat.SetProperty("ao", 1.0f);
-            tableMat.SetProperty("ambientStrength", 0.1f);
-            tableMat.SetProperty("diffuseColor", Vector3.One * 0.9f);
-            tableMat.SetProperty("specularStrength", 0.1f);
-            tableMat.SetProperty("specularColor", Vector3.One);
-            // tableMat.SetTexture("diffuseTexture", tableDiffuseTex);
-            // tableMat.SetTexture("specularTexture", tableSpecularTex);
-            // tableMat.SetTexture("normalTexture", tableNormalTex);
+            tableMat.SetTexture("albedoTexture", tableDiffuseTex);
+            tableMat.SetTexture("mraTexture", tableSpecularTex);
+            tableMat.SetTexture("normalTexture", tableNormalTex);
             tableMat.SetSampler(sampler);
+            tableMat.SetTexture("environmentTexture", hdrTex);
 
             var entity = stenModel.Spawn(app, stenMat.Name, new Transform(
                 new Vector3(1.35f, 0, 2),
@@ -133,7 +124,7 @@ namespace Deremis.Viewer
             entityfwd.SetAsChildOf(tableEntity);
             entity.SetAsChildOf(entityfwd);
 
-            // var ssaoMaterial = app.GetScreenPass("ssao", ssaoShader);
+            var ssaoMaterial = app.GetScreenPass("ssao", ssaoShader);
             // ssaoMaterial.SetProperty("aoRadius", Vector4.One);
             // app.Render.RegisterScreenPass(ssaoMaterial);
 

@@ -1,25 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shader version="1">
     <config>
-        <BlendState>SingleAlphaBlend</BlendState>
+        <BlendState>SingleOverrideBlend</BlendState>
         <DepthStencilState depthTestEnabled="true" depthWriteEnabled="true" comparisonKind="LessEqual" />
         <RasterizerState depthClipEnabled="true" scissorTestEnabled="false" cullMode="Back" fillMode="Solid" frontFace="Clockwise" />
         <PrimitiveTopology>TriangleList</PrimitiveTopology>
     </config>
+    <outputs light="screen/pbr_deferredlighting.xml">
+        <output name="color" />
+        <output name="mra" />
+        <output name="position" />
+        <output name="normal" />
+        <output name="lightspace" />
+    </outputs>
     <properties>
         <vec3 name="albedo" />
         <float name="metallic" />
         <float name="roughness" />
         <float name="ao" />
-        <float name="emissiveStrength" />
     </properties>
     <resources>
         <texture2d name="albedoTexture" />
         <texture2d name="mraTexture" />
         <texture2d name="normalTexture" isNormal="true"/>
-        <texture2d name="emissiveTexture"/>
-        <texture2d name="environmentTexture" />
-        <texture2d name="shadowMap" />
     </resources>
     <vertex>
 #include "genericvert.glsl"
@@ -27,9 +30,8 @@
     <fragment>
 #version 450
 
-#include "uniforms/transform.glsl"
-#include "uniforms/lights.glsl"
 #include "genericfrag.glsl"
+#include "uniforms/lights.glsl"
 
 layout(set = 0, binding = 1) uniform Material
 {
@@ -37,36 +39,34 @@ layout(set = 0, binding = 1) uniform Material
     float metallic;
     float roughness;
     float ao;
-    float emissiveStrength;
 };
 
 layout(set = 1, binding = 0) uniform texture2D albedoTexture;
 layout(set = 1, binding = 1) uniform texture2D mraTexture;
 layout(set = 1, binding = 2) uniform texture2D normalTexture;
-layout(set = 1, binding = 3) uniform texture2D emissiveTexture;
-layout(set = 1, binding = 4) uniform texture2D environmentTexture;
-layout(set = 1, binding = 5) uniform texture2D shadowMap;
-layout(set = 1, binding = 6) uniform sampler texSampler;
-layout(set = 1, binding = 7) uniform sampler shadowMapSampler;
+layout(set = 1, binding = 3) uniform sampler texSampler;
 
-// later include to have layout definition
-#include "libs/pbr.glsl"
+layout(location = 1) out vec4 out_MRA;
+layout(location = 2) out vec4 out_Position;
+layout(location = 3) out vec4 out_Normal;
+layout(location = 4) out vec4 out_LightSpace;
+
 #include "libs/normals.glsl"
 
 void main()
 {
-    vec3 albedoColor = CorrectGamma(texture(sampler2D(albedoTexture, texSampler), f_UV).rgb) * albedo;
-    vec3 normalDir = getNormalFromMap(f_UV, f_position, f_TBN);
+    vec3 albedoColor = texture(sampler2D(albedoTexture, texSampler), f_UV).rgb * albedo;
     vec3 mra = texture(sampler2D(mraTexture, texSampler), f_UV).rgb;
+    vec3 norm = getNormalFromMap(f_UV, f_position, f_TBN);
     float metal = min(0.9, mra.r * metallic);
     float rough = mra.g * roughness;
     float aoVal = mra.b * ao;
-    vec3 irradiance = texture(sampler2D(environmentTexture, texSampler), SampleSphericalMap(normalDir)).rgb;
 
-    vec3 color = Calculate(f_position, normalDir, GetViewPos(), albedoColor, metal, rough, aoVal, irradiance, f_FragPosLightSpace);
-
-    color += texture(sampler2D(emissiveTexture, texSampler), f_UV).rgb * emissiveStrength;
-    out_Color = vec4(color, 1);
+    out_Color = vec4(albedoColor, 1.0);
+    out_MRA = vec4(metal, rough, aoVal, 1.0);
+    out_Position = vec4(f_position, 1.0);
+    out_Normal = vec4(norm, 1.0);
+    out_LightSpace = f_FragPosLightSpace;
 }
     </fragment>
 </shader>

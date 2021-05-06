@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shader version="1">
+    <config>
+        <BlendState>SingleAlphaBlend</BlendState>
+        <DepthStencilState depthTestEnabled="true" depthWriteEnabled="false" comparisonKind="Always" />
+        <RasterizerState depthClipEnabled="true" scissorTestEnabled="false" cullMode="None" fillMode="Solid" frontFace="Clockwise" />
+        <PrimitiveTopology>TriangleList</PrimitiveTopology>
+    </config>
+    <properties>
+        <vec4 name="emissiveStrength" />
+    </properties>
+    <resources>
+        <texture2d name="albedoTexture" />
+        <texture2d name="mraTexture" />
+        <texture2d name="positionTexture" />
+        <texture2d name="normalTexture" isNormal="true"/>
+        <texture2d name="lightSpaceTexture" />
+        <texture2d name="environmentTexture" />
+        <texture2d name="shadowMap" />
+    </resources>
+    <vertex>
+#include "screen/genericvert.glsl"
+    </vertex>
+    <fragment>
+#version 450
+
+#include "uniforms/transform.glsl"
+#include "uniforms/lights.glsl"
+
+layout(set = 0, binding = 1) uniform Material
+{
+    vec4 emissiveStrength;
+    vec4 pad;
+};
+
+layout(set = 1, binding = 0) uniform texture2D albedoTexture;
+layout(set = 1, binding = 1) uniform texture2D mraTexture;
+layout(set = 1, binding = 2) uniform texture2D positionTexture;
+layout(set = 1, binding = 3) uniform texture2D normalTexture;
+layout(set = 1, binding = 4) uniform texture2D lightSpaceTexture;
+layout(set = 1, binding = 5) uniform texture2D environmentTexture;
+layout(set = 1, binding = 6) uniform texture2D shadowMap;
+layout(set = 1, binding = 7) uniform sampler texSampler;
+layout(set = 1, binding = 8) uniform sampler shadowMapSampler;
+
+layout(location = 0) in vec2 f_UV;
+
+layout(location = 0) out vec4 out_Color;
+
+// later include to have layout definition
+#include "libs/pbr.glsl"
+
+void main()
+{
+    vec3 albedoColor = CorrectGamma(texture(sampler2D(albedoTexture, texSampler), f_UV).rgb);
+    vec4 position = texture(sampler2D(positionTexture, texSampler), f_UV);
+    vec3 normalDir = texture(sampler2D(normalTexture, texSampler), f_UV).rgb;
+    vec3 mra = texture(sampler2D(mraTexture, texSampler), f_UV).rgb;
+    float metal = mra.r;
+    float rough = mra.g;
+    float aoVal = mra.b;
+    vec3 irradiance = texture(sampler2D(environmentTexture, texSampler), SampleSphericalMap(normalDir)).rgb;
+    vec4 fragPosLightSpace = texture(sampler2D(lightSpaceTexture, texSampler), f_UV);
+    vec3 color = Calculate(position.xyz, normalDir, GetViewPos(), albedoColor, metal, rough, aoVal, irradiance, fragPosLightSpace);
+
+    out_Color = vec4(color, position.a + min(max(length(pad), 0), 0));
+}
+    </fragment>
+</shader>
