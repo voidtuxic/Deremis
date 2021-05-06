@@ -41,3 +41,55 @@ vec3 FresnelSchlick(vec3 SpecularColor,vec3 E,vec3 H, float roughness)
 {
     return SpecularColor + (1.0 - SpecularColor) * pow(1.0 - saturate(dot(E, H)), 5);
 }
+
+vec3 Calculate(vec3 fragPos, vec3 normal, vec3 viewPos, vec3 albedo, float metal, float rough, float ao, vec3 irradiance) {
+    vec3 N = normal; 
+    vec3 V = normalize(viewPos - fragPos);
+    vec3 Lo = vec3(0.0);
+    vec3 F0 = vec3(0.04);
+    F0 = mix(F0, albedo, metal);
+    vec3 diffuse = irradiance * albedo;
+
+    for(int i = 0; i < MAX_LIGHTS; i++) 
+    {
+        float lightType = Lights[i].Type;
+        vec3 L;
+        float attenuation = 1;
+        if (lightType == 0)
+        {
+            L = normalize(-Lights[i].Direction);
+        }
+        else if(lightType == 1)
+        {
+            L = normalize(Lights[i].Position - fragPos);
+            float distance = length(Lights[i].Position - fragPos);
+            float range = max(MIN_RANGE, Lights[i].Range);
+            float linear = LINEAR_FACTOR/range;
+            float quadratic = QUADRATIC_FACTOR/(range*range);
+            attenuation = 1.0 / (CONSTANT + linear * distance + quadratic * (distance * distance));
+        }
+        // TODO support spotlights
+
+        float shadow = CalculateShadows(N, L, f_FragPosLightSpace);
+        float NdotL = max(dot(N, L), 0.0);
+    
+        vec3 H = normalize(V + L);
+        vec3 radiance = Lights[i].Color * attenuation;
+
+        vec3 F = FresnelSchlick(F0, L, H, rough) * ((F0 + 2.0) / 8.0 ) * pow(saturate(dot(N, H)), length(F0)) * NdotL;//fresnelSchlick(max(dot(H, V), 0.0), F0);
+        float NDF = DistributionGGX(N, H, rough);
+        float G = GeometrySmith(N, V, L, rough);
+
+        vec3 numerator = NDF * G * F;
+        vec3 specular = numerator;
+
+        vec3 kS = F;
+        vec3 kD = vec3(1.0) - kS;
+        kD *= 1.0 - metal;
+        vec3 ambient = (kD * diffuse) * ao * F0; 
+        
+        Lo += ambient + (kD * albedo + specular) * radiance * NdotL * (1.0 - shadow);
+    }
+    
+    return Lo;
+}

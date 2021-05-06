@@ -37,6 +37,7 @@ namespace Deremis.Viewer
             var stenDiffuseTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/sten_albedo.png"));
             var stenSpecularTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/sten_metalness.png"));
             var stenNormalTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/sten_normals.jpg"));
+            var stenAOTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/sten_occlusion.png"));
 
             var panaDiffuseTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_C.png"));
             var panaSpecularTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_R.png"));
@@ -61,18 +62,18 @@ namespace Deremis.Viewer
                 type: 0
             );
             light.Set(new Transform(Vector3.Zero, Quaternion.CreateFromYawPitchRoll(MathF.PI + MathF.PI / 3f, -MathF.PI / 3f, 0), Vector3.One));
-            // light = app.CreateLight(
-            //     color: Vector3.UnitY,
-            //     type: 1,
-            //     range: 50
-            // );
-            // light.Set(new Transform(new Vector3(-2, 4, 15), Quaternion.Identity, Vector3.One));
-            // light = app.CreateLight(
-            //     color: Vector3.UnitX,
-            //     type: 1,
-            //     range: 50
-            // );
-            // light.Set(new Transform(new Vector3(0, 4, 25), Quaternion.Identity, Vector3.One));
+            light = app.CreateLight(
+                color: Vector3.UnitY * 10f,
+                type: 1,
+                range: 50
+            );
+            light.Set(new Transform(new Vector3(-2, 4, 15), Quaternion.Identity, Vector3.One));
+            light = app.CreateLight(
+                color: Vector3.UnitX * 10f,
+                type: 1,
+                range: 50
+            );
+            light.Set(new Transform(new Vector3(0, 4, 25), Quaternion.Identity, Vector3.One));
 
             SamplerDescription sampler = new SamplerDescription
             {
@@ -87,12 +88,13 @@ namespace Deremis.Viewer
             };
             var stenMat = app.MaterialManager.CreateMaterial("sten", shaderfwd);
             stenMat.SetProperty("albedo", Vector3.One);
-            stenMat.SetProperty("metallic", 0.5f);
-            stenMat.SetProperty("roughness", 0.8f);
+            stenMat.SetProperty("metallic", 0.35f);
+            stenMat.SetProperty("roughness", 0.5f);
             stenMat.SetProperty("ao", 1.0f);
             stenMat.SetTexture("albedoTexture", stenDiffuseTex);
             stenMat.SetTexture("roughnessTexture", stenSpecularTex);
             stenMat.SetTexture("normalTexture", stenNormalTex);
+            stenMat.SetTexture("aoTexture", stenAOTex);
             stenMat.SetSampler(sampler);
             var panaMat = app.MaterialManager.CreateMaterial("pana", shaderfwd);
             panaMat.SetProperty("albedo", Vector3.One);

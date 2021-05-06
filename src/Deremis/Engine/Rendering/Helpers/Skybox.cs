@@ -88,7 +88,7 @@ namespace Deremis.Engine.Rendering.Helpers
             if (material == null)
                 material = app.MaterialManager.CreateMaterial(name, app.AssetManager.Get<Shader>(Shader));
 
-            material.SetSampler(Veldrid.SamplerDescription.Aniso4x);
+            material.SetSampler(Veldrid.SamplerDescription.Linear);
             material.SetTexture("skybox", cubemap);
         }
 
