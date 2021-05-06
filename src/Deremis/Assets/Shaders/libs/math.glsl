@@ -1,4 +1,4 @@
-#include "libs/lwjglrandom.glsl"
+#define PI 3.14159265359
 
 float saturate(float value) {
     return clamp(value, 0.0, 1.0);
@@ -16,4 +16,13 @@ float random(vec2 co)
     float dt= dot(co.xy ,vec2(a,b));
     float sn= mod(dt,3.14);
     return fract(sin(sn) * c);
+}
+
+const vec2 invAtan = vec2(0.1591, 0.3183);
+vec2 SampleSphericalMap(vec3 v)
+{
+    vec2 uv = vec2(atan(v.z, v.x), asin(-v.y));
+    uv *= invAtan;
+    uv += 0.5;
+    return uv;
 }

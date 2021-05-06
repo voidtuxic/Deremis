@@ -1,5 +1,11 @@
+using System;
 using System.Collections.Concurrent;
+using System.IO;
 using Deremis.Engine.Objects;
+using Deremis.Platform.Helpers;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using StbImageSharp;
 using Veldrid.ImageSharp;
 
 namespace Deremis.Platform.Assets
@@ -11,12 +17,14 @@ namespace Deremis.Platform.Assets
             public bool mipmaps;
             public bool srgb;
             public bool cubemap;
+            public bool hdr;
 
-            public Options(bool mipmaps = true, bool srgb = false, bool cubemap = false)
+            public Options(bool mipmaps = true, bool srgb = false, bool cubemap = false, bool hdr = false)
             {
                 this.mipmaps = mipmaps;
                 this.srgb = srgb;
                 this.cubemap = cubemap;
+                this.hdr = hdr;
             }
         }
         public string Name => "Texture Handler";
@@ -32,7 +40,35 @@ namespace Deremis.Platform.Assets
 
             var app = Application.current;
             Veldrid.Texture veldridTex = null;
-            if (options.cubemap)
+
+            if (options.hdr)
+            {
+                using (var stream = File.OpenRead(path))
+                {
+                    var info = ImageInfo.FromStream(stream);
+                    if (info.HasValue)
+                    {
+                        using (var image = new Image<RgbaVector>(info.Value.Width, info.Value.Height))
+                        {
+                            var result = ImageResultFloat.FromStream(stream);
+                            var data = result.Data;
+                            for (int i = 0; i < info.Value.Width * info.Value.Height; ++i)
+                            {
+                                var r = data[i * 3];
+                                var g = data[i * 3 + 1];
+                                var b = data[i * 3 + 2];
+                                var x = i % info.Value.Width;
+                                var y = i / info.Value.Width;
+                                Span<RgbaVector> pixelRowSpan = image.GetPixelRowSpan(y);
+                                pixelRowSpan[x] = new RgbaVector(r, g, b);
+                            }
+                            var imageSharpTex = new ImageSharpHDRTexture(image);
+                            veldridTex = imageSharpTex.CreateDeviceTexture(app.GraphicsDevice, app.Factory);
+                        }
+                    }
+                }
+            }
+            else if (options.cubemap)
             {
                 var posX = path.Replace("###", "1");
                 var negX = path.Replace("###", "2");

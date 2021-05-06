@@ -37,7 +37,7 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 }
 
 // based off https://seblagarde.wordpress.com/2011/08/17/hello-world/
-vec3 FresnelSchlick(vec3 SpecularColor,vec3 E,vec3 H)
+vec3 FresnelSchlick(vec3 SpecularColor,vec3 E,vec3 H, float roughness)
 {
     return SpecularColor + (1.0 - SpecularColor) * pow(1.0 - saturate(dot(E, H)), 5);
 }

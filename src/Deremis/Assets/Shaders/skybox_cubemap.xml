@@ -32,16 +32,19 @@ void main()
 #version 450
 
 #include "uniforms/transform.glsl"
+#include "libs/math.glsl"
 
 layout(location = 0) in vec3 f_position;
 layout(location = 0) out vec4 out_Color;
 
-layout(set = 1, binding = 0) uniform textureCube skyboxTexture;
+layout(set = 1, binding = 0) uniform texture2D skyboxTexture;
 layout(set = 1, binding = 1) uniform sampler texSampler;
 
 void main()
-{    
-    out_Color = texture(samplerCube(skyboxTexture, texSampler), f_position);
+{
+    vec2 uv = SampleSphericalMap(normalize(f_position));
+    vec3 color = texture(sampler2D(skyboxTexture, texSampler), uv).rgb;
+    out_Color = vec4(color, 1.0);
 }
     </fragment>
 </shader>

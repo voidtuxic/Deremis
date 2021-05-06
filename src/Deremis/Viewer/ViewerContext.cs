@@ -24,11 +24,12 @@ namespace Deremis.Viewer
         {
             this.app = app;
 
-            // AssetManager.current.Get<Shader>(new AssetDescription("Shaders/phong_gbuffer.xml", 1));
+            var hdrTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/env.hdr", new TextureHandler.Options(false, false, false, true)));
 
             var stenModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/sten.obj"));
             var panaModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/pana.obj"));
             var tableModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/plane.obj"));
+
             var shader = AssetManager.current.Get<Shader>(new AssetDescription("Shaders/phong_gbuffer.xml"));
             var shaderfwd = AssetManager.current.Get<Shader>(new AssetDescription("Shaders/pbr.xml"));
             var ssaoShader = AssetManager.current.Get<Shader>(new AssetDescription("Shaders/screen/ssao.xml"));
@@ -48,30 +49,30 @@ namespace Deremis.Viewer
             // var tableSpecularTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Table_Mt_roughness.jpg"));
             // var tableNormalTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Table_Mt_normal.jpg"));
 
-            var cubemap = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/skybox_###.jpg", new TextureHandler.Options(mipmaps: false, cubemap: true)));
+            // var cubemap = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/skybox_###.jpg", new TextureHandler.Options(mipmaps: false, cubemap: true)));
 
-            Skybox.Init(app, cubemap);
+            Skybox.Init(app, hdrTex);
 
             var camera = app.CreateCamera();
             camera.Set(Transform.FromTarget(new Vector3(20, 5, 0), Vector3.Zero, Vector3.UnitY));
 
             var light = app.CreateLight(
-                // color: new Vector3(1f, 0.9f, 0.75f),
+                color: new Vector3(1f, 0.9f, 0.75f),
                 type: 0
             );
             light.Set(new Transform(Vector3.Zero, Quaternion.CreateFromYawPitchRoll(MathF.PI + MathF.PI / 3f, -MathF.PI / 3f, 0), Vector3.One));
-            light = app.CreateLight(
-                color: Vector3.UnitY,
-                type: 1,
-                range: 50
-            );
-            light.Set(new Transform(new Vector3(-2, 4, 15), Quaternion.Identity, Vector3.One));
-            light = app.CreateLight(
-                color: Vector3.UnitX,
-                type: 1,
-                range: 50
-            );
-            light.Set(new Transform(new Vector3(0, 4, 25), Quaternion.Identity, Vector3.One));
+            // light = app.CreateLight(
+            //     color: Vector3.UnitY,
+            //     type: 1,
+            //     range: 50
+            // );
+            // light.Set(new Transform(new Vector3(-2, 4, 15), Quaternion.Identity, Vector3.One));
+            // light = app.CreateLight(
+            //     color: Vector3.UnitX,
+            //     type: 1,
+            //     range: 50
+            // );
+            // light.Set(new Transform(new Vector3(0, 4, 25), Quaternion.Identity, Vector3.One));
 
             SamplerDescription sampler = new SamplerDescription
             {
@@ -130,7 +131,7 @@ namespace Deremis.Viewer
             entityfwd.SetAsChildOf(tableEntity);
             entity.SetAsChildOf(entityfwd);
 
-            var ssaoMaterial = app.GetScreenPass("ssao", ssaoShader);
+            // var ssaoMaterial = app.GetScreenPass("ssao", ssaoShader);
             // ssaoMaterial.SetProperty("aoRadius", Vector4.One);
             // app.Render.RegisterScreenPass(ssaoMaterial);
 
