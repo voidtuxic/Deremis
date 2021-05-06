@@ -40,10 +40,10 @@ namespace Deremis.Viewer
             var stenAOTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/sten_occlusion.png"));
 
             var panaDiffuseTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_C.png"));
-            var panaSpecularTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_R.png"));
+            // var panaSpecularTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_R.png"));
             var panaNormalTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_N.png"));
-            var panaAOTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_AO.png"));
-            var panaMetallicTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_M.png"));
+            var panaMRATex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_MRA.png"));
+            // var panaMetallicTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_M.png"));
             var panaEmissiveTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_EM.png"));
 
             // var tableDiffuseTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Table_Mt_albedo.jpg"));
@@ -92,9 +92,9 @@ namespace Deremis.Viewer
             stenMat.SetProperty("roughness", 0.5f);
             stenMat.SetProperty("ao", 1.0f);
             stenMat.SetTexture("albedoTexture", stenDiffuseTex);
-            stenMat.SetTexture("roughnessTexture", stenSpecularTex);
+            // stenMat.SetTexture("roughnessTexture", stenSpecularTex);
             stenMat.SetTexture("normalTexture", stenNormalTex);
-            stenMat.SetTexture("aoTexture", stenAOTex);
+            // stenMat.SetTexture("aoTexture", stenAOTex);
             stenMat.SetSampler(sampler);
             var panaMat = app.MaterialManager.CreateMaterial("pana", shaderfwd);
             panaMat.SetProperty("albedo", Vector3.One);
@@ -103,11 +103,11 @@ namespace Deremis.Viewer
             panaMat.SetProperty("ao", 1.0f);
             panaMat.SetProperty("emissiveStrength", 1.0f);
             panaMat.SetTexture("albedoTexture", panaDiffuseTex);
-            panaMat.SetTexture("roughnessTexture", panaSpecularTex);
+            panaMat.SetTexture("mraTexture", panaMRATex);
             panaMat.SetTexture("normalTexture", panaNormalTex);
             panaMat.SetTexture("emissiveTexture", panaEmissiveTex);
-            panaMat.SetTexture("metallicTexture", panaMetallicTex);
-            panaMat.SetTexture("aoTexture", panaAOTex);
+            // panaMat.SetTexture("metallicTexture", panaMetallicTex);
+            // panaMat.SetTexture("aoTexture", panaAOTex);
             panaMat.SetSampler(sampler);
             var tableMat = app.MaterialManager.CreateMaterial("table", shaderfwd);
             tableMat.SetProperty("albedo", Vector3.One);
