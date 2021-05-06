@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shader version="1">
+    <config>
+        <BlendState>SingleAlphaBlend</BlendState>
+        <DepthStencilState depthTestEnabled="true" depthWriteEnabled="true" comparisonKind="LessEqual" />
+        <RasterizerState depthClipEnabled="true" scissorTestEnabled="false" cullMode="Back" fillMode="Solid" frontFace="Clockwise" />
+        <PrimitiveTopology>TriangleList</PrimitiveTopology>
+    </config>
+    <properties>
+        <vec3 name="albedo" />
+        <float name="metallic" />
+        <float name="roughness" />
+        <float name="ao" />
+        <float name="emissiveStrength" />
+    </properties>
+    <resources>
+        <texture2d name="albedoTexture" />
+        <texture2d name="metallicTexture" />
+        <texture2d name="normalTexture" isNormal="true"/>
+        <texture2d name="roughnessTexture" />
+        <texture2d name="aoTexture" />
+        <texture2d name="emissiveTexture" />
+        <texture2d name="shadowMap" />
+    </resources>
+    <vertex>
+#include "genericvert.glsl"
+    </vertex>
+    <fragment>
+#version 450
+
+#include "uniforms/transform.glsl"
+#include "uniforms/lights.glsl"
+#include "genericfrag.glsl"
+
+layout(set = 0, binding = 1) uniform Material
+{
+    vec3 albedo;
+    float metallic;
+    float roughness;
+    float ao;
+    float emissiveStrength;
+};
+
+// TODO simplify
+layout(set = 1, binding = 0) uniform texture2D albedoTexture;
+layout(set = 1, binding = 1) uniform texture2D metallicTexture;
+layout(set = 1, binding = 2) uniform texture2D normalTexture;
+layout(set = 1, binding = 3) uniform texture2D roughnessTexture;
+layout(set = 1, binding = 4) uniform texture2D aoTexture;
+layout(set = 1, binding = 5) uniform texture2D emissiveTexture;
+layout(set = 1, binding = 6) uniform texture2D shadowMap;
+layout(set = 1, binding = 7) uniform sampler texSampler;
+layout(set = 1, binding = 8) uniform sampler shadowMapSampler;
+
+// later include to have layout definition
+#include "libs/pbr.glsl"
+
+vec3 getNormalFromMap(vec2 uv, vec3 worldPos, vec3 normal)
+{
+    vec3 tangentNormal = texture(sampler2D(normalTexture, texSampler), uv).xyz * 2.0 - 1.0;
+
+    vec3 Q1  = dFdx(worldPos);
+    vec3 Q2  = dFdy(worldPos);
+    vec2 st1 = dFdx(uv);
+    vec2 st2 = dFdy(uv);
+
+    vec3 N   = normalize(normal);
+    vec3 T  = normalize(Q1*st2.t - Q2*st1.t);
+    vec3 B  = -normalize(cross(N, T));
+    mat3 TBN = mat3(T, B, N);
+
+    return normalize(TBN * tangentNormal);
+}
+
+void main()
+{
+    vec3 albedoColor = CorrectGamma(texture(sampler2D(albedoTexture, texSampler), f_UV).rgb) * albedo;
+    vec3 normalDir = getNormalFromMap(f_UV, f_position, f_TBN[2].xyz);
+    float metal = min(0.9, texture(sampler2D(metallicTexture, texSampler), f_UV).r * metallic);
+    float rough = texture(sampler2D(roughnessTexture, texSampler), f_UV).r * roughness;
+    float aoVal = texture(sampler2D(aoTexture, texSampler), f_UV).r * ao;
+    vec3 N = normalDir; 
+    vec3 V = normalize(GetViewPos() - f_position);
+    vec3 Lo = vec3(0.0);
+    vec3 F0 = vec3(0.04);
+    F0 = mix(F0, albedoColor, metal);
+    for(int i = 0; i &lt; MAX_LIGHTS; i++) 
+    {
+        float lightType = Lights[i].Type;
+        vec3 L;
+        float attenuation = 1;
+        if (lightType == 0)
+        {
+            L = normalize(-Lights[i].Direction);
+        }
+        else if(lightType == 1)
+        {
+            L = normalize(Lights[i].Position - f_position);
+            float distance = length(Lights[i].Position - f_position);
+            float range = max(MIN_RANGE, Lights[i].Range);
+            float linear = LINEAR_FACTOR/range;
+            float quadratic = QUADRATIC_FACTOR/(range*range);
+            attenuation = 1.0 / (CONSTANT + linear * distance + quadratic * (distance * distance));
+        }
+
+        float shadow = 0;//CalculateShadows(N, L, f_FragPosLightSpace);
+        float NdotL = max(dot(N, L), 0.0);
+    
+        vec3 H = normalize(V + L);
+        vec3 radiance = Lights[i].Color * attenuation;
+
+        vec3 F = FresnelSchlick(F0, L, H) * ((F0 + 2.0) / 8.0 ) * pow(saturate(dot(N, H)), length(F0)) * NdotL;//fresnelSchlick(max(dot(H, V), 0.0), F0);
+        float NDF = DistributionGGX(N, H, rough);
+        float G = GeometrySmith(N, V, L, rough);
+
+        vec3 numerator = NDF * G * F;
+        //float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0);
+        vec3 specular = numerator;
+
+        vec3 kS = F;
+        vec3 kD = vec3(1.0) - kS;
+        kD *= 1.0 - metal;
+        
+        Lo += (kD * albedoColor + specular) * radiance * NdotL * (1.0 - shadow);
+    }
+    vec3 ambient = vec3(0.03) * albedoColor * aoVal;
+    vec3 color   = ambient + Lo;
+
+    color += texture(sampler2D(emissiveTexture, texSampler), f_UV).rgb * emissiveStrength;
+    out_Color = vec4(color, 1);
+}
+    </fragment>
+</shader>

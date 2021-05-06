@@ -30,7 +30,7 @@ namespace Deremis.Viewer
             var panaModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/pana.obj"));
             var tableModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/plane.obj"));
             var shader = AssetManager.current.Get<Shader>(new AssetDescription("Shaders/phong_gbuffer.xml"));
-            var shaderfwd = AssetManager.current.Get<Shader>(new AssetDescription("Shaders/phong.xml"));
+            var shaderfwd = AssetManager.current.Get<Shader>(new AssetDescription("Shaders/pbr.xml"));
             var ssaoShader = AssetManager.current.Get<Shader>(new AssetDescription("Shaders/screen/ssao.xml"));
 
             var stenDiffuseTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/sten_albedo.png"));
@@ -40,6 +40,8 @@ namespace Deremis.Viewer
             var panaDiffuseTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_C.png"));
             var panaSpecularTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_R.png"));
             var panaNormalTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_N.png"));
+            var panaAOTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_AO.png"));
+            var panaMetallicTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_M.png"));
             var panaEmissiveTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_EM.png"));
 
             // var tableDiffuseTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Table_Mt_albedo.jpg"));
@@ -54,17 +56,22 @@ namespace Deremis.Viewer
             camera.Set(Transform.FromTarget(new Vector3(20, 5, 0), Vector3.Zero, Vector3.UnitY));
 
             var light = app.CreateLight(
-                color: new Vector3(1f, 0.9f, 0.75f),
+                // color: new Vector3(1f, 0.9f, 0.75f),
                 type: 0
             );
             light.Set(new Transform(Vector3.Zero, Quaternion.CreateFromYawPitchRoll(MathF.PI + MathF.PI / 3f, -MathF.PI / 3f, 0), Vector3.One));
-            // light = app.CreateLight(
-            //     color: new Vector3(1f, 0.75f, 0.9f),
-            //     type: 2,
-            //     innerCutoff: MathF.Cos(7.5f * MathF.PI / 180f),
-            //     outerCutoff: MathF.Cos(10f * MathF.PI / 180f)
-            // );
-            // light.Set(new Transform(new Vector3(-10, 0, 1), Quaternion.CreateFromYawPitchRoll(-MathF.PI / 2f, 0, 0), Vector3.One));
+            light = app.CreateLight(
+                color: Vector3.UnitY,
+                type: 1,
+                range: 50
+            );
+            light.Set(new Transform(new Vector3(-2, 4, 15), Quaternion.Identity, Vector3.One));
+            light = app.CreateLight(
+                color: Vector3.UnitX,
+                type: 1,
+                range: 50
+            );
+            light.Set(new Transform(new Vector3(0, 4, 25), Quaternion.Identity, Vector3.One));
 
             SamplerDescription sampler = new SamplerDescription
             {
@@ -77,26 +84,33 @@ namespace Deremis.Viewer
                 MaximumLod = uint.MaxValue,
                 MaximumAnisotropy = 16,
             };
-            var stenMat = app.MaterialManager.CreateMaterial("sten", shader);
-            stenMat.SetProperty("ambientStrength", 0.1f);
-            stenMat.SetProperty("diffuseColor", Vector3.One);
-            stenMat.SetProperty("specularStrength", 0.1f);
-            stenMat.SetProperty("specularColor", Vector3.One);
-            stenMat.SetTexture("diffuseTexture", stenDiffuseTex);
-            stenMat.SetTexture("specularTexture", stenSpecularTex);
+            var stenMat = app.MaterialManager.CreateMaterial("sten", shaderfwd);
+            stenMat.SetProperty("albedo", Vector3.One);
+            stenMat.SetProperty("metallic", 0.5f);
+            stenMat.SetProperty("roughness", 0.8f);
+            stenMat.SetProperty("ao", 1.0f);
+            stenMat.SetTexture("albedoTexture", stenDiffuseTex);
+            stenMat.SetTexture("roughnessTexture", stenSpecularTex);
             stenMat.SetTexture("normalTexture", stenNormalTex);
             stenMat.SetSampler(sampler);
-            var panaMat = app.MaterialManager.CreateMaterial(shaderfwd.Name, shader);
-            panaMat.SetProperty("ambientStrength", 0.1f);
-            panaMat.SetProperty("diffuseColor", Vector3.One);
-            panaMat.SetProperty("specularStrength", 0.5f);
-            panaMat.SetProperty("emissiveStrength", 1f);
-            panaMat.SetProperty("specularColor", Vector3.One);
-            panaMat.SetTexture("diffuseTexture", panaDiffuseTex);
-            panaMat.SetTexture("specularTexture", panaSpecularTex);
+            var panaMat = app.MaterialManager.CreateMaterial("pana", shaderfwd);
+            panaMat.SetProperty("albedo", Vector3.One);
+            panaMat.SetProperty("metallic", 0.75f);
+            panaMat.SetProperty("roughness", 1.0f);
+            panaMat.SetProperty("ao", 1.0f);
+            panaMat.SetProperty("emissiveStrength", 1.0f);
+            panaMat.SetTexture("albedoTexture", panaDiffuseTex);
+            panaMat.SetTexture("roughnessTexture", panaSpecularTex);
             panaMat.SetTexture("normalTexture", panaNormalTex);
+            panaMat.SetTexture("emissiveTexture", panaEmissiveTex);
+            panaMat.SetTexture("metallicTexture", panaMetallicTex);
+            panaMat.SetTexture("aoTexture", panaAOTex);
             panaMat.SetSampler(sampler);
-            var tableMat = app.MaterialManager.CreateMaterial("table", shader);
+            var tableMat = app.MaterialManager.CreateMaterial("table", shaderfwd);
+            tableMat.SetProperty("albedo", Vector3.One);
+            tableMat.SetProperty("metallic", 0.0f);
+            tableMat.SetProperty("roughness", 0.1f);
+            tableMat.SetProperty("ao", 1.0f);
             tableMat.SetProperty("ambientStrength", 0.1f);
             tableMat.SetProperty("diffuseColor", Vector3.One * 0.9f);
             tableMat.SetProperty("specularStrength", 0.1f);
@@ -129,7 +143,7 @@ namespace Deremis.Viewer
                 camera.Set(transform);
 
                 // light.Set(new Transform(Vector3.Zero, Quaternion.CreateFromYawPitchRoll(rotate / 2f, -MathF.PI / 4f, 0), Vector3.One));
-                // tableEntity.Set(new Transform(new Vector3(0, -6, 0), Quaternion.CreateFromYawPitchRoll(rotate / 2f, 0, 0), Vector3.One));
+                // entityfwd.Set(new Transform(new Vector3(0, 4.5f, 20), Quaternion.CreateFromYawPitchRoll(-rotate / 2f, 0, 0), Vector3.One));
             }));
         }
     }
