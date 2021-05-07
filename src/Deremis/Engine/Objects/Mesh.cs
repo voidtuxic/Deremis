@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Deremis.Engine.Rendering;
 using Deremis.Platform;
 using Veldrid;
+using Veldrid.Utilities;
 
 namespace Deremis.Engine.Objects
 {
@@ -13,6 +14,7 @@ namespace Deremis.Engine.Objects
         private readonly List<int> indices = new List<int>();
 
         public bool Indexed { get; set; } = true;
+        public BoundingBox BoundingBox { get; set; }
 
         public DeviceBuffer VertexBuffer { get; private set; }
         public DeviceBuffer IndexBuffer { get; private set; }

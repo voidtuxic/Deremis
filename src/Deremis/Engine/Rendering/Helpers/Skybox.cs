@@ -7,7 +7,7 @@ namespace Deremis.Engine.Rendering.Helpers
 {
     public static class Skybox
     {
-        private const string name = "skybox";
+        public const string name = "skybox";
 
         public static AssetDescription Shader = new AssetDescription
         {

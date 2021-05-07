@@ -1,6 +1,6 @@
 using System;
 
-namespace Deremis.Engine.Core
+namespace Deremis.Engine.Math
 {
     public static class DMath
     {

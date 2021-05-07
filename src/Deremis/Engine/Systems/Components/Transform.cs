@@ -1,5 +1,6 @@
 using System;
 using System.Numerics;
+using Veldrid.Utilities;
 
 namespace Deremis.Engine.Systems.Components
 {
@@ -81,6 +82,11 @@ namespace Deremis.Engine.Systems.Components
 
             Vector3 other = x < y ? (x < z ? Vector3.UnitX : Vector3.UnitZ) : (y < z ? Vector3.UnitY : Vector3.UnitZ);
             return Vector3.Cross(v, other);
+        }
+
+        public BoundingBox Apply(BoundingBox baseBox)
+        {
+            return BoundingBox.Transform(baseBox, ToMatrix());
         }
 
         public static Transform operator +(Transform l, Transform r)

@@ -50,6 +50,7 @@ namespace Deremis.Platform
 
         public World DefaultWorld { get; private set; }
         public RenderSystem Render { get; private set; }
+        public CullSystem Cull { get; private set; }
         public IParallelRunner ParallelSystemRunner { get; private set; }
         public SequentialListSystem<float> MainSystem { get; private set; }
         private int entityCounter = 0;
@@ -118,8 +119,10 @@ namespace Deremis.Platform
 
             DefaultWorld = new World();
             Render = new RenderSystem(this, DefaultWorld);
+            Cull = new CullSystem(this, DefaultWorld, ParallelSystemRunner);
             ParallelSystemRunner = new DefaultParallelRunner(Environment.ProcessorCount);
             MainSystem = new SequentialListSystem<float>();
+            MainSystem.Add(Cull);
             MainSystem.Add(Render);
 
             LoadDefaultAssets();
@@ -306,6 +309,7 @@ namespace Deremis.Platform
                 mesh = Render.RegisterMesh(mesh.Name, mesh),
                 material = materialName
             });
+            entity.Set(new Render(false));
             if (material.Shader.IsDeferred)
             {
                 entity.Set(new Deferred());

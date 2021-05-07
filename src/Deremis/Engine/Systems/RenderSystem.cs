@@ -18,6 +18,7 @@ using Shader = Deremis.Engine.Objects.Shader;
 namespace Deremis.Engine.Systems
 {
     [With(typeof(Transform))]
+    [With(typeof(Render))]
     [Without(typeof(Deferred))]
     public class RenderSystem : AEntityMultiMapSystem<float, Drawable>
     {
@@ -62,7 +63,7 @@ namespace Deremis.Engine.Systems
             commandList.Name = "MainCommandList";
             cameraSet = world.GetEntities().With<Camera>().With<Transform>().AsSet();
             lightSet = world.GetEntities().With<Light>().With<Transform>().AsSet();
-            deferredObjectsMap = world.GetEntities().With<Drawable>().With<Transform>().With<Deferred>().AsMultiMap<Drawable>();
+            deferredObjectsMap = world.GetEntities().With<Drawable>().With<Transform>().With<Deferred>().With<Render>().AsMultiMap<Drawable>();
             shadowedObjectsMap = world.GetEntities().With<Drawable>().With<Transform>().With<ShadowMapped>().AsMultiMap<Drawable>();
             InitScreenData();
         }
@@ -130,6 +131,12 @@ namespace Deremis.Engine.Systems
         {
             if (screenPassMaterials.ContainsKey(name)) return screenPassMaterials[name];
 
+            return null;
+        }
+
+        public Mesh GetMesh(string name)
+        {
+            if (meshes.ContainsKey(name)) return meshes[name];
             return null;
         }
 
@@ -217,8 +224,7 @@ namespace Deremis.Engine.Systems
             {
                 return false;
             }
-            mesh = null;
-            if (meshes.ContainsKey(key.mesh)) mesh = meshes[key.mesh];
+            mesh = GetMesh(key.mesh);
             var pipeline = material.GetPipeline(0);
             if (pipeline != null && mesh != null)
             {
@@ -247,13 +253,14 @@ namespace Deremis.Engine.Systems
         {
             if (!isDrawValid) return;
 
-            foreach (var entity in entities)
+            foreach (ref readonly var entity in entities)
             {
-                Draw(entity);
+                if (entity.Get<Render>().Value)
+                    Draw(in entity);
             }
         }
 
-        private void Draw(Entity entity)
+        private void Draw(in Entity entity)
         {
             var transform = entity.GetWorldTransform();
             var world = transform.ToMatrix();

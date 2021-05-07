@@ -30,7 +30,7 @@ namespace Deremis.Platform.Assets
 
     public class AssimpHandler : IAssetHandler
     {
-        private static PostProcessSteps ASSIMP_POSTPROCESS = PostProcessPreset.TargetRealTimeMaximumQuality | PostProcessSteps.FlipWindingOrder;
+        private static PostProcessSteps ASSIMP_POSTPROCESS = PostProcessPreset.TargetRealTimeMaximumQuality | PostProcessSteps.FlipWindingOrder | PostProcessSteps.GenerateBoundingBoxes;
 
         public string Name => "Assimp Handler";
 
@@ -119,6 +119,7 @@ namespace Deremis.Platform.Assets
             }
             if (mesh.UpdateBuffers())
             {
+                mesh.BoundingBox = new Veldrid.Utilities.BoundingBox(assimpMesh.BoundingBox.Min.ToNumerics(), assimpMesh.BoundingBox.Max.ToNumerics());
                 model.AppendMesh(mesh);
             }
             else

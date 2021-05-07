@@ -32,49 +32,30 @@ namespace Deremis.Viewer
 
             var shader = AssetManager.current.Get<Shader>(new AssetDescription("Shaders/pbr_gbuffer.xml"));
             var shaderfwd = AssetManager.current.Get<Shader>(new AssetDescription("Shaders/pbr.xml"));
-            var ssaoShader = AssetManager.current.Get<Shader>(new AssetDescription("Shaders/screen/ssao.xml"));
-
-            var stenDiffuseTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/sten_albedo.png"));
-            var stenSpecularTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/sten_mra.png"));
-            var stenNormalTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/sten_normals.jpg"));
 
             var panaDiffuseTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_C.png"));
-            // var panaSpecularTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_R.png"));
             var panaNormalTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_N.png"));
             var panaMRATex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_MRA.png"));
-            // var panaMetallicTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_M.png"));
             var panaEmissiveTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_EM.png"));
 
             var tableDiffuseTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/rocky_albedo.png"));
             var tableSpecularTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/rocky_mra.png"));
             var tableNormalTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/rocky_normal.png"));
 
-            // var cubemap = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/skybox_###.jpg", new TextureHandler.Options(mipmaps: false, cubemap: true)));
-
             Skybox.Init(app, hdrTex);
 
             var camera = app.CreateCamera();
             camera.Set(Transform.FromTarget(new Vector3(20, 5, 0), Vector3.Zero, Vector3.UnitY));
             var freeCam = new FreeCamera(app);
-            freeCam.SetCameraId(camera.Get<Metadata>().entityId);
+            int entityId = camera.Get<Metadata>().entityId;
+            freeCam.SetCameraId(entityId);
+            app.Cull.SetCameraId(entityId);
 
             var light = app.CreateLight(
                 color: new Vector3(1f, 0.9f, 0.75f),
                 type: 0
             );
             light.Set(new Transform(Vector3.Zero, Quaternion.CreateFromYawPitchRoll(MathF.PI - MathF.PI / 3f, -MathF.PI / 3f, 0), Vector3.One));
-            // light = app.CreateLight(
-            //     color: Vector3.UnitY * 2f,
-            //     type: 1,
-            //     range: 50
-            // );
-            // light.Set(new Transform(new Vector3(-2, 4, 15), Quaternion.Identity, Vector3.One));
-            // light = app.CreateLight(
-            //     color: Vector3.UnitX * 10f,
-            //     type: 1,
-            //     range: 50
-            // );
-            // light.Set(new Transform(new Vector3(0, 4, 25), Quaternion.Identity, Vector3.One));
 
             SamplerDescription sampler = new SamplerDescription
             {
@@ -87,15 +68,7 @@ namespace Deremis.Viewer
                 MaximumLod = uint.MaxValue,
                 MaximumAnisotropy = 16,
             };
-            var stenMat = app.MaterialManager.CreateMaterial("sten", shader);
-            stenMat.SetProperty("albedo", Vector3.One);
-            stenMat.SetProperty("metallic", 0.35f);
-            stenMat.SetProperty("roughness", 0.5f);
-            stenMat.SetProperty("ao", 1.0f);
-            stenMat.SetTexture("albedoTexture", stenDiffuseTex);
-            stenMat.SetTexture("mraTexture", stenSpecularTex);
-            stenMat.SetTexture("normalTexture", stenNormalTex);
-            stenMat.SetSampler(sampler);
+
             var panaMat = app.MaterialManager.CreateMaterial("pana", shader);
             panaMat.SetProperty("albedo", Vector3.One);
             panaMat.SetProperty("metallic", 0.75f);
@@ -118,31 +91,21 @@ namespace Deremis.Viewer
             tableMat.SetSampler(sampler);
             tableMat.DeferredLightingMaterial.SetTexture("environmentTexture", hdrTex);
 
-            var entity = stenModel.Spawn(app, stenMat.Name, new Transform(
-                new Vector3(1.35f, 0, 2),
-                Quaternion.CreateFromYawPitchRoll(MathF.PI, 0, MathF.PI / 5.5f),
-                Vector3.One));
-            var entityfwd = panaModel.Spawn(app, panaMat.Name, new Transform(new Vector3(0, 6.5f, 0), Quaternion.CreateFromYawPitchRoll(MathF.PI / 2f, 0, 0), Vector3.One * 1.5f));
             var tableEntity = tableModel.Spawn(app, tableMat.Name, new Transform(new Vector3(0, -2, 0), Quaternion.Identity, Vector3.One));
 
-            entityfwd.SetAsChildOf(tableEntity);
-            entity.SetAsChildOf(entityfwd);
-
-            // var ssaoMaterial = app.GetScreenPass("ssao", ssaoShader);
-            // ssaoMaterial.SetProperty("aoRadius", Vector4.One);
-            // app.Render.RegisterScreenPass(ssaoMaterial);
-
-            // float rotate = 0;
-            // app.MainSystem.Add(new ActionSystem<float>(delta =>
-            // {
-            //     rotate += delta;
-            //     var transform = Transform.FromTarget(new Vector3(20 * MathF.Cos(-rotate / 4f), 10, 20 * MathF.Sin(-rotate / 4f) + 20), new Vector3(0, 2, 20), Vector3.UnitY);
-            //     // light.Set(transform);
-            //     camera.Set(transform);
-
-            //     // light.Set(new Transform(Vector3.Zero, Quaternion.CreateFromYawPitchRoll(rotate / 2f, -MathF.PI / 4f, 0), Vector3.One));
-            //     // entityfwd.Set(new Transform(new Vector3(0, 4.5f, 20), Quaternion.CreateFromYawPitchRoll(-rotate / 2f, 0, 0), Vector3.One));
-            // }));
+            var length = 10;
+            var offset = 10;
+            var random = new Random();
+            for (var x = 0; x < length; x++)
+            {
+                for (var y = 0; y < length; y++)
+                {
+                    var entityfwd = panaModel.Spawn(app, panaMat.Name,
+                        new Transform(new Vector3(x * offset - length / 2f * offset, 4.5f, y * offset - length / 2f * offset),
+                        Quaternion.CreateFromYawPitchRoll(MathF.PI / 2f + (float)random.NextDouble() * MathF.PI, 0, 0), Vector3.One));
+                    entityfwd.SetAsChildOf(tableEntity);
+                }
+            }
         }
     }
 }
