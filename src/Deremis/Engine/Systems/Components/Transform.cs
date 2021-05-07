@@ -10,6 +10,7 @@ namespace Deremis.Engine.Systems.Components
         public Vector3 scale;
 
         public Vector3 Forward => Vector3.Transform(-Vector3.UnitZ, rotation);
+        public Vector3 Right => new Vector3(Forward.Z, Forward.Y, -Forward.X);
 
         public Transform(Vector3 position, Quaternion rotation, Vector3 scale)
         {

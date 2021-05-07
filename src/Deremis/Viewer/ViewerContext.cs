@@ -24,7 +24,7 @@ namespace Deremis.Viewer
         {
             this.app = app;
 
-            var hdrTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/env.hdr", new TextureHandler.Options(false, false, false, true)));
+            var hdrTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/env2.hdr", new TextureHandler.Options(false, false, false, true)));
 
             var stenModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/sten.obj"));
             var panaModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/pana.obj"));
@@ -55,18 +55,20 @@ namespace Deremis.Viewer
 
             var camera = app.CreateCamera();
             camera.Set(Transform.FromTarget(new Vector3(20, 5, 0), Vector3.Zero, Vector3.UnitY));
+            var freeCam = new FreeCamera(app);
+            freeCam.SetCameraId(camera.Get<Metadata>().entityId);
 
             var light = app.CreateLight(
                 color: new Vector3(1f, 0.9f, 0.75f),
                 type: 0
             );
-            light.Set(new Transform(Vector3.Zero, Quaternion.CreateFromYawPitchRoll(MathF.PI + MathF.PI / 3f, -MathF.PI / 3f, 0), Vector3.One));
-            light = app.CreateLight(
-                color: Vector3.UnitY * 2f,
-                type: 1,
-                range: 50
-            );
-            light.Set(new Transform(new Vector3(-2, 4, 15), Quaternion.Identity, Vector3.One));
+            light.Set(new Transform(Vector3.Zero, Quaternion.CreateFromYawPitchRoll(MathF.PI - MathF.PI / 3f, -MathF.PI / 3f, 0), Vector3.One));
+            // light = app.CreateLight(
+            //     color: Vector3.UnitY * 2f,
+            //     type: 1,
+            //     range: 50
+            // );
+            // light.Set(new Transform(new Vector3(-2, 4, 15), Quaternion.Identity, Vector3.One));
             // light = app.CreateLight(
             //     color: Vector3.UnitX * 10f,
             //     type: 1,
@@ -120,27 +122,27 @@ namespace Deremis.Viewer
                 new Vector3(1.35f, 0, 2),
                 Quaternion.CreateFromYawPitchRoll(MathF.PI, 0, MathF.PI / 5.5f),
                 Vector3.One));
-            var entityfwd = panaModel.Spawn(app, panaMat.Name, new Transform(new Vector3(0, 6.5f, 20), Quaternion.CreateFromYawPitchRoll(MathF.PI / 2f, 0, 0), Vector3.One * 1.5f));
+            var entityfwd = panaModel.Spawn(app, panaMat.Name, new Transform(new Vector3(0, 6.5f, 0), Quaternion.CreateFromYawPitchRoll(MathF.PI / 2f, 0, 0), Vector3.One * 1.5f));
             var tableEntity = tableModel.Spawn(app, tableMat.Name, new Transform(new Vector3(0, -2, 0), Quaternion.Identity, Vector3.One));
 
             entityfwd.SetAsChildOf(tableEntity);
             entity.SetAsChildOf(entityfwd);
 
-            var ssaoMaterial = app.GetScreenPass("ssao", ssaoShader);
+            // var ssaoMaterial = app.GetScreenPass("ssao", ssaoShader);
             // ssaoMaterial.SetProperty("aoRadius", Vector4.One);
             // app.Render.RegisterScreenPass(ssaoMaterial);
 
-            float rotate = 0;
-            app.MainSystem.Add(new ActionSystem<float>(delta =>
-            {
-                rotate += delta;
-                var transform = Transform.FromTarget(new Vector3(20 * MathF.Cos(-rotate / 4f), 10, 20 * MathF.Sin(-rotate / 4f) + 20), new Vector3(0, 2, 20), Vector3.UnitY);
-                // light.Set(transform);
-                camera.Set(transform);
+            // float rotate = 0;
+            // app.MainSystem.Add(new ActionSystem<float>(delta =>
+            // {
+            //     rotate += delta;
+            //     var transform = Transform.FromTarget(new Vector3(20 * MathF.Cos(-rotate / 4f), 10, 20 * MathF.Sin(-rotate / 4f) + 20), new Vector3(0, 2, 20), Vector3.UnitY);
+            //     // light.Set(transform);
+            //     camera.Set(transform);
 
-                // light.Set(new Transform(Vector3.Zero, Quaternion.CreateFromYawPitchRoll(rotate / 2f, -MathF.PI / 4f, 0), Vector3.One));
-                // entityfwd.Set(new Transform(new Vector3(0, 4.5f, 20), Quaternion.CreateFromYawPitchRoll(-rotate / 2f, 0, 0), Vector3.One));
-            }));
+            //     // light.Set(new Transform(Vector3.Zero, Quaternion.CreateFromYawPitchRoll(rotate / 2f, -MathF.PI / 4f, 0), Vector3.One));
+            //     // entityfwd.Set(new Transform(new Vector3(0, 4.5f, 20), Quaternion.CreateFromYawPitchRoll(-rotate / 2f, 0, 0), Vector3.One));
+            // }));
         }
     }
 }

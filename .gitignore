@@ -42,3 +42,5 @@ msbuild.wrn
 *.jpg
 *.jpeg
 *.dae
+*.exe
+*.hdr

@@ -21,7 +21,7 @@ namespace Deremis.Platform
     {
         public const PixelFormat COLOR_PIXEL_FORMAT = PixelFormat.R32_G32_B32_A32_Float;
         public const PixelFormat DEPTH_PIXEL_FORMAT = PixelFormat.R32_Float;
-        public const uint SHADOW_MAP_FAR = 50;
+        public const uint SHADOW_MAP_FAR = 100;
         public const uint SHADOW_MAP_WIDTH = 2048;
         public const string SHADOW_MAP_NAME = "shadowMap";
         public static AssetDescription MissingTex = new AssetDescription
@@ -42,7 +42,8 @@ namespace Deremis.Platform
 
         public static Application current;
 
-        private Sdl2Window window;
+        public Sdl2Window Window { get; private set; }
+        public InputSnapshot InputSnapshot { get; private set; }
 
         public GraphicsDevice GraphicsDevice { get; private set; }
         public ResourceFactory Factory { get; private set; }
@@ -70,8 +71,8 @@ namespace Deremis.Platform
         private readonly Dictionary<string, RenderTexture> renderTextures = new Dictionary<string, RenderTexture>();
         private readonly Dictionary<Shader, Framebuffer> deferredFramebuffers = new Dictionary<Shader, Framebuffer>();
 
-        public uint Width => (uint)window.Width;
-        public uint Height => (uint)window.Height;
+        public uint Width => (uint)Window.Width;
+        public uint Height => (uint)Window.Height;
         public float AspectRatio => (float)Width / (float)Height;
 
         public Application(string[] args, IContext context)
@@ -95,7 +96,7 @@ namespace Deremis.Platform
                 WindowHeight = 1080,
                 WindowTitle = "Deremis"
             };
-            window = VeldridStartup.CreateWindow(ref windowCI);
+            Window = VeldridStartup.CreateWindow(ref windowCI);
 
             GraphicsDeviceOptions options = new GraphicsDeviceOptions
             {
@@ -107,7 +108,7 @@ namespace Deremis.Platform
                 Debug = true,
 #endif
             };
-            GraphicsDevice = VeldridStartup.CreateGraphicsDevice(window, options, GraphicsBackend.Direct3D11);
+            GraphicsDevice = VeldridStartup.CreateGraphicsDevice(Window, options, GraphicsBackend.Direct3D11);
             Factory = GraphicsDevice.ResourceFactory;
 
             CreateRenderContext();
@@ -175,12 +176,12 @@ namespace Deremis.Platform
         public void Run()
         {
             var lastTime = DateTime.Now;
-            while (window.Exists)
+            while (Window.Exists)
             {
                 var now = DateTime.Now;
                 var delta = (float)(now - lastTime).TotalSeconds;
 
-                window.PumpEvents();
+                InputSnapshot = Window.PumpEvents();
 
                 MainSystem.Update(delta);
 
@@ -275,10 +276,10 @@ namespace Deremis.Platform
             return entity;
         }
 
-        public Entity CreateCamera(string name = "Camera", float fov = MathF.PI / 4f, float near = 0.1f, float far = 100)
+        public Entity CreateCamera(string name = "Camera", float fov = MathF.PI / 4f, float near = 0.1f, float far = 500)
         {
             var entity = CreateTransform(name);
-            entity.Set(Camera.CreatePerspective(fov, window.Width / (float)window.Height, near, far));
+            entity.Set(Camera.CreatePerspective(fov, Window.Width / (float)Window.Height, near, far));
             return entity;
         }
 

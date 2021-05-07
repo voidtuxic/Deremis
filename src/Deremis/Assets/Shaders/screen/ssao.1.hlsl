@@ -65,7 +65,7 @@ float doAmbientOcclusion(in float2 tcoord,in float2 uv, in float3 p, in float3 c
 void frag_main()
 {
     const float2 vec[4] = {float2(1,0),float2(-1,0), float2(0,1),float2(0,-1)};
-    const int iterations = 16; 
+    const int iterations = 4; 
     float ao = 0.0f; 
 
     float3 p = getPosition(f_UV); 
@@ -83,7 +83,7 @@ void frag_main()
         ao += doAmbientOcclusion(f_UV,coord2, p, n); 
     }
     ao /=(float)iterations*4.0;
-    ao = pow(ao, 3);
+    ao = pow(ao, 5);
     ao = 1.0 - ao;
     
     out_Color = float4(ao,ao, ao, 1.0f); // screen* min(0.5, ao)
