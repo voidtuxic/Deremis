@@ -7,7 +7,7 @@
         <PrimitiveTopology>TriangleList</PrimitiveTopology>
     </config>
     <properties>
-        <vec4 name="emissiveStrength" />
+        <vec4 name="pad1" />
     </properties>
     <resources>
         <texture2d name="albedoTexture" />
@@ -15,6 +15,7 @@
         <texture2d name="positionTexture" />
         <texture2d name="normalTexture" isNormal="true"/>
         <texture2d name="lightSpaceTexture" />
+        <texture2d name="emissiveTexture"/>
         <texture2d name="environmentTexture" />
         <texture2d name="shadowMap" />
     </resources>
@@ -29,7 +30,7 @@
 
 layout(set = 0, binding = 1) uniform Material
 {
-    vec4 emissiveStrength;
+    vec4 pad1;
     vec4 pad;
 };
 
@@ -38,10 +39,11 @@ layout(set = 1, binding = 1) uniform texture2D mraTexture;
 layout(set = 1, binding = 2) uniform texture2D positionTexture;
 layout(set = 1, binding = 3) uniform texture2D normalTexture;
 layout(set = 1, binding = 4) uniform texture2D lightSpaceTexture;
-layout(set = 1, binding = 5) uniform texture2D environmentTexture;
-layout(set = 1, binding = 6) uniform texture2D shadowMap;
-layout(set = 1, binding = 7) uniform sampler texSampler;
-layout(set = 1, binding = 8) uniform sampler shadowMapSampler;
+layout(set = 1, binding = 5) uniform texture2D emissiveTexture;
+layout(set = 1, binding = 6) uniform texture2D environmentTexture;
+layout(set = 1, binding = 7) uniform texture2D shadowMap;
+layout(set = 1, binding = 8) uniform sampler texSampler;
+layout(set = 1, binding = 9) uniform sampler shadowMapSampler;
 
 layout(location = 0) in vec2 f_UV;
 
@@ -62,6 +64,8 @@ void main()
     vec3 irradiance = texture(sampler2D(environmentTexture, texSampler), SampleSphericalMap(normalDir)).rgb;
     vec4 fragPosLightSpace = texture(sampler2D(lightSpaceTexture, texSampler), f_UV);
     vec3 color = Calculate(position.xyz, normalDir, GetViewPos(), albedoColor, metal, rough, aoVal, irradiance, fragPosLightSpace);
+    vec3 emissive = texture(sampler2D(emissiveTexture, texSampler), f_UV).rgb;
+    color += emissive;
 
     out_Color = vec4(color, position.a + min(max(length(pad), 0), 0));
 }

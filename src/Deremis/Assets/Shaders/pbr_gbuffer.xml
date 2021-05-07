@@ -12,17 +12,20 @@
         <output name="position" />
         <output name="normal" />
         <output name="lightspace" />
+        <output name="emissive" />
     </outputs>
     <properties>
         <vec3 name="albedo" />
         <float name="metallic" />
         <float name="roughness" />
         <float name="ao" />
+        <float name="emissiveStrength" />
     </properties>
     <resources>
         <texture2d name="albedoTexture" />
         <texture2d name="mraTexture" />
         <texture2d name="normalTexture" isNormal="true"/>
+        <texture2d name="emissiveTexture"/>
     </resources>
     <vertex>
 #include "genericvert.glsl"
@@ -39,17 +42,20 @@ layout(set = 0, binding = 1) uniform Material
     float metallic;
     float roughness;
     float ao;
+    float emissiveStrength;
 };
 
 layout(set = 1, binding = 0) uniform texture2D albedoTexture;
 layout(set = 1, binding = 1) uniform texture2D mraTexture;
 layout(set = 1, binding = 2) uniform texture2D normalTexture;
-layout(set = 1, binding = 3) uniform sampler texSampler;
+layout(set = 1, binding = 3) uniform texture2D emissiveTexture;
+layout(set = 1, binding = 4) uniform sampler texSampler;
 
 layout(location = 1) out vec4 out_MRA;
 layout(location = 2) out vec4 out_Position;
 layout(location = 3) out vec4 out_Normal;
 layout(location = 4) out vec4 out_LightSpace;
+layout(location = 5) out vec4 out_Emissive;
 
 #include "libs/normals.glsl"
 
@@ -61,12 +67,14 @@ void main()
     float metal = min(0.9, mra.r * metallic);
     float rough = mra.g * roughness;
     float aoVal = mra.b * ao;
+    vec3 emissive = texture(sampler2D(emissiveTexture, texSampler), f_UV).rgb * emissiveStrength;
 
     out_Color = vec4(albedoColor, 1.0);
     out_MRA = vec4(metal, rough, aoVal, 1.0);
     out_Position = vec4(f_position, 1.0);
     out_Normal = vec4(norm, 1.0);
     out_LightSpace = f_FragPosLightSpace;
+    out_Emissive = vec4(emissive, 1.0);
 }
     </fragment>
 </shader>

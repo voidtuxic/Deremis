@@ -99,9 +99,11 @@ namespace Deremis.Viewer
             panaMat.SetProperty("metallic", 0.75f);
             panaMat.SetProperty("roughness", 1.0f);
             panaMat.SetProperty("ao", 1.0f);
+            panaMat.SetProperty("emissiveStrength", 1.0f);
             panaMat.SetTexture("albedoTexture", panaDiffuseTex);
             panaMat.SetTexture("mraTexture", panaMRATex);
             panaMat.SetTexture("normalTexture", panaNormalTex);
+            panaMat.SetTexture("emissiveTexture", panaEmissiveTex);
             panaMat.SetSampler(sampler);
             var tableMat = app.MaterialManager.CreateMaterial("table", shader);
             tableMat.SetProperty("albedo", Vector3.One);
@@ -112,14 +114,14 @@ namespace Deremis.Viewer
             tableMat.SetTexture("mraTexture", tableSpecularTex);
             tableMat.SetTexture("normalTexture", tableNormalTex);
             tableMat.SetSampler(sampler);
-            tableMat.SetTexture("environmentTexture", hdrTex);
+            tableMat.DeferredLightingMaterial.SetTexture("environmentTexture", hdrTex);
 
             var entity = stenModel.Spawn(app, stenMat.Name, new Transform(
                 new Vector3(1.35f, 0, 2),
                 Quaternion.CreateFromYawPitchRoll(MathF.PI, 0, MathF.PI / 5.5f),
                 Vector3.One));
-            var entityfwd = panaModel.Spawn(app, panaMat.Name, new Transform(new Vector3(0, 4.5f, 20), Quaternion.CreateFromYawPitchRoll(MathF.PI / 2f, 0, 0), Vector3.One));
-            var tableEntity = tableModel.Spawn(app, tableMat.Name, new Transform(new Vector3(0, 0, 0), Quaternion.Identity, Vector3.One));
+            var entityfwd = panaModel.Spawn(app, panaMat.Name, new Transform(new Vector3(0, 6.5f, 20), Quaternion.CreateFromYawPitchRoll(MathF.PI / 2f, 0, 0), Vector3.One * 1.5f));
+            var tableEntity = tableModel.Spawn(app, tableMat.Name, new Transform(new Vector3(0, -2, 0), Quaternion.Identity, Vector3.One));
 
             entityfwd.SetAsChildOf(tableEntity);
             entity.SetAsChildOf(entityfwd);
@@ -132,7 +134,7 @@ namespace Deremis.Viewer
             app.MainSystem.Add(new ActionSystem<float>(delta =>
             {
                 rotate += delta;
-                var transform = Transform.FromTarget(new Vector3(20 * MathF.Cos(-rotate / 4f), 10, 20 * MathF.Sin(-rotate / 4f) + 20), new Vector3(0, 0, 20), Vector3.UnitY);
+                var transform = Transform.FromTarget(new Vector3(20 * MathF.Cos(-rotate / 4f), 10, 20 * MathF.Sin(-rotate / 4f) + 20), new Vector3(0, 2, 20), Vector3.UnitY);
                 // light.Set(transform);
                 camera.Set(transform);
 
