@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shader version="1">
+    <config>
+        <BlendState>SingleDisabled</BlendState>
+        <DepthStencilState depthTestEnabled="true" depthWriteEnabled="false" comparisonKind="Always" />
+        <RasterizerState depthClipEnabled="true" scissorTestEnabled="false" cullMode="None" fillMode="Solid" frontFace="Clockwise" />
+        <PrimitiveTopology>TriangleList</PrimitiveTopology>
+    </config>
+    <resources>
+        <texture2d name="screenTex" />
+    </resources>
+    <vertex>
+#include "screen/genericvert.glsl"
+    </vertex>
+    <fragment>
+#version 450
+
+#include "uniforms/transform.glsl"
+
+
+layout(location = 0) in vec2 f_UV;
+layout(location = 0) out vec4 out_Color;
+
+layout(set = 1, binding = 0) uniform texture2D screenTex;
+layout(set = 1, binding = 1) uniform sampler texSampler;
+
+#include "libs/fxaa.glsl"
+
+void main()
+{
+    vec2 res = textureSize(sampler2D(screenTex, texSampler), 0);
+    vec2 v_rgbNW;
+    vec2 v_rgbNE;
+    vec2 v_rgbSW;
+    vec2 v_rgbSE;
+    vec2 v_rgbM;
+    vec2 uv = f_UV * res;
+
+    texcoords(uv, res, v_rgbNW, v_rgbNE, v_rgbSW, v_rgbSE, v_rgbM);
+
+    vec4 color = fxaa(uv, res, v_rgbNW, v_rgbNE, v_rgbSW, v_rgbSE, v_rgbM);
+
+    out_Color = color;
+}
+    </fragment>
+</shader>

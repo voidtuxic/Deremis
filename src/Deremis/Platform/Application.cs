@@ -68,14 +68,14 @@ namespace Deremis.Platform
         public Framebuffer ShadowFramebuffer { get; private set; }
         private Veldrid.Texture shadowDepthTexture;
         public Texture ShadowDepthTexture { get; private set; }
-        private Veldrid.Texture resolveTexture;
         public TextureSampleCount MSAA { get; set; } = TextureSampleCount.Count4;
 
         private readonly Dictionary<string, RenderTexture> renderTextures = new Dictionary<string, RenderTexture>();
         private readonly Dictionary<Shader, Framebuffer> deferredFramebuffers = new Dictionary<Shader, Framebuffer>();
 
-        public uint Width => (uint)Window.Width;
-        public uint Height => (uint)Window.Height;
+        public float SSAA => 1f;
+        public uint Width => (uint)(Window.Width * SSAA);
+        public uint Height => (uint)(Window.Height * SSAA);
         public float AspectRatio => (float)Width / (float)Height;
 
         public Application(string[] args, IContext context)
@@ -95,7 +95,7 @@ namespace Deremis.Platform
             {
                 X = 100,
                 Y = 100,
-                WindowWidth = 1600,
+                WindowWidth = 1920,
                 WindowHeight = 1080,
                 WindowTitle = "Deremis"
             };
@@ -160,17 +160,11 @@ namespace Deremis.Platform
 
             shadowDepthTexture = Factory.CreateTexture(TextureDescription.Texture2D(
                             SHADOW_MAP_WIDTH, SHADOW_MAP_WIDTH, 1, 1,
-                            PixelFormat.D32_Float_S8_UInt, TextureUsage.DepthStencil | TextureUsage.Sampled, MSAA));
+                            PixelFormat.D32_Float_S8_UInt, TextureUsage.DepthStencil | TextureUsage.Sampled, TextureSampleCount.Count1));
             shadowDepthTexture.Name = "shadowDepth";
             ShadowFramebuffer = Factory.CreateFramebuffer(new FramebufferDescription(shadowDepthTexture));
             ShadowDepthTexture = new Texture(shadowDepthTexture.Name, shadowDepthTexture, Factory.CreateTextureView(shadowDepthTexture));
 
-            if (MSAA != TextureSampleCount.Count1)
-            {
-                colorTextureDescription.SampleCount = TextureSampleCount.Count1;
-                resolveTexture = Factory.CreateTexture(ref colorTextureDescription);
-                resolveTexture.Name = "resolveColor";
-            }
         }
 
         private void LoadDefaultAssets()
@@ -333,17 +327,16 @@ namespace Deremis.Platform
 
         public void UpdateScreenTexture(CommandList commandList)
         {
-            if (MSAA == TextureSampleCount.Count1 && resolveTexture == null)
+            if (MSAA == TextureSampleCount.Count1)
             {
-                UpdateScreenTexture(commandList);
+                TransferTexture(screenColorTexture, CopyTexture.VeldridTexture, commandList);
             }
             else
             {
                 commandList.Begin();
-                commandList.ResolveTexture(screenColorTexture, resolveTexture);
+                commandList.ResolveTexture(screenColorTexture, CopyTexture.VeldridTexture);
                 commandList.End();
                 Render.SubmitAndWait();
-                TransferTexture(resolveTexture, CopyTexture.VeldridTexture, commandList);
             }
         }
 
@@ -417,7 +410,6 @@ namespace Deremis.Platform
             {
                 rt.Dispose();
             }
-            resolveTexture?.Dispose();
             ScreenFramebuffer?.Dispose();
             screenColorTexture?.Dispose();
             ScreenDepthTexture?.Dispose();

@@ -11,8 +11,8 @@ namespace Deremis.Engine.Rendering.Helpers
 
         public static AssetDescription Shader = new AssetDescription
         {
-            name = "skybox_cubemap",
-            path = "Shaders/skybox_cubemap.xml"
+            name = "skybox_hdr",
+            path = "Shaders/skybox_hdr.xml"
         };
 
         private static bool initialized = false;
@@ -92,9 +92,9 @@ namespace Deremis.Engine.Rendering.Helpers
             material.SetTexture("skybox", cubemap);
         }
 
-        public static void Init(Application app, Texture cubemap)
+        public static void Init(Application app, Texture hdr)
         {
-            SetCubemap(app, cubemap);
+            SetCubemap(app, hdr);
             if (!initialized)
             {
                 var mesh = GetMesh();

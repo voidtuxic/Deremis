@@ -23,8 +23,8 @@ namespace Deremis.Engine.Systems
         public static RenderSystem current;
         public static AssetDescription ScreenShader = new AssetDescription
         {
-            name = "screen_passthrough",
-            path = "Shaders/screen/passthrough.xml"
+            name = "screen_fxaa",
+            path = "Shaders/screen/fxaa.xml"
         };
 
         private readonly Application app;
@@ -132,7 +132,6 @@ namespace Deremis.Engine.Systems
                 app.AssetManager.Get<Shader>(ScreenShader),
                 app.GraphicsDevice.SwapchainFramebuffer);
             screenRenderMaterial.SetTexture("screenTex", app.CopyTexture);
-            // screenRenderMaterial.SetTexture("extraTex", app.ShadowDepthTexture);
         }
 
         public string RegisterMesh(string name, Mesh mesh)
@@ -334,7 +333,6 @@ namespace Deremis.Engine.Systems
             DrawDeferred();
             app.UpdateScreenTexture(commandList);
             DrawScreenPasses();
-            app.UpdateScreenTexture(commandList);
 
             UpdateScreenBuffer(screenRenderMaterial, app.GraphicsDevice.SwapchainFramebuffer);
 
@@ -470,6 +468,7 @@ namespace Deremis.Engine.Systems
                 {
                     UpdateScreenBuffer(material, app.ScreenFramebuffer);
                 }
+                app.UpdateScreenTexture(commandList);
             }
         }
 
