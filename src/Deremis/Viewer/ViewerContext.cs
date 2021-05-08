@@ -26,17 +26,15 @@ namespace Deremis.Viewer
 
             var hdrTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/env2.hdr", new TextureHandler.Options(false, false, false, true)));
 
-            var stenModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/sten.obj"));
-            var panaModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/pana.obj"));
+            var panaModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/gameboy.obj"));
             var tableModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/plane.obj"));
 
             var shader = AssetManager.current.Get<Shader>(new AssetDescription("Shaders/pbr_gbuffer.xml"));
             var shaderfwd = AssetManager.current.Get<Shader>(new AssetDescription("Shaders/pbr.xml"));
 
-            var panaDiffuseTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_C.png"));
-            var panaNormalTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_N.png"));
-            var panaMRATex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_MRA.png"));
-            var panaEmissiveTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Panasonic_TR_555_EM.png"));
+            var panaDiffuseTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Gameboy_low_Gameboy_BaseColor.png"));
+            var panaNormalTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Gameboy_low_Gameboy_Normal.png"));
+            var panaMRATex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Gameboy_mra.png"));
 
             var tableDiffuseTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/rocky_albedo.png"));
             var tableSpecularTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/rocky_mra.png"));
@@ -55,7 +53,7 @@ namespace Deremis.Viewer
                 color: new Vector3(1f, 0.9f, 0.75f),
                 type: 0
             );
-            light.Set(new Transform(Vector3.Zero, Quaternion.CreateFromYawPitchRoll(MathF.PI - MathF.PI / 3f, -MathF.PI / 3f, 0), Vector3.One));
+            light.Set(new Transform(Vector3.Zero, Quaternion.CreateFromYawPitchRoll(MathF.PI / 8f, -MathF.PI / 3f, 0), Vector3.One));
 
             SamplerDescription sampler = new SamplerDescription
             {
@@ -71,14 +69,12 @@ namespace Deremis.Viewer
 
             var panaMat = app.MaterialManager.CreateMaterial("pana", shader);
             panaMat.SetProperty("albedo", Vector3.One);
-            panaMat.SetProperty("metallic", 0.75f);
+            panaMat.SetProperty("metallic", 0.0f);
             panaMat.SetProperty("roughness", 1.0f);
             panaMat.SetProperty("ao", 1.0f);
-            panaMat.SetProperty("emissiveStrength", 1.0f);
             panaMat.SetTexture("albedoTexture", panaDiffuseTex);
             panaMat.SetTexture("mraTexture", panaMRATex);
             panaMat.SetTexture("normalTexture", panaNormalTex);
-            panaMat.SetTexture("emissiveTexture", panaEmissiveTex);
             panaMat.SetSampler(sampler);
             var tableMat = app.MaterialManager.CreateMaterial("table", shader);
             tableMat.SetProperty("albedo", Vector3.One);
@@ -101,8 +97,8 @@ namespace Deremis.Viewer
                 for (var y = 0; y < length; y++)
                 {
                     var entityfwd = panaModel.Spawn(app, panaMat.Name,
-                        new Transform(new Vector3(x * offset - length / 2f * offset, 4.5f, y * offset - length / 2f * offset),
-                        Quaternion.CreateFromYawPitchRoll(MathF.PI / 2f + (float)random.NextDouble() * MathF.PI, 0, 0), Vector3.One));
+                        new Transform(new Vector3(x * offset - length / 2f * offset, 0, y * offset - length / 2f * offset),
+                        Quaternion.CreateFromYawPitchRoll((float)random.NextDouble() * MathF.PI * 2f, 0, 0), Vector3.One * 2f));
                     entityfwd.SetAsChildOf(tableEntity);
                 }
             }

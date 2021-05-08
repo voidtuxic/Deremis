@@ -54,14 +54,14 @@ layout(location = 0) out vec4 out_Color;
 
 void main()
 {
-    vec3 albedoColor = CorrectGamma(texture(sampler2D(albedoTexture, texSampler), f_UV).rgb);
+    vec3 albedoColor = texture(sampler2D(albedoTexture, texSampler), f_UV).rgb;
     vec4 position = texture(sampler2D(positionTexture, texSampler), f_UV);
     vec3 normalDir = texture(sampler2D(normalTexture, texSampler), f_UV).rgb;
     vec3 mra = texture(sampler2D(mraTexture, texSampler), f_UV).rgb;
     float metal = mra.r;
     float rough = mra.g;
     float aoVal = mra.b;
-    vec3 irradiance = texture(sampler2D(environmentTexture, texSampler), SampleSphericalMap(normalDir)).rgb;
+    vec3 irradiance = texture(sampler2D(environmentTexture, texSampler), SampleSphericalMap(normalDir)).rgb / 10.0;
     vec4 fragPosLightSpace = texture(sampler2D(lightSpaceTexture, texSampler), f_UV);
     vec3 color = Calculate(position.xyz, normalDir, GetViewPos(), albedoColor, metal, rough, aoVal, irradiance, fragPosLightSpace);
     vec3 emissive = texture(sampler2D(emissiveTexture, texSampler), f_UV).rgb;

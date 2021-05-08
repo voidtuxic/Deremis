@@ -39,7 +39,7 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 // based off https://seblagarde.wordpress.com/2011/08/17/hello-world/
 vec3 FresnelSchlick(vec3 SpecularColor,vec3 E,vec3 H, float roughness)
 {
-    return SpecularColor + (1.0 - SpecularColor) * pow(1.0 - saturate(dot(E, H)), 5);
+    return SpecularColor + (max(vec3(1.0 - roughness), SpecularColor) - SpecularColor) * pow(1.0 - saturate(dot(E, H)), 5);
 }
 
 vec3 Calculate(vec3 fragPos, vec3 normal, vec3 viewPos, vec3 albedo, float metal, float rough, float ao, vec3 irradiance, vec4 fragPosLightSpace) {
@@ -77,7 +77,7 @@ vec3 Calculate(vec3 fragPos, vec3 normal, vec3 viewPos, vec3 albedo, float metal
         vec3 H = normalize(V + L);
         vec3 radiance = Lights[i].Color * attenuation;
 
-        vec3 F = FresnelSchlick(F0, L, H, rough) * ((F0 + 2.0) / 8.0 ) * pow(saturate(dot(N, H)), length(F0)) * NdotL;//fresnelSchlick(max(dot(H, V), 0.0), F0);
+        vec3 F = FresnelSchlick(F0, N, H, rough) * ((F0 + 2.0) / 8.0 ) * pow(saturate(dot(N, H)), length(F0)) * NdotL;//fresnelSchlick(max(dot(H, V), 0.0), F0);
         float NDF = DistributionGGX(N, H, rough);
         float G = GeometrySmith(N, V, L, rough);
 

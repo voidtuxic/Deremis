@@ -11,15 +11,26 @@ namespace Deremis.Engine.Objects
 
         public TextureView View => CopyTexture.View;
 
+        private bool isMultisampled;
+        private VeldridTexture resolveTexture;
+
         public RenderTexture(Application app, string name, uint width, uint height, PixelFormat format, bool isDepth) : base(name)
         {
+            isMultisampled = app.MSAA != TextureSampleCount.Count1;
             var usage = isDepth ? TextureUsage.DepthStencil : TextureUsage.RenderTarget;
             TextureDescription texDescription = TextureDescription.Texture2D(
                 width, height, 1, 1,
-                format, usage, TextureSampleCount.Count1);
+                format, usage, app.MSAA);
             var renderTargetTex = app.Factory.CreateTexture(ref texDescription);
             renderTargetTex.Name = $"{name}_render";
             RenderTarget = new Texture($"{name}_render", renderTargetTex, null);
+
+            if (isMultisampled)
+            {
+                texDescription.SampleCount = TextureSampleCount.Count1;
+                resolveTexture = app.Factory.CreateTexture(ref texDescription);
+                resolveTexture.Name = $"{name}_resolve";
+            }
 
             texDescription = TextureDescription.Texture2D(
                 width, height, 1, 1,
@@ -34,11 +45,20 @@ namespace Deremis.Engine.Objects
         /// CALL ONLY AFTER COMMANDLIST.BEGIN
         public void UpdateCopyTexture(CommandList commandList)
         {
-            commandList.CopyTexture(RenderTarget.VeldridTexture, CopyTexture.VeldridTexture);
+            if (isMultisampled)
+            {
+                commandList.ResolveTexture(RenderTarget.VeldridTexture, resolveTexture);
+                commandList.CopyTexture(resolveTexture, CopyTexture.VeldridTexture);
+            }
+            else
+            {
+                commandList.CopyTexture(RenderTarget.VeldridTexture, CopyTexture.VeldridTexture);
+            }
         }
 
         public override void Dispose()
         {
+            resolveTexture?.Dispose();
             RenderTarget.Dispose();
             CopyTexture.Dispose();
         }

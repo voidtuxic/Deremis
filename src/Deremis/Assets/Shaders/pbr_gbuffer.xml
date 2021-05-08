@@ -61,7 +61,7 @@ layout(location = 5) out vec4 out_Emissive;
 
 void main()
 {
-    vec3 albedoColor = texture(sampler2D(albedoTexture, texSampler), f_UV).rgb * albedo;
+    vec3 albedoColor = CorrectGamma(texture(sampler2D(albedoTexture, texSampler), f_UV).rgb) * albedo;
     vec3 mra = texture(sampler2D(mraTexture, texSampler), f_UV).rgb;
     vec3 norm = getNormalFromMap(f_UV, f_position, f_TBN);
     float metal = min(0.9, mra.r * metallic);

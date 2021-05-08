@@ -17,9 +17,6 @@ using Shader = Deremis.Engine.Objects.Shader;
 
 namespace Deremis.Engine.Systems
 {
-    [With(typeof(Transform))]
-    [With(typeof(Render))]
-    [Without(typeof(Deferred))]
     public class RenderSystem : AEntityMultiMapSystem<float, Drawable>
     {
         public static RenderSystem current;
@@ -55,17 +52,43 @@ namespace Deremis.Engine.Systems
         private Material screenRenderMaterial;
         private Mesh screenRenderMesh;
 
-        public RenderSystem(Application app, World world) : base(world)
+        public RenderSystem(Application app, World world) : base(world
+            .GetEntities()
+            .With<Drawable>()
+            .With<Transform>()
+            .Without<Deferred>()
+            .With<Render>(CanRender)
+            .AsMultiMap<Drawable>())
         {
             current = this;
             this.app = app;
             commandList = app.Factory.CreateCommandList();
             commandList.Name = "MainCommandList";
-            cameraSet = world.GetEntities().With<Camera>().With<Transform>().AsSet();
-            lightSet = world.GetEntities().With<Light>().With<Transform>().AsSet();
-            deferredObjectsMap = world.GetEntities().With<Drawable>().With<Transform>().With<Deferred>().With<Render>().AsMultiMap<Drawable>();
-            shadowedObjectsMap = world.GetEntities().With<Drawable>().With<Transform>().With<ShadowMapped>().AsMultiMap<Drawable>();
+            cameraSet = world.GetEntities()
+                .With<Camera>()
+                .With<Transform>()
+                .AsSet();
+            lightSet = world.GetEntities()
+                .With<Light>()
+                .With<Transform>()
+                .AsSet();
+            deferredObjectsMap = world.GetEntities()
+                .With<Drawable>()
+                .With<Transform>()
+                .With<Deferred>()
+                .With<Render>(CanRender)
+                .AsMultiMap<Drawable>();
+            shadowedObjectsMap = world.GetEntities()
+                .With<Drawable>()
+                .With<Transform>()
+                .With<ShadowMapped>()
+                .AsMultiMap<Drawable>();
             InitScreenData();
+        }
+
+        private static bool CanRender(in Render render)
+        {
+            return render.Value;
         }
 
         private void InitScreenData()
