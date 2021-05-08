@@ -61,7 +61,7 @@ void main()
     float metal = min(0.9, mra.r * metallic);
     float rough = mra.g * roughness;
     float aoVal = mra.b * ao;
-    vec3 irradiance = texture(sampler2D(environmentTexture, texSampler), SampleSphericalMap(normalDir)).rgb;
+    vec3 irradiance = clamp(texture(sampler2D(environmentTexture, texSampler), SampleSphericalMap(normalDir)).rgb, vec3(0.25), vec3(1));
 
     vec3 color = Calculate(f_position, normalDir, GetViewPos(), albedoColor, metal, rough, aoVal, irradiance, f_FragPosLightSpace);
 

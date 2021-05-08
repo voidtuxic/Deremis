@@ -120,7 +120,7 @@ namespace Deremis.Platform
             MaterialManager = new MaterialManager(this);
 
             DefaultWorld = new World();
-            Render = new RenderSystem(this, DefaultWorld);
+            Render = new RenderSystem(this, DefaultWorld, ParallelSystemRunner);
             Cull = new CullSystem(this, DefaultWorld, ParallelSystemRunner);
             ParallelSystemRunner = new DefaultParallelRunner(Environment.ProcessorCount);
             MainSystem = new SequentialListSystem<float>();

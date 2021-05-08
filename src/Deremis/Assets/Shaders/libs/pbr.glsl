@@ -89,7 +89,7 @@ vec3 Calculate(vec3 fragPos, vec3 normal, vec3 viewPos, vec3 albedo, float metal
         kD *= 1.0 - metal;
         vec3 ambient = (kD * diffuse) * ao * F0; 
         
-        Lo += (ambient + (kD * albedo + specular) * radiance * NdotL) * (1.0 - shadow);
+        Lo += ambient + ((kD * albedo + specular) * radiance * NdotL) * (1.0 - shadow);
     }
     
     return Lo;

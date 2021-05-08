@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using DefaultEcs;
 using DefaultEcs.System;
+using DefaultEcs.Threading;
 using Deremis.Engine.Objects;
 using Deremis.Engine.Rendering.Helpers;
 using Deremis.Engine.Rendering.Resources;
@@ -52,13 +53,13 @@ namespace Deremis.Engine.Systems
         private Material screenRenderMaterial;
         private Mesh screenRenderMesh;
 
-        public RenderSystem(Application app, World world) : base(world
+        public RenderSystem(Application app, World world, IParallelRunner runner) : base(world
             .GetEntities()
             .With<Drawable>()
             .With<Transform>()
             .Without<Deferred>()
             .With<Render>(CanRender)
-            .AsMultiMap<Drawable>())
+            .AsMultiMap<Drawable>(), runner)
         {
             current = this;
             this.app = app;

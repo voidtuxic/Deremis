@@ -67,7 +67,7 @@ namespace Deremis.Viewer
                 MaximumAnisotropy = 16,
             };
 
-            var panaMat = app.MaterialManager.CreateMaterial("pana", shader);
+            var panaMat = app.MaterialManager.CreateMaterial("pana", shaderfwd);
             panaMat.SetProperty("albedo", Vector3.One);
             panaMat.SetProperty("metallic", 0.0f);
             panaMat.SetProperty("roughness", 1.0f);
@@ -76,7 +76,8 @@ namespace Deremis.Viewer
             panaMat.SetTexture("mraTexture", panaMRATex);
             panaMat.SetTexture("normalTexture", panaNormalTex);
             panaMat.SetSampler(sampler);
-            var tableMat = app.MaterialManager.CreateMaterial("table", shader);
+            panaMat.SetTexture("environmentTexture", hdrTex);
+            var tableMat = app.MaterialManager.CreateMaterial("table", shaderfwd);
             tableMat.SetProperty("albedo", Vector3.One);
             tableMat.SetProperty("metallic", 0.0f);
             tableMat.SetProperty("roughness", 1.0f);
@@ -85,7 +86,7 @@ namespace Deremis.Viewer
             tableMat.SetTexture("mraTexture", tableSpecularTex);
             tableMat.SetTexture("normalTexture", tableNormalTex);
             tableMat.SetSampler(sampler);
-            tableMat.DeferredLightingMaterial.SetTexture("environmentTexture", hdrTex);
+            tableMat.SetTexture("environmentTexture", hdrTex);
 
             var tableEntity = tableModel.Spawn(app, tableMat.Name, new Transform(new Vector3(0, -2, 0), Quaternion.Identity, Vector3.One));
 
