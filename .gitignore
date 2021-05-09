@@ -41,6 +41,9 @@ msbuild.wrn
 *.png
 *.jpg
 *.jpeg
+*.tga
 *.dae
 *.exe
 *.hdr
+*.csp
+*.conf

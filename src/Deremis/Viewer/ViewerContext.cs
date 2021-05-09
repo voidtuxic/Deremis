@@ -25,11 +25,14 @@ namespace Deremis.Viewer
             this.app = app;
 
             var hdrTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/env2.hdr", new TextureHandler.Options(false, false, false, true)));
+            var hdrIrrTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/env2_irr_###.tga", new TextureHandler.Options(cubemap: true)));
+            var hdrRadTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/env2_rad_###_***.tga", new TextureHandler.Options(cubemap: true, mipmapCount: 5)));
+            var brdfLutTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/ibl_brdf_lut.png"));
 
             var panaModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/gameboy.obj"));
             var tableModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/plane.obj"));
 
-            var shader = AssetManager.current.Get<Shader>(new AssetDescription("Shaders/pbr_gbuffer.xml"));
+            // var shader = AssetManager.current.Get<Shader>(new AssetDescription("Shaders/pbr_gbuffer.xml"));
             var shaderfwd = AssetManager.current.Get<Shader>(new AssetDescription("Shaders/pbr.xml"));
 
             var panaDiffuseTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Gameboy_low_Gameboy_BaseColor.png"));
@@ -76,7 +79,9 @@ namespace Deremis.Viewer
             panaMat.SetTexture("mraTexture", panaMRATex);
             panaMat.SetTexture("normalTexture", panaNormalTex);
             panaMat.SetSampler(sampler);
-            panaMat.SetTexture("environmentTexture", hdrTex);
+            panaMat.SetTexture("environmentTexture", hdrIrrTex.View);
+            panaMat.SetTexture("prefilteredEnvTexture", hdrRadTex.View);
+            panaMat.SetTexture("brdfLutTex", brdfLutTex.View);
             var tableMat = app.MaterialManager.CreateMaterial("table", shaderfwd);
             tableMat.SetProperty("albedo", Vector3.One);
             tableMat.SetProperty("metallic", 0.0f);
@@ -86,7 +91,9 @@ namespace Deremis.Viewer
             tableMat.SetTexture("mraTexture", tableSpecularTex);
             tableMat.SetTexture("normalTexture", tableNormalTex);
             tableMat.SetSampler(sampler);
-            tableMat.SetTexture("environmentTexture", hdrTex);
+            tableMat.SetTexture("environmentTexture", hdrIrrTex.View);
+            tableMat.SetTexture("prefilteredEnvTexture", hdrRadTex.View);
+            tableMat.SetTexture("brdfLutTex", brdfLutTex.View);
 
             var tableEntity = tableModel.Spawn(app, tableMat.Name, new Transform(new Vector3(0, -2, 0), Quaternion.Identity, Vector3.One));
 

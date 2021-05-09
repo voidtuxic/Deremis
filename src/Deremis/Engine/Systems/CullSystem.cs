@@ -57,7 +57,7 @@ namespace Deremis.Engine.Systems
         {
             ref var drawable = ref entity.Get<Drawable>();
             // TODO omg dirty
-            if (drawable.mesh.Equals(Rendering.Helpers.Skybox.name))
+            if (drawable.mesh.Equals(Rendering.Helpers.Skybox.NAME))
             {
                 ref var r = ref entity.Get<Render>();
                 if (!r.Value)
