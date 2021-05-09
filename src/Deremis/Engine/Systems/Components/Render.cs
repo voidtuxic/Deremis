@@ -2,11 +2,13 @@ namespace Deremis.Engine.Systems.Components
 {
     public struct Render
     {
-        public bool Value;
+        public bool Screen;
+        public bool Shadows;
 
-        public Render(bool value)
+        public Render(bool screen, bool shadows)
         {
-            Value = value;
+            Screen = screen;
+            Shadows = shadows;
         }
     }
 }

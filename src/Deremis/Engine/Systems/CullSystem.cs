@@ -21,6 +21,7 @@ namespace Deremis.Engine.Systems
 
         private EntityCommandRecorder recorder;
         private BoundingFrustum frustum;
+        private BoundingSphere shadowSphere;
         private int cameraId;
 
         public CullSystem(Application app, World world, IParallelRunner runner) : base(world, runner)
@@ -47,6 +48,7 @@ namespace Deremis.Engine.Systems
                     ref var transform = ref camEntity.Get<Transform>();
                     ref var camera = ref camEntity.Get<Camera>();
                     frustum = new BoundingFrustum(transform.ToViewMatrix() * camera.projection);
+                    shadowSphere = new BoundingSphere(transform.position, Application.SHADOW_MAP_FAR);
                     break;
                 }
             }
@@ -60,10 +62,10 @@ namespace Deremis.Engine.Systems
             if (drawable.mesh.Equals(Rendering.Helpers.Skybox.NAME))
             {
                 ref var r = ref entity.Get<Render>();
-                if (!r.Value)
+                if (!r.Screen)
                 {
                     EntityRecord record = recorder.Record(entity);
-                    record.Set(new Render(true));
+                    record.Set(new Render(true, false));
                 }
                 return;
             }
@@ -73,12 +75,17 @@ namespace Deremis.Engine.Systems
             var boundingBox = transform.Apply(mesh.BoundingBox);
             var containment = frustum.Contains(boundingBox);
             ref var render = ref entity.Get<Render>();
-            if (render.Value)
+            if (render.Screen)
             {
                 if (containment == ContainmentType.Disjoint)
                 {
                     EntityRecord record = recorder.Record(entity);
-                    record.Set(new Render(false));
+                    bool shadows = false;
+                    if (entity.Has<ShadowMapped>())
+                    {
+                        shadows = shadowSphere.Contains(transform.position);
+                    }
+                    record.Set(new Render(false, shadows));
                 }
             }
             else
@@ -86,7 +93,7 @@ namespace Deremis.Engine.Systems
                 if (containment == ContainmentType.Contains || containment == ContainmentType.Intersects)
                 {
                     EntityRecord record = recorder.Record(entity);
-                    record.Set(new Render(true));
+                    record.Set(new Render(true, entity.Has<ShadowMapped>()));
                 }
             }
         }

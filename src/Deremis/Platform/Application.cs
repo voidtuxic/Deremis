@@ -312,7 +312,7 @@ namespace Deremis.Platform
                 mesh = Render.RegisterMesh(mesh.Name, mesh),
                 material = materialName
             });
-            entity.Set(new Render(false));
+            entity.Set(new Render(false, shadows));
             if (material.Shader.IsDeferred)
             {
                 entity.Set(new Deferred());

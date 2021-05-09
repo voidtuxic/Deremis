@@ -58,7 +58,7 @@ namespace Deremis.Engine.Systems
             .With<Drawable>()
             .With<Transform>()
             .Without<Deferred>()
-            .With<Render>(CanRender)
+            .With<Render>(CanRenderToScreen)
             .AsMultiMap<Drawable>(), runner)
         {
             current = this;
@@ -77,19 +77,25 @@ namespace Deremis.Engine.Systems
                 .With<Drawable>()
                 .With<Transform>()
                 .With<Deferred>()
-                .With<Render>(CanRender)
+                .With<Render>(CanRenderToScreen)
                 .AsMultiMap<Drawable>();
             shadowedObjectsMap = world.GetEntities()
                 .With<Drawable>()
                 .With<Transform>()
                 .With<ShadowMapped>()
+                .With<Render>(CanRenderToShadowMap)
                 .AsMultiMap<Drawable>();
             InitScreenData();
         }
 
-        private static bool CanRender(in Render render)
+        private static bool CanRenderToScreen(in Render render)
         {
-            return render.Value;
+            return render.Screen;
+        }
+
+        private static bool CanRenderToShadowMap(in Render render)
+        {
+            return render.Shadows;
         }
 
         private void InitScreenData()
@@ -278,7 +284,7 @@ namespace Deremis.Engine.Systems
 
             foreach (ref readonly var entity in entities)
             {
-                if (entity.Get<Render>().Value)
+                if (entity.Get<Render>().Screen)
                     Draw(in entity);
             }
         }
@@ -358,8 +364,10 @@ namespace Deremis.Engine.Systems
             {
                 if (InitDrawable(key, app.ShadowMapMaterial, false, false) && shadowedObjectsMap.TryGetEntities(key, out var entities))
                 {
-                    isDrawValid = true;
-                    Update(0, in key, entities);
+                    foreach (ref readonly var entity in entities)
+                    {
+                        Draw(in entity);
+                    }
                 }
             }
             commandList.End();
