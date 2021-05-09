@@ -16,6 +16,7 @@
 #version 450
 
 #include "uniforms/transform.glsl"
+#include "libs/lighting.glsl"
 
 
 layout(location = 0) in vec2 f_UV;
@@ -25,6 +26,16 @@ layout(set = 1, binding = 0) uniform texture2D screenTex;
 layout(set = 1, binding = 1) uniform sampler texSampler;
 
 #include "libs/fxaa.glsl"
+
+// Black Box From https://github.com/armory3d/armory/blob/master/Shaders/std/tonemap.glsl
+vec3 acesFilm(const vec3 x) {
+    const float a = 2.51;
+    const float b = 0.03;
+    const float c = 2.43;
+    const float d = 0.59;
+    const float e = 0.14;
+    return clamp((x * (a * x + b)) / (x * (c * x + d ) + e), 0.0, 1.0);
+}
 
 void main()
 {
@@ -39,8 +50,8 @@ void main()
     texcoords(uv, res, v_rgbNW, v_rgbNE, v_rgbSW, v_rgbSE, v_rgbM);
 
     vec4 color = fxaa(uv, res, v_rgbNW, v_rgbNE, v_rgbSW, v_rgbSE, v_rgbM);
-
-    out_Color = color;
+    
+    out_Color = vec4(acesFilm(color.rgb), 1.0);
 }
     </fragment>
 </shader>

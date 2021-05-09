@@ -24,9 +24,9 @@ namespace Deremis.Viewer
         {
             this.app = app;
 
-            var hdrTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/env2.hdr", new TextureHandler.Options(false, false, false, true)));
-            var hdrIrrTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/env2_irr_###.tga", new TextureHandler.Options(cubemap: true)));
-            var hdrRadTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/env2_rad_###_***.tga", new TextureHandler.Options(cubemap: true, mipmapCount: 5)));
+            var hdrTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/env3/env3.hdr", new TextureHandler.Options(false, false, false, true)));
+            var hdrIrrTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/env3/env3_irr_###.tga", new TextureHandler.Options(cubemap: true)));
+            var hdrRadTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/env3/env3_rad_###_***.tga", new TextureHandler.Options(cubemap: true, mipmapCount: 5)));
             var brdfLutTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/ibl_brdf_lut.png"));
 
             var panaModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/gameboy.obj"));
@@ -56,7 +56,7 @@ namespace Deremis.Viewer
                 color: new Vector3(1f, 0.9f, 0.75f),
                 type: 0
             );
-            light.Set(new Transform(Vector3.Zero, Quaternion.CreateFromYawPitchRoll(MathF.PI / 8f, -MathF.PI / 3f, 0), Vector3.One));
+            light.Set(new Transform(Vector3.Zero, Quaternion.CreateFromYawPitchRoll(MathF.PI / 3f, -MathF.PI / 8f, 0), Vector3.One));
 
             SamplerDescription sampler = new SamplerDescription
             {
@@ -72,7 +72,7 @@ namespace Deremis.Viewer
 
             var panaMat = app.MaterialManager.CreateMaterial("pana", shaderfwd);
             panaMat.SetProperty("albedo", Vector3.One);
-            panaMat.SetProperty("metallic", 0.0f);
+            panaMat.SetProperty("metallic", 0.35f);
             panaMat.SetProperty("roughness", 1.0f);
             panaMat.SetProperty("ao", 1.0f);
             panaMat.SetTexture("albedoTexture", panaDiffuseTex);
@@ -87,9 +87,9 @@ namespace Deremis.Viewer
             tableMat.SetProperty("metallic", 0.0f);
             tableMat.SetProperty("roughness", 1.0f);
             tableMat.SetProperty("ao", 1.0f);
-            tableMat.SetTexture("albedoTexture", tableDiffuseTex);
-            tableMat.SetTexture("mraTexture", tableSpecularTex);
-            tableMat.SetTexture("normalTexture", tableNormalTex);
+            // tableMat.SetTexture("albedoTexture", tableDiffuseTex);
+            // tableMat.SetTexture("mraTexture", tableSpecularTex);
+            // tableMat.SetTexture("normalTexture", tableNormalTex);
             tableMat.SetSampler(sampler);
             tableMat.SetTexture("environmentTexture", hdrIrrTex.View);
             tableMat.SetTexture("prefilteredEnvTexture", hdrRadTex.View);

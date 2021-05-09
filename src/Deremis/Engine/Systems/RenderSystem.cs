@@ -23,8 +23,8 @@ namespace Deremis.Engine.Systems
         public static RenderSystem current;
         public static AssetDescription ScreenShader = new AssetDescription
         {
-            name = "screen_fxaa",
-            path = "Shaders/screen/fxaa.xml"
+            name = "screen_postprocess",
+            path = "Shaders/screen/postprocess.xml"
         };
 
         private readonly Application app;
