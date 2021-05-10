@@ -69,7 +69,7 @@ namespace Deremis.Engine.Systems
                 }
                 return;
             }
-            Mesh mesh = app.Render.GetMesh(drawable.mesh);
+            Mesh mesh = app.ForwardRender.GetMesh(drawable.mesh);
             if (mesh == null) return;
             var transform = entity.GetWorldTransform();
             var boundingBox = transform.Apply(mesh.BoundingBox);

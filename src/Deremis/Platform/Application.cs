@@ -49,7 +49,8 @@ namespace Deremis.Platform
         public ResourceFactory Factory { get; private set; }
 
         public World DefaultWorld { get; private set; }
-        public RenderSystem Render { get; private set; }
+        public ForwardRenderSystem ForwardRender { get; private set; }
+        public ShadowRenderSystem ShadowRender { get; private set; }
         public CullSystem Cull { get; private set; }
         public IParallelRunner ParallelSystemRunner { get; private set; }
         public SequentialListSystem<float> MainSystem { get; private set; }
@@ -120,12 +121,14 @@ namespace Deremis.Platform
             MaterialManager = new MaterialManager(this);
 
             DefaultWorld = new World();
-            Render = new RenderSystem(this, DefaultWorld, ParallelSystemRunner);
-            Cull = new CullSystem(this, DefaultWorld, ParallelSystemRunner);
             ParallelSystemRunner = new DefaultParallelRunner(Environment.ProcessorCount);
+            ForwardRender = new ForwardRenderSystem(this, DefaultWorld);
+            ShadowRender = new ShadowRenderSystem(this, DefaultWorld);
+            Cull = new CullSystem(this, DefaultWorld, ParallelSystemRunner);
             MainSystem = new SequentialListSystem<float>();
             MainSystem.Add(Cull);
-            MainSystem.Add(Render);
+            MainSystem.Add(ShadowRender);
+            MainSystem.Add(ForwardRender);
 
             LoadDefaultAssets();
 
@@ -221,7 +224,7 @@ namespace Deremis.Platform
 
         public Material GetScreenPass(string name, Shader shader)
         {
-            var material = Render.GetScreenPass(name);
+            var material = ForwardRender.GetScreenPass(name);
             if (material == null)
             {
                 material = MaterialManager.CreateMaterial(name, shader);
@@ -251,7 +254,7 @@ namespace Deremis.Platform
                     material.SetupMultipass(gbufferTextures);
                 }
                 GraphicsDevice.WaitForIdle();
-                Render.RegisterScreenPass(material);
+                ForwardRender.RegisterScreenPass(material);
             }
             return material;
         }
@@ -311,7 +314,7 @@ namespace Deremis.Platform
             var entity = CreateTransform(name);
             entity.Set(new Drawable
             {
-                mesh = Render.RegisterMesh(mesh.Name, mesh),
+                mesh = ForwardRender.RegisterMesh(mesh.Name, mesh),
                 material = materialName
             });
             entity.Set(new Render(false, shadows));
@@ -338,7 +341,7 @@ namespace Deremis.Platform
                 commandList.Begin();
                 commandList.ResolveTexture(screenColorTexture, CopyTexture.VeldridTexture);
                 commandList.End();
-                Render.SubmitAndWait();
+                ForwardRender.SubmitAndWait();
             }
         }
 
@@ -352,7 +355,7 @@ namespace Deremis.Platform
             commandList.Begin();
             commandList.CopyTexture(left, right);
             commandList.End();
-            Render.SubmitAndWait();
+            ForwardRender.SubmitAndWait();
         }
 
         public void UpdateRenderTextures(CommandList commandList)
@@ -363,7 +366,7 @@ namespace Deremis.Platform
                 rt.UpdateCopyTexture(commandList);
             }
             commandList.End();
-            Render.SubmitAndWait();
+            ForwardRender.SubmitAndWait();
         }
 
         public void UpdateRenderTextures(CommandList commandList, string baseName)
@@ -375,7 +378,7 @@ namespace Deremis.Platform
                     rt.Value.UpdateCopyTexture(commandList);
             }
             commandList.End();
-            Render.SubmitAndWait();
+            ForwardRender.SubmitAndWait();
         }
 
         public void ClearDeferredFramebuffers(CommandList commandList)
@@ -390,7 +393,7 @@ namespace Deremis.Platform
                 }
             }
             commandList.End();
-            Render.SubmitAndWait();
+            ForwardRender.SubmitAndWait();
         }
 
         public void Dispose()

@@ -18,9 +18,9 @@ using Shader = Deremis.Engine.Objects.Shader;
 
 namespace Deremis.Engine.Systems
 {
-    public class RenderSystem : AEntityMultiMapSystem<float, Drawable>
+    public class ForwardRenderSystem : AEntityMultiMapSystem<float, Drawable>
     {
-        public static RenderSystem current;
+        public static ForwardRenderSystem current;
         public static AssetDescription ScreenShader = new AssetDescription
         {
             name = "screen_postprocess",
@@ -33,7 +33,6 @@ namespace Deremis.Engine.Systems
         private readonly EntitySet cameraSet;
         private readonly EntitySet lightSet;
         private readonly EntityMultiMap<Drawable> deferredObjectsMap;
-        private readonly EntityMultiMap<Drawable> shadowedObjectsMap;
 
         private readonly ConcurrentDictionary<string, Mesh> meshes = new ConcurrentDictionary<string, Mesh>();
         private readonly Dictionary<string, Material> deferredMaterials = new Dictionary<string, Material>();
@@ -42,24 +41,21 @@ namespace Deremis.Engine.Systems
         private bool isDrawValid;
         private Material material;
         private Mesh mesh;
-        private Transform mainCameraTransform;
-        private Transform sunTransform;
         private Matrix4x4 viewMatrix;
         private Matrix4x4 projMatrix;
         private Matrix4x4 viewProjMatrix;
-        private Matrix4x4 lightSpaceMatrix;
 
         public RgbaFloat ClearColor { get; set; } = RgbaFloat.Black;
         private Material screenRenderMaterial;
-        private Mesh screenRenderMesh;
+        public Mesh ScreenRenderMesh { get; private set; }
 
-        public RenderSystem(Application app, World world, IParallelRunner runner) : base(world
+        public ForwardRenderSystem(Application app, World world) : base(world
             .GetEntities()
             .With<Drawable>()
             .With<Transform>()
             .Without<Deferred>()
             .With<Render>(CanRenderToScreen)
-            .AsMultiMap<Drawable>(), runner)
+            .AsMultiMap<Drawable>())
         {
             current = this;
             this.app = app;
@@ -79,12 +75,6 @@ namespace Deremis.Engine.Systems
                 .With<Deferred>()
                 .With<Render>(CanRenderToScreen)
                 .AsMultiMap<Drawable>();
-            shadowedObjectsMap = world.GetEntities()
-                .With<Drawable>()
-                .With<Transform>()
-                .With<ShadowMapped>()
-                .With<Render>(CanRenderToShadowMap)
-                .AsMultiMap<Drawable>();
             InitScreenData();
         }
 
@@ -100,39 +90,39 @@ namespace Deremis.Engine.Systems
 
         private void InitScreenData()
         {
-            screenRenderMesh = new Mesh("screen");
-            screenRenderMesh.Indexed = false;
-            screenRenderMesh.Add(new Rendering.Vertex
+            ScreenRenderMesh = new Mesh("screen");
+            ScreenRenderMesh.Indexed = false;
+            ScreenRenderMesh.Add(new Rendering.Vertex
             {
                 Position = new Vector3(-1, 1, 0),
                 UV = new Vector2(0, 0)
             });
-            screenRenderMesh.Add(new Rendering.Vertex
+            ScreenRenderMesh.Add(new Rendering.Vertex
             {
                 Position = new Vector3(-1, -1, 0),
                 UV = new Vector2(0, 1)
             });
-            screenRenderMesh.Add(new Rendering.Vertex
+            ScreenRenderMesh.Add(new Rendering.Vertex
             {
                 Position = new Vector3(1, -1, 0),
                 UV = new Vector2(1, 1)
             });
-            screenRenderMesh.Add(new Rendering.Vertex
+            ScreenRenderMesh.Add(new Rendering.Vertex
             {
                 Position = new Vector3(-1, 1, 0),
                 UV = new Vector2(0, 0)
             });
-            screenRenderMesh.Add(new Rendering.Vertex
+            ScreenRenderMesh.Add(new Rendering.Vertex
             {
                 Position = new Vector3(1, -1, 0),
                 UV = new Vector2(1, 1)
             });
-            screenRenderMesh.Add(new Rendering.Vertex
+            ScreenRenderMesh.Add(new Rendering.Vertex
             {
                 Position = new Vector3(1, 1, 0),
                 UV = new Vector2(1, 0)
             });
-            screenRenderMesh.UpdateBuffers();
+            ScreenRenderMesh.UpdateBuffers();
             screenRenderMaterial = app.MaterialManager.CreateMaterial(
                 ScreenShader.name,
                 app.AssetManager.Get<Shader>(ScreenShader),
@@ -204,7 +194,6 @@ namespace Deremis.Engine.Systems
             foreach (ref readonly Entity camEntity in cameras)
             {
                 ref var transform = ref camEntity.Get<Transform>();
-                mainCameraTransform = transform;
                 viewMatrix = transform.ToViewMatrix();
                 projMatrix = camEntity.Get<Camera>().projection;
                 viewProjMatrix = Matrix4x4.Multiply(viewMatrix, projMatrix);
@@ -221,18 +210,11 @@ namespace Deremis.Engine.Systems
                 ref var transform = ref lightEntity.Get<Transform>();
                 ref var light = ref lightEntity.Get<Light>();
 
-                // TODO last directional currently takes precedence
-                if (light.type == 0)
-                {
-                    sunTransform = transform;
-                }
-
                 lightValues.AddRange(light.GetValueArray(ref transform));
             }
             commandList.UpdateBuffer(app.MaterialManager.LightBuffer, 0, lightValues.ToArray());
             commandList.End();
             SubmitAndWait();
-            DrawShadowMap();
         }
 
         protected override void PreUpdate(float state, Drawable key)
@@ -303,7 +285,7 @@ namespace Deremis.Engine.Systems
                     normalWorldMatrix = normalWorld,
                     viewMatrix = viewMatrix,
                     projMatrix = projMatrix,
-                    lightSpaceMatrix = lightSpaceMatrix
+                    lightSpaceMatrix = app.ShadowRender.LightSpaceMatrix
                 });
 
             if (mesh.Indexed)
@@ -338,104 +320,6 @@ namespace Deremis.Engine.Systems
             UpdateScreenBuffer(screenRenderMaterial, app.GraphicsDevice.SwapchainFramebuffer);
 
             app.GraphicsDevice.SwapBuffers();
-        }
-
-        // TODO only one directional light
-        private void DrawShadowMap()
-        {
-            UpdateLightspaceViewProj();
-
-            const uint shadowMapSize = Application.SHADOW_MAP_WIDTH;
-            commandList.Begin();
-            commandList.SetFramebuffer(app.ShadowFramebuffer);
-            commandList.SetViewport(0, new Viewport(0, 0, shadowMapSize, shadowMapSize, 0, 1));
-            commandList.SetScissorRect(0, 0, 0, shadowMapSize, shadowMapSize);
-            commandList.ClearDepthStencil(0f);
-            commandList.End();
-            SubmitAndWait();
-
-            commandList.Begin();
-            foreach (var key in shadowedObjectsMap.Keys)
-            {
-                if (InitDrawable(key, app.ShadowMapMaterial, false, false) && shadowedObjectsMap.TryGetEntities(key, out var entities))
-                {
-                    foreach (ref readonly var entity in entities)
-                    {
-                        Draw(in entity);
-                    }
-                }
-            }
-            commandList.End();
-            SubmitAndWait();
-        }
-
-        // taken from https://github.com/mellinoe/veldrid/blob/eef8375169d1960a322f47f95e9b6ee8126e7b43/src/NeoDemo/Scene.cs#L405
-        private void UpdateLightspaceViewProj()
-        {
-            const uint far = Application.SHADOW_MAP_FAR;
-            const float _lScale = 1f;
-            const float _rScale = 1f;
-            const float _tScale = 1f;
-            const float _bScale = 1f;
-            const float _nScale = 4f;
-            const float _fScale = 4f;
-
-            Vector3 lightDir = sunTransform.Forward;
-            Vector3 viewDir = mainCameraTransform.Forward;
-            Vector3 viewPos = mainCameraTransform.position;
-            Vector3 unitY = Vector3.UnitY;
-            FrustumCorners cameraCorners;
-
-            FrustumHelpers.ComputePerspectiveFrustumCorners(
-                    ref viewPos,
-                    ref viewDir,
-                    ref unitY,
-                    MathF.PI / 4f,
-                    far,
-                    0,
-                    app.AspectRatio,
-                    out cameraCorners);
-
-            Vector3 frustumCenter = Vector3.Zero;
-            frustumCenter += cameraCorners.NearTopLeft;
-            frustumCenter += cameraCorners.NearTopRight;
-            frustumCenter += cameraCorners.NearBottomLeft;
-            frustumCenter += cameraCorners.NearBottomRight;
-            frustumCenter += cameraCorners.FarTopLeft;
-            frustumCenter += cameraCorners.FarTopRight;
-            frustumCenter += cameraCorners.FarBottomLeft;
-            frustumCenter += cameraCorners.FarBottomRight;
-            frustumCenter /= 8f;
-
-            float radius = (cameraCorners.NearTopLeft - cameraCorners.FarBottomRight).Length() / 2.0f;
-            float texelsPerUnit = Application.SHADOW_MAP_WIDTH / (radius * 2.0f);
-
-            Matrix4x4 scalar = Matrix4x4.CreateScale(texelsPerUnit, texelsPerUnit, texelsPerUnit);
-
-            Vector3 baseLookAt = -lightDir;
-
-            Matrix4x4 lookat = Matrix4x4.CreateLookAt(Vector3.Zero, baseLookAt, Vector3.UnitY);
-            lookat = scalar * lookat;
-            Matrix4x4.Invert(lookat, out Matrix4x4 lookatInv);
-
-            frustumCenter = Vector3.Transform(frustumCenter, lookat);
-            frustumCenter.X = (int)frustumCenter.X;
-            frustumCenter.Y = (int)frustumCenter.Y;
-            frustumCenter = Vector3.Transform(frustumCenter, lookatInv);
-
-            Vector3 lightPos = frustumCenter - (lightDir * radius * 2f);
-
-            Matrix4x4 lightView = Matrix4x4.CreateLookAt(lightPos, frustumCenter, Vector3.UnitY);
-
-            Matrix4x4 lightProjection = Matrix4x4.CreateOrthographicOffCenter(
-                -radius * _lScale,
-                radius * _rScale,
-                -radius * _bScale,
-                radius * _tScale,
-                radius * _fScale,
-                -radius * _nScale);
-
-            lightSpaceMatrix = lightView * lightProjection;
         }
 
         private void DrawDeferred()
@@ -495,7 +379,7 @@ namespace Deremis.Engine.Systems
                     normalWorldMatrix = normalWorld,
                     viewMatrix = viewMatrix,
                     projMatrix = projMatrix,
-                    lightSpaceMatrix = lightSpaceMatrix
+                    lightSpaceMatrix = app.ShadowRender.LightSpaceMatrix
                 });
             commandList.UpdateBuffer(app.MaterialManager.MaterialBuffer, 0, material.GetValueArray());
             commandList.End();
@@ -506,13 +390,13 @@ namespace Deremis.Engine.Systems
                 bool isLastPass = i == material.Shader.PassCount - 1;
                 SetFramebuffer(isLastPass ? framebuffer : material.PassFramebuffer);
 
-                commandList.SetVertexBuffer(0, screenRenderMesh.VertexBuffer);
+                commandList.SetVertexBuffer(0, ScreenRenderMesh.VertexBuffer);
                 commandList.SetPipeline(material.GetPipeline(i));
                 commandList.SetGraphicsResourceSet(0, app.MaterialManager.GeneralResourceSet);
                 commandList.SetGraphicsResourceSet(1, material.ResourceSet);
 
                 commandList.Draw(
-                    vertexCount: screenRenderMesh.VertexCount,
+                    vertexCount: ScreenRenderMesh.VertexCount,
                     instanceCount: 1,
                     vertexStart: 0,
                     instanceStart: 0);
