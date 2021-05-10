@@ -19,7 +19,7 @@ namespace Deremis.Engine.Systems
 {
     public class ShadowRenderSystem : AEntityMultiMapSystem<float, Drawable>
     {
-        public const uint SHADOW_MAP_FAR = 40;
+        public const uint SHADOW_MAP_FAR = 50;
         public const uint SHADOW_MAP_RADIUS = 100;
         public const uint SHADOW_MAP_WIDTH = 2048;
         public static AssetDescription ShadowMapShader = new AssetDescription

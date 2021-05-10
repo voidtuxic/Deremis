@@ -178,8 +178,6 @@ namespace Deremis.Engine.Systems
 
             SetFramebuffer();
             commandList.ClearColorTarget(0, ClearColor);
-            commandList.ClearColorTarget(1, ClearColor); // position
-            commandList.ClearColorTarget(2, ClearColor); // normal
             commandList.ClearDepthStencil(1f);
 
             if (cameraSet.Count == 0)

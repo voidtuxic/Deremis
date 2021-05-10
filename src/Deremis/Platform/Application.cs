@@ -43,6 +43,7 @@ namespace Deremis.Platform
         public World DefaultWorld { get; private set; }
         public ForwardRenderSystem ForwardRender { get; private set; }
         public ShadowRenderSystem ShadowRender { get; private set; }
+        public SSAOSystem SSAO { get; private set; }
         public CullSystem Cull { get; private set; }
         public IParallelRunner ParallelSystemRunner { get; private set; }
         public SequentialListSystem<float> MainSystem { get; private set; }
@@ -112,9 +113,11 @@ namespace Deremis.Platform
             ParallelSystemRunner = new DefaultParallelRunner(Environment.ProcessorCount);
             ForwardRender = new ForwardRenderSystem(this, DefaultWorld);
             ShadowRender = new ShadowRenderSystem(this, DefaultWorld);
+            SSAO = new SSAOSystem(this, DefaultWorld);
             Cull = new CullSystem(this, DefaultWorld, ParallelSystemRunner);
             MainSystem = new SequentialListSystem<float>();
             MainSystem.Add(Cull);
+            MainSystem.Add(SSAO);
             MainSystem.Add(ShadowRender);
             MainSystem.Add(ForwardRender);
 
@@ -136,9 +139,7 @@ namespace Deremis.Platform
                 Width, Height, 1, 1,
                 DEPTH_PIXEL_FORMAT, TextureUsage.DepthStencil, MSAA));
             ScreenDepthTexture.Name = "screenDepth";
-            var positionRt = GetRenderTexture("position", PixelFormat.R32_G32_B32_A32_Float);
-            var normalRt = GetRenderTexture("normal", PixelFormat.R32_G32_B32_A32_Float);
-            ScreenFramebuffer = Factory.CreateFramebuffer(new FramebufferDescription(ScreenDepthTexture, screenColorTexture, positionRt.RenderTarget.VeldridTexture, normalRt.RenderTarget.VeldridTexture));
+            ScreenFramebuffer = Factory.CreateFramebuffer(new FramebufferDescription(ScreenDepthTexture, screenColorTexture));
 
             var copyTexture = Factory.CreateTexture(TextureDescription.Texture2D(
                 Width, Height, 1, 1,

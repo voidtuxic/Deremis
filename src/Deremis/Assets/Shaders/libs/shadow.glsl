@@ -19,8 +19,8 @@ vec4 GetLightSpacePosition(mat4 fragPosLightSpace, float currentDepth) {
     return fragPosLightSpace[3].xyzw;
 }
 
-float SampleShadowDepth(vec2 uv, float currentDepth, float nearDepth) {
-    if(IsDepthNearer(currentDepth, SHADOW_FAR) && 1.0 - nearDepth <= 1.0) return texture(sampler2D(shadowMap1, shadowMapSampler), uv).r;
+float SampleShadowDepth(vec2 uv, float currentDepth) {
+    if(IsDepthNearer(currentDepth, SHADOW_FAR)) return texture(sampler2D(shadowMap1, shadowMapSampler), uv).r;
     if(IsDepthNearer(currentDepth, SHADOW_FAR*4)) return texture(sampler2D(shadowMap2, shadowMapSampler), uv).r;
     if(IsDepthNearer(currentDepth, SHADOW_FAR*16)) return texture(sampler2D(shadowMap3, shadowMapSampler), uv).r;
     return 0.0;
@@ -30,7 +30,6 @@ float CalculateShadows(vec3 normal, vec3 lightDir, mat4 fragPosLightSpace, float
 {
     vec3 projCoords = ClipToUV(GetLightSpacePosition(fragPosLightSpace, fragDepth));
     float shadow = 0.0;
-    float nearDepth = ClipToUV(fragPosLightSpace[0].xyzw).z;
 
     // if((saturate(projCoords.x) == projCoords.x) && (saturate(projCoords.y) == projCoords.y))
     // {
@@ -41,7 +40,7 @@ float CalculateShadows(vec3 normal, vec3 lightDir, mat4 fragPosLightSpace, float
         {
             for(int y = -1; y <= 1; ++y)
             {
-                float pcfDepth = SampleShadowDepth(projCoords.xy + vec2(x, y) * texelSize, fragDepth, nearDepth);
+                float pcfDepth = SampleShadowDepth(projCoords.xy + vec2(x, y) * texelSize, fragDepth);
                 shadow += currentDepth - bias < pcfDepth ? 0.75 : 0.0;
             }
         }
