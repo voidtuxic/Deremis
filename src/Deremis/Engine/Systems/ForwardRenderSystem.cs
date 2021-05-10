@@ -285,7 +285,9 @@ namespace Deremis.Engine.Systems
                     normalWorldMatrix = normalWorld,
                     viewMatrix = viewMatrix,
                     projMatrix = projMatrix,
-                    lightSpaceMatrix = app.ShadowRender.LightSpaceMatrix
+                    lightSpaceMatrix1 = app.ShadowRender.LightSpaceMatrix,
+                    lightSpaceMatrix2 = app.ShadowRender.GetCascadeLightViewMatrix(0),
+                    lightSpaceMatrix3 = app.ShadowRender.GetCascadeLightViewMatrix(1),
                 });
 
             if (mesh.Indexed)
@@ -378,8 +380,7 @@ namespace Deremis.Engine.Systems
                     worldMatrix = world,
                     normalWorldMatrix = normalWorld,
                     viewMatrix = viewMatrix,
-                    projMatrix = projMatrix,
-                    lightSpaceMatrix = app.ShadowRender.LightSpaceMatrix
+                    projMatrix = projMatrix
                 });
             commandList.UpdateBuffer(app.MaterialManager.MaterialBuffer, 0, material.GetValueArray());
             commandList.End();

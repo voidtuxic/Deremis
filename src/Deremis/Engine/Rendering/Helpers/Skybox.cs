@@ -186,12 +186,8 @@ namespace Deremis.Engine.Rendering.Helpers
                     0,
                     new TransformResource
                     {
-                        viewProjMatrix = Matrix4x4.Identity,
-                        worldMatrix = Matrix4x4.Identity,
-                        normalWorldMatrix = Matrix4x4.Identity,
                         viewMatrix = captureViews[i],
-                        projMatrix = captureProjection,
-                        lightSpaceMatrix = Matrix4x4.Identity
+                        projMatrix = captureProjection
                     });
                 commandList.Draw(
                     vertexCount: mesh.VertexCount,

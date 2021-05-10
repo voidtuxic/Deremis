@@ -21,9 +21,6 @@ namespace Deremis.Platform
     {
         public const PixelFormat COLOR_PIXEL_FORMAT = PixelFormat.R32_G32_B32_A32_Float;
         public const PixelFormat DEPTH_PIXEL_FORMAT = PixelFormat.R32_Float;
-        public const uint SHADOW_MAP_FAR = 100;
-        public const uint SHADOW_MAP_WIDTH = 1024;
-        public const string SHADOW_MAP_NAME = "shadowMap";
         public static AssetDescription MissingTex = new AssetDescription
         {
             name = "missing",
@@ -33,11 +30,6 @@ namespace Deremis.Platform
         {
             name = "missingn",
             path = "Textures/missingn.tga"
-        };
-        public static AssetDescription ShadowMapShader = new AssetDescription
-        {
-            name = "shadow_map",
-            path = "Shaders/shadow_map.xml"
         };
 
         public static Application current;
@@ -65,10 +57,6 @@ namespace Deremis.Platform
         public Framebuffer ScreenFramebuffer { get; private set; }
         public Texture CopyTexture { get; private set; }
         public Texture DepthCopyTexture { get; private set; }
-        public Material ShadowMapMaterial { get; private set; }
-        public Framebuffer ShadowFramebuffer { get; private set; }
-        private Veldrid.Texture shadowDepthTexture;
-        public Texture ShadowDepthTexture { get; private set; }
         public TextureSampleCount MSAA { get; set; } = TextureSampleCount.Count4;
 
         private readonly Dictionary<string, RenderTexture> renderTextures = new Dictionary<string, RenderTexture>();
@@ -163,25 +151,13 @@ namespace Deremis.Platform
             depthCopyTexture.Name = "screenDepthCopy";
             DepthCopyTexture = new Texture(depthCopyTexture.Name, depthCopyTexture, Factory.CreateTextureView(depthCopyTexture));
 
-            shadowDepthTexture = Factory.CreateTexture(TextureDescription.Texture2D(
-                            SHADOW_MAP_WIDTH, SHADOW_MAP_WIDTH, 1, 1,
-                            PixelFormat.D32_Float_S8_UInt, TextureUsage.DepthStencil | TextureUsage.Sampled, TextureSampleCount.Count1));
-            shadowDepthTexture.Name = "shadowDepth";
-            ShadowFramebuffer = Factory.CreateFramebuffer(new FramebufferDescription(shadowDepthTexture));
-            ShadowDepthTexture = new Texture(shadowDepthTexture.Name, shadowDepthTexture, Factory.CreateTextureView(shadowDepthTexture));
-
         }
 
         private void LoadDefaultAssets()
         {
-            AssetManager.Get<Shader>(new AssetDescription("Shaders/phong.xml"));
+            AssetManager.Get<Shader>(new AssetDescription("Shaders/pbr.xml"));
             AssetManager.Get<Texture>(MissingTex);
             AssetManager.Get<Texture>(MissingNormalTex);
-
-            ShadowMapMaterial = MaterialManager.CreateMaterial(
-                "shadow_map",
-                AssetManager.Get<Shader>(ShadowMapShader),
-                ShadowFramebuffer);
         }
 
         public void Run()
@@ -420,10 +396,6 @@ namespace Deremis.Platform
             ScreenDepthTexture?.Dispose();
             CopyTexture?.Dispose();
             DepthCopyTexture?.Dispose();
-
-            ShadowFramebuffer?.Dispose();
-            shadowDepthTexture?.Dispose();
-            ShadowDepthTexture?.Dispose();
         }
     }
 }

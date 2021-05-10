@@ -9,28 +9,62 @@ using Deremis.Engine.Rendering.Resources;
 using Deremis.Engine.Systems.Components;
 using Deremis.Engine.Systems.Extensions;
 using Deremis.Platform;
+using Deremis.Platform.Assets;
 using Veldrid;
 using Veldrid.Utilities;
+using Shader = Deremis.Engine.Objects.Shader;
+using Texture = Deremis.Engine.Objects.Texture;
 
 namespace Deremis.Engine.Systems
 {
     public class ShadowRenderSystem : AEntityMultiMapSystem<float, Drawable>
     {
-        private readonly Application app;
+        public const uint SHADOW_MAP_FAR = 25;
+        public const uint SHADOW_MAP_RADIUS = 100;
+        public const uint SHADOW_MAP_WIDTH = 1024;
+        public static AssetDescription ShadowMapShader = new AssetDescription
+        {
+            name = "shadow_map",
+            path = "Shaders/shadow_map.xml"
+        };
 
+        public static string GetMapName(uint distance)
+        {
+            return $"shadowMap{distance}";
+        }
+
+        public static bool IsShadowMap(string propertyName)
+        {
+            return propertyName.Equals("shadowMap");
+        }
+
+        private readonly Application app;
+        private readonly uint distance;
         private readonly CommandList commandList;
         private readonly EntitySet cameraSet;
         private readonly EntitySet lightSet;
 
+        private readonly List<ShadowRenderSystem> cascades = new List<ShadowRenderSystem>();
+
         private Transform mainCameraTransform;
         private Transform sunTransform;
         public Matrix4x4 LightSpaceMatrix { get; private set; }
-        private Matrix4x4 viewMatrix;
-        private Matrix4x4 projMatrix;
-        private Matrix4x4 viewProjMatrix;
         private Mesh mesh;
 
-        public ShadowRenderSystem(Application app, World world) : base(
+        public Material MapMaterial { get; private set; }
+        public Framebuffer Framebuffer { get; private set; }
+        private Veldrid.Texture depthTexture;
+        public Texture DepthTexture { get; private set; }
+
+        public ShadowRenderSystem(Application app, World world) : this(app, world, 1)
+        {
+            var cascade1 = new ShadowRenderSystem(app, world, 4);
+            var cascade2 = new ShadowRenderSystem(app, world, 16);
+            cascades.Add(cascade1);
+            cascades.Add(cascade2);
+        }
+
+        public ShadowRenderSystem(Application app, World world, uint distance) : base(
             world.GetEntities()
                 .With<Drawable>()
                 .With<Transform>()
@@ -39,6 +73,7 @@ namespace Deremis.Engine.Systems
                 .AsMultiMap<Drawable>())
         {
             this.app = app;
+            this.distance = distance;
             commandList = app.Factory.CreateCommandList();
             commandList.Name = "ShadowCommandList";
             cameraSet = world.GetEntities()
@@ -49,6 +84,24 @@ namespace Deremis.Engine.Systems
                 .With<Light>()
                 .With<Transform>()
                 .AsSet();
+
+            CreateResources();
+            MapMaterial = app.MaterialManager.CreateMaterial(
+                "shadow_map",
+                app.AssetManager.Get<Shader>(ShadowMapShader),
+                Framebuffer);
+        }
+
+        public void CreateResources()
+        {
+            DisposeScreenTargets();
+
+            depthTexture = app.Factory.CreateTexture(TextureDescription.Texture2D(
+                            SHADOW_MAP_WIDTH, SHADOW_MAP_WIDTH, 1, 1,
+                            PixelFormat.D32_Float_S8_UInt, TextureUsage.DepthStencil | TextureUsage.Sampled, TextureSampleCount.Count1));
+            depthTexture.Name = GetMapName(distance);
+            Framebuffer = app.Factory.CreateFramebuffer(new FramebufferDescription(depthTexture));
+            DepthTexture = new Texture(depthTexture.Name, depthTexture, app.Factory.CreateTextureView(depthTexture));
         }
 
         public void SubmitAndWait()
@@ -57,12 +110,32 @@ namespace Deremis.Engine.Systems
             app.GraphicsDevice.WaitForIdle();
         }
 
+        public TextureView GetView(int dist)
+        {
+            if (distance == dist) return DepthTexture.View;
+
+            TextureView view = null;
+            foreach (var cascade in cascades)
+            {
+                view = cascade.GetView(dist);
+                if (view != null) break;
+            }
+
+            return view;
+        }
+
+        public Matrix4x4 GetCascadeLightViewMatrix(int index)
+        {
+            if (index >= cascades.Count) return Matrix4x4.Identity;
+            return cascades[index].LightSpaceMatrix;
+        }
+
         protected override void PreUpdate(float state)
         {
             commandList.Begin();
             SetFramebuffer();
             commandList.ClearDepthStencil(0f);
-            commandList.UpdateBuffer(app.MaterialManager.MaterialBuffer, 0, app.ShadowMapMaterial.GetValueArray());
+            commandList.UpdateBuffer(app.MaterialManager.MaterialBuffer, 0, MapMaterial.GetValueArray());
             commandList.End();
             SubmitAndWait();
 
@@ -72,9 +145,6 @@ namespace Deremis.Engine.Systems
             {
                 ref var transform = ref camEntity.Get<Transform>();
                 mainCameraTransform = transform;
-                viewMatrix = transform.ToViewMatrix();
-                projMatrix = camEntity.Get<Camera>().projection;
-                viewProjMatrix = Matrix4x4.Multiply(viewMatrix, projMatrix);
                 break;
             }
             Span<Entity> lights = stackalloc Entity[lightSet.Count];
@@ -102,31 +172,22 @@ namespace Deremis.Engine.Systems
             commandList.SetVertexBuffer(0, mesh.VertexBuffer);
             if (mesh.Indexed)
                 commandList.SetIndexBuffer(mesh.IndexBuffer, IndexFormat.UInt32);
-            commandList.SetPipeline(app.ShadowMapMaterial.GetPipeline(0));
+            commandList.SetPipeline(MapMaterial.GetPipeline(0));
             commandList.SetGraphicsResourceSet(0, app.MaterialManager.GeneralResourceSet);
-            commandList.SetGraphicsResourceSet(1, app.ShadowMapMaterial.ResourceSet);
+            commandList.SetGraphicsResourceSet(1, MapMaterial.ResourceSet);
         }
 
         protected override void Update(float state, in Drawable key, in Entity entity)
         {
             var transform = entity.GetWorldTransform();
             var world = transform.ToMatrix();
-            var normalWorld = Matrix4x4.Identity;
-            if (Matrix4x4.Invert(world, out normalWorld))
-            {
-                normalWorld = Matrix4x4.Transpose(normalWorld);
-            }
             commandList.UpdateBuffer(
                 app.MaterialManager.TransformBuffer,
                 0,
                 new TransformResource
                 {
-                    viewProjMatrix = viewProjMatrix,
                     worldMatrix = world,
-                    normalWorldMatrix = normalWorld,
-                    viewMatrix = viewMatrix,
-                    projMatrix = projMatrix,
-                    lightSpaceMatrix = LightSpaceMatrix
+                    lightSpaceMatrix1 = LightSpaceMatrix
                 });
             if (mesh.Indexed)
                 commandList.DrawIndexed(
@@ -151,6 +212,11 @@ namespace Deremis.Engine.Systems
         protected override void PostUpdate(float state)
         {
             SubmitAndWait();
+
+            foreach (var cascade in cascades)
+            {
+                cascade.Update(state);
+            }
         }
 
         private static bool CanRenderToShadowMap(in Render render)
@@ -160,8 +226,8 @@ namespace Deremis.Engine.Systems
 
         private void SetFramebuffer()
         {
-            const uint shadowMapSize = Application.SHADOW_MAP_WIDTH;
-            commandList.SetFramebuffer(app.ShadowFramebuffer);
+            const uint shadowMapSize = SHADOW_MAP_WIDTH;
+            commandList.SetFramebuffer(Framebuffer);
             commandList.SetViewport(0, new Viewport(0, 0, shadowMapSize, shadowMapSize, 0, 1));
             commandList.SetScissorRect(0, 0, 0, shadowMapSize, shadowMapSize);
         }
@@ -169,7 +235,7 @@ namespace Deremis.Engine.Systems
         // taken from https://github.com/mellinoe/veldrid/blob/eef8375169d1960a322f47f95e9b6ee8126e7b43/src/NeoDemo/Scene.cs#L405
         private void UpdateLightspaceViewProj()
         {
-            const uint far = Application.SHADOW_MAP_FAR;
+            uint far = SHADOW_MAP_FAR * distance;
             const float _lScale = 1f;
             const float _rScale = 1f;
             const float _tScale = 1f;
@@ -205,7 +271,7 @@ namespace Deremis.Engine.Systems
             frustumCenter /= 8f;
 
             float radius = (cameraCorners.NearTopLeft - cameraCorners.FarBottomRight).Length() / 2.0f;
-            float texelsPerUnit = Application.SHADOW_MAP_WIDTH / (radius * 2.0f);
+            float texelsPerUnit = SHADOW_MAP_WIDTH / (radius * 2.0f);
 
             Matrix4x4 scalar = Matrix4x4.CreateScale(texelsPerUnit, texelsPerUnit, texelsPerUnit);
 
@@ -233,6 +299,24 @@ namespace Deremis.Engine.Systems
                 -radius * _nScale);
 
             LightSpaceMatrix = lightView * lightProjection;
+        }
+
+        private void DisposeScreenTargets()
+        {
+            Framebuffer?.Dispose();
+            DepthTexture?.Dispose();
+            DepthTexture?.Dispose();
+        }
+
+        public override void Dispose()
+        {
+            base.Dispose();
+            DisposeScreenTargets();
+
+            foreach (var cascade in cascades)
+            {
+                cascade.Dispose();
+            }
         }
     }
 }

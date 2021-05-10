@@ -48,7 +48,7 @@ namespace Deremis.Engine.Systems
                     ref var transform = ref camEntity.Get<Transform>();
                     ref var camera = ref camEntity.Get<Camera>();
                     frustum = new BoundingFrustum(transform.ToViewMatrix() * camera.projection);
-                    shadowSphere = new BoundingSphere(transform.position, Application.SHADOW_MAP_FAR);
+                    shadowSphere = new BoundingSphere(transform.position, ShadowRenderSystem.SHADOW_MAP_RADIUS);
                     break;
                 }
             }

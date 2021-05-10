@@ -5,8 +5,9 @@
 
 layout(location = 0) out vec3 f_position;
 layout(location = 1) out vec2 f_UV;
-layout(location = 2) out vec4 f_FragPosLightSpace;
+layout(location = 2) out float f_fragDepth;
 layout(location = 3) out mat3 f_TBN;
+layout(location = 6) out mat4 f_FragPosLightSpace;
 
 void main()
 {
@@ -14,11 +15,16 @@ void main()
     gl_Position = ViewProj * worldPos;
     f_position = worldPos.xyz;
     f_UV = UV;
+    f_fragDepth = gl_Position.z;
 
     mat3 normalWorld = mat3(NormalWorld);
     vec3 T = normalize(normalWorld * Tangent);
     vec3 B = normalize(normalWorld * Bitangent);
     vec3 N = normalize(normalWorld * Normal);
     f_TBN = mat3(T, B, N);
-    f_FragPosLightSpace = LightSpace * vec4(f_position, 1);
+    f_FragPosLightSpace = mat4(
+        LightSpace1 * vec4(f_position, 1), 
+        LightSpace2 * vec4(f_position, 1), 
+        LightSpace3 * vec4(f_position, 1),
+        vec4(0));
 }

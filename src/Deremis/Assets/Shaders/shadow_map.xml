@@ -14,7 +14,7 @@
 
 void main()
 {
-    gl_Position = LightSpace * World * vec4(Position, 1.0);
+    gl_Position = LightSpace1 * World * vec4(Position, 1.0);
 } 
     </vertex>
     <fragment>

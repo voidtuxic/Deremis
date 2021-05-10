@@ -5,7 +5,9 @@ layout(set = 0, binding = 0) uniform Transform
     mat4 NormalWorld;
     mat4 View;
     mat4 Proj;
-    mat4 LightSpace;
+    mat4 LightSpace1;
+    mat4 LightSpace2;
+    mat4 LightSpace3;
 };
 
 vec3 GetViewPos() {

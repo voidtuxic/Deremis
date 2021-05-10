@@ -12,7 +12,7 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
     return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(max(1.0 - cosTheta, 0.0), 5.0);
 }
 
-vec3 CalculatePBR(mat4 fragParams, mat4 viewParams, vec4 fragPosLightSpace)
+vec3 CalculatePBR(mat4 fragParams, mat4 viewParams, mat4 fragPosLightSpace, float fragDepth)
 {
     vec3 fragPos = fragParams[0].xyz;
     vec3 N = fragParams[1].xyz;
@@ -43,7 +43,7 @@ vec3 CalculatePBR(mat4 fragParams, mat4 viewParams, vec4 fragPosLightSpace)
         if (lightType == 0)
         {
             L = normalize(-Lights[i].Direction);
-            shadow = CalculateShadows(N, L, fragPosLightSpace);
+            shadow = CalculateShadows(N, L, fragPosLightSpace, fragDepth);
         }
         else if(lightType == 1)
         {
@@ -75,7 +75,7 @@ vec3 CalculatePBR(mat4 fragParams, mat4 viewParams, vec4 fragPosLightSpace)
         vec3 kS = F;
         vec3 kD = vec3(1.0) - kS;
         kD *= 1.0 - metal;
-        vec3 ambient = (kD * diffuse + specular) * ao * vec3(0.15); 
+        vec3 ambient = (kD * diffuse + specular) * ao * vec3(0.1); 
         
         Lo += ambient + ((kD * albedo + specular) * radiance * NdotL * intensity) * (1.0 - shadow);
     }

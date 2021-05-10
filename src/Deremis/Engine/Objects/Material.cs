@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using Deremis.Engine.Systems;
 using Deremis.Platform;
 using Deremis.Platform.Assets;
 using Veldrid;
@@ -85,8 +86,10 @@ namespace Deremis.Engine.Objects
             foreach (var resource in resources)
             {
                 layoutDescriptions.Add(new ResourceLayoutElementDescription(resource.Name, resource.Kind, ShaderStages.Fragment));
-                if (resource.Name.Equals(Application.SHADOW_MAP_NAME))
+                if (ShadowRenderSystem.IsShadowMap(resource.Name))
                 {
+                    layoutDescriptions.Add(new ResourceLayoutElementDescription(resource.Name, resource.Kind, ShaderStages.Fragment));
+                    layoutDescriptions.Add(new ResourceLayoutElementDescription(resource.Name, resource.Kind, ShaderStages.Fragment));
                     hasShadowmap = true;
                 }
             }
@@ -157,9 +160,11 @@ namespace Deremis.Engine.Objects
             bool hasShadowmap = false;
             foreach (var resource in resources)
             {
-                if (resource.Name.Equals(Application.SHADOW_MAP_NAME))
+                if (ShadowRenderSystem.IsShadowMap(resource.Name))
                 {
-                    bindableResources.Add(app.ShadowDepthTexture.View);
+                    bindableResources.Add(app.ShadowRender.GetView(1));
+                    bindableResources.Add(app.ShadowRender.GetView(4));
+                    bindableResources.Add(app.ShadowRender.GetView(16));
                     hasShadowmap = true;
                     continue;
                 }
