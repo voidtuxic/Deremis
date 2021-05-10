@@ -49,9 +49,12 @@ void main()
 
     texcoords(uv, res, v_rgbNW, v_rgbNE, v_rgbSW, v_rgbSE, v_rgbM);
 
-    vec4 color = fxaa(uv, res, v_rgbNW, v_rgbNE, v_rgbSW, v_rgbSE, v_rgbM);
+    vec3 color = fxaa(uv, res, v_rgbNW, v_rgbNE, v_rgbSW, v_rgbSE, v_rgbM).rgb;
+    color = acesFilm(color);
     
-    out_Color = vec4(acesFilm(color.rgb), 1.0);
+    float d = distance(f_UV, vec2(0.5))*2;
+    color *= 1.0 - 0.45 * d;
+    out_Color = vec4(color, 1.0);
 }
     </fragment>
 </shader>

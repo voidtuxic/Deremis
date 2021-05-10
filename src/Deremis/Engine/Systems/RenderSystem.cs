@@ -188,6 +188,8 @@ namespace Deremis.Engine.Systems
 
             SetFramebuffer();
             commandList.ClearColorTarget(0, ClearColor);
+            commandList.ClearColorTarget(1, ClearColor); // position
+            commandList.ClearColorTarget(2, ClearColor); // normal
             commandList.ClearDepthStencil(1f);
 
             if (cameraSet.Count == 0)
@@ -236,14 +238,7 @@ namespace Deremis.Engine.Systems
         protected override void PreUpdate(float state, Drawable key)
         {
             if (!isDrawValid) return;
-            if (InitDrawable(key))
-            {
-                isDrawValid = true;
-            }
-            else
-            {
-                isDrawValid = false;
-            }
+            isDrawValid = InitDrawable(key);
         }
 
         private bool InitDrawable(Drawable key, Material drawMat = null, bool checkDeferred = true, bool begin = true)

@@ -14,8 +14,11 @@ namespace Deremis.Engine.Objects
         public Texture(string name, VeldridTexture veldridTexture, TextureView view) : base(name)
         {
             this.VeldridTexture = veldridTexture;
+            if (this.VeldridTexture != null)
+                this.VeldridTexture.Name = name;
             this.View = view;
-            View.Name = name;
+            if (View != null)
+                View.Name = name;
         }
 
         public override void Dispose()

@@ -9,10 +9,9 @@ vec3 ClipToUV(vec4 clip)
 float CalculateShadows(vec3 normal, vec3 lightDir, vec4 fragPosLightSpace)
 {
     vec3 projCoords = ClipToUV(fragPosLightSpace);
-    if(1.0 - projCoords.z > 1.0) return 0.0;
     float shadow = 0.0;
 
-    if((saturate(projCoords.x) == projCoords.x) && (saturate(projCoords.y) == projCoords.y))
+    if((saturate(projCoords.x) == projCoords.x) && (saturate(projCoords.y) == projCoords.y) && 1.0 - projCoords.z <= 1.0)
     {
         float currentDepth = projCoords.z;
         float bias = 0;// max(0.005 * (1.0 - dot(normal, lightDir)), 0.0005);

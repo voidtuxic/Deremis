@@ -2,6 +2,7 @@ using System;
 using System.Numerics;
 using DefaultEcs.System;
 using Deremis.Engine.Core;
+using Deremis.Engine.Math;
 using Deremis.Engine.Objects;
 using Deremis.Engine.Rendering;
 using Deremis.Engine.Rendering.Helpers;
@@ -56,7 +57,16 @@ namespace Deremis.Viewer
                 color: new Vector3(1f, 0.9f, 0.75f),
                 type: 0
             );
-            light.Set(new Transform(Vector3.Zero, Quaternion.CreateFromYawPitchRoll(MathF.PI / 3f, -MathF.PI / 8f, 0), Vector3.One));
+            light.Set(new Transform(Vector3.Zero, Quaternion.CreateFromYawPitchRoll(MathF.PI / 4f, -MathF.PI / 8f, 0), Vector3.One));
+            // light = app.CreateLight(
+            //     color: Vector3.One,
+            //     type: 2, innerCutoff: DMath.ToRadians(56), outerCutoff: DMath.ToRadians(60)
+            // );
+
+            // app.MainSystem.Add(new ActionSystem<float>(delta =>
+            // {
+            //     light.SetSameAs<Transform>(camera);
+            // }));
 
             SamplerDescription sampler = new SamplerDescription
             {
@@ -85,7 +95,7 @@ namespace Deremis.Viewer
             var tableMat = app.MaterialManager.CreateMaterial("table", shaderfwd);
             tableMat.SetProperty("albedo", Vector3.One);
             tableMat.SetProperty("metallic", 0.0f);
-            tableMat.SetProperty("roughness", 1.0f);
+            tableMat.SetProperty("roughness", 0.75f);
             tableMat.SetProperty("ao", 1.0f);
             // tableMat.SetTexture("albedoTexture", tableDiffuseTex);
             // tableMat.SetTexture("mraTexture", tableSpecularTex);

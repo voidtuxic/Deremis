@@ -22,7 +22,7 @@ namespace Deremis.Platform
         public const PixelFormat COLOR_PIXEL_FORMAT = PixelFormat.R32_G32_B32_A32_Float;
         public const PixelFormat DEPTH_PIXEL_FORMAT = PixelFormat.R32_Float;
         public const uint SHADOW_MAP_FAR = 100;
-        public const uint SHADOW_MAP_WIDTH = 2048;
+        public const uint SHADOW_MAP_WIDTH = 1024;
         public const string SHADOW_MAP_NAME = "shadowMap";
         public static AssetDescription MissingTex = new AssetDescription
         {
@@ -97,7 +97,7 @@ namespace Deremis.Platform
                 Y = 100,
                 WindowWidth = 1920,
                 WindowHeight = 1080,
-                WindowTitle = "Deremis"
+                WindowTitle = "Deremis",
             };
             Window = VeldridStartup.CreateWindow(ref windowCI);
 
@@ -145,7 +145,9 @@ namespace Deremis.Platform
                 Width, Height, 1, 1,
                 DEPTH_PIXEL_FORMAT, TextureUsage.DepthStencil, MSAA));
             ScreenDepthTexture.Name = "screenDepth";
-            ScreenFramebuffer = Factory.CreateFramebuffer(new FramebufferDescription(ScreenDepthTexture, screenColorTexture));
+            var positionRt = GetRenderTexture("position", PixelFormat.R32_G32_B32_A32_Float);
+            var normalRt = GetRenderTexture("normal", PixelFormat.R32_G32_B32_A32_Float);
+            ScreenFramebuffer = Factory.CreateFramebuffer(new FramebufferDescription(ScreenDepthTexture, screenColorTexture, positionRt.RenderTarget.VeldridTexture, normalRt.RenderTarget.VeldridTexture));
 
             var copyTexture = Factory.CreateTexture(TextureDescription.Texture2D(
                 Width, Height, 1, 1,
