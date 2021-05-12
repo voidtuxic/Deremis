@@ -20,7 +20,7 @@ layout(location = 1) out vec4 out_Normal;
 void main()
 {
     vec3 norm = f_TBN[2].xyz;
-    out_Color = vec4(f_position, 1.0);
+    out_Color = vec4(f_position + vec3(2048), 1.0);
     out_Normal = vec4(norm, 1.0);
 }
     </fragment>

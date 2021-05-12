@@ -57,6 +57,10 @@ void main()
     float d = distance(f_UV, vec2(0.5))*2;
     color *= 1.0 - 0.45 * d;
 
+    if(f_UV.x &lt; 0.25 &amp;&amp; f_UV.y &lt; 0.25) {
+        color = texture(sampler2D(ssaoTex, texSampler), f_UV*4.0).rgb;
+    }
+
     out_Color = vec4(color, 1.0);
 }
     </fragment>

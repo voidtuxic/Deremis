@@ -51,6 +51,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     #define FXAA_SPAN_MAX     8.0
 #endif
 
+float GetSSAO(vec2 uv) {
+    return clamp(texture(sampler2D(ssaoTex, texSampler), uv).r,0,1);
+}
+
 //optimized version for mobile, where dependent 
 //texture reads can be a bottleneck
 vec4 fxaa(vec2 fragCoord, vec2 resolution,
@@ -59,12 +63,11 @@ vec4 fxaa(vec2 fragCoord, vec2 resolution,
             vec2 v_rgbM) {
     vec4 color;
     vec2 inverseVP = vec2(1.0 / resolution.x, 1.0 / resolution.y);
-    vec3 rgbNW = texture(sampler2D(screenTex, texSampler),  v_rgbNW).xyz;
-    vec3 rgbNE = texture(sampler2D(screenTex, texSampler),  v_rgbNE).xyz;
-    vec3 rgbSW = texture(sampler2D(screenTex, texSampler),  v_rgbSW).xyz;
-    vec3 rgbSE = texture(sampler2D(screenTex, texSampler),  v_rgbSE).xyz;
+    vec3 rgbNW = texture(sampler2D(screenTex, texSampler),  v_rgbNW).xyz ;
+    vec3 rgbNE = texture(sampler2D(screenTex, texSampler),  v_rgbNE).xyz ;
+    vec3 rgbSW = texture(sampler2D(screenTex, texSampler),  v_rgbSW).xyz ;
+    vec3 rgbSE = texture(sampler2D(screenTex, texSampler),  v_rgbSE).xyz ;
     vec4 texColor = texture(sampler2D(screenTex, texSampler),  v_rgbM);
-    float ssao = clamp(texture(sampler2D(ssaoTex, texSampler), v_rgbM).r,0,1);
     vec3 rgbM  = texColor.xyz;
     vec3 luma = vec3(0.299, 0.587, 0.114);
     float lumaNW = dot(rgbNW, luma);
@@ -99,7 +102,7 @@ vec4 fxaa(vec2 fragCoord, vec2 resolution,
         color = vec4(rgbA, texColor.a);
     else
         color = vec4(rgbB, texColor.a);
-    return color * ssao;
+    return color * GetSSAO(v_rgbM);
 }
 
 void texcoords(vec2 fragCoord, vec2 resolution,

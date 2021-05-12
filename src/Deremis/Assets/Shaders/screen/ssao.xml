@@ -54,9 +54,9 @@ float doAmbientOcclusion(in vec2 tcoord,in vec2 uv, in vec3 p, in vec3 cnorm, in
 
 void main()
 {
-    const float scale = 0.1;
-    const float intensity = 2.0f;
-    const float radius = 0.1;
+    const float scale = 0.001;
+    const float intensity = 3.5f;
+    const float radius = 0.5;
     const float bias = 0.025f;
     vec2 vec[4];
     vec[0] = vec2(1,0);
@@ -77,6 +77,7 @@ void main()
         ao += doAmbientOcclusion(f_UV,coord1*0.25, p, n, scale, bias, intensity);
     }
     ao /=float(iterations);
+    ao = pow(ao, 1.5);
     ao = 1.0 - ao;
     
     out_Color = vec4(vec3(ao), 1.0f);
