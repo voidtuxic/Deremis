@@ -1,71 +1,85 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shader version="1" platform="Direct3D11">
+<shader version="1">
     <config>
         <BlendState>SingleDisabled</BlendState>
         <DepthStencilState depthTestEnabled="true" depthWriteEnabled="false" comparisonKind="Always" />
         <RasterizerState depthClipEnabled="true" scissorTestEnabled="false" cullMode="None" fillMode="Solid" frontFace="Clockwise" />
         <PrimitiveTopology>TriangleList</PrimitiveTopology>
     </config>
+    <properties>
+        <vec3 isArray="64" name="samples" />
+    </properties>
     <resources>
-        <texture2d name="screen" />
-        <texture2d name="position" />
-        <texture2d name="normal" isNormal="true" />
-        <texture2d name="ssaoPass" />
+        <texture2d name="positionTex" />
+        <texture2d name="normalTex" isNormal="true" />
     </resources>
-    <multipass name="ssaoPass" colorTargetCount="1" />
     <vertex>
-cbuffer Transform : register(b0)
-{
-    row_major float4x4 ViewProj : packoffset(c0);
-    row_major float4x4 World : packoffset(c4);
-    row_major float4x4 NormalWorld : packoffset(c8);
-    row_major float4x4 View : packoffset(c12);
-    row_major float4x4 Proj : packoffset(c16);
-    row_major float4x4 LightSpace : packoffset(c20);
-};
-
-
-static float4 gl_Position;
-static float3 Position;
-static float2 UV;
-static float2 f_UV;
-
-struct SPIRV_Cross_Input
-{
-    float3 Position : TEXCOORD0;
-    float3 Normal : TEXCOORD1;
-    float2 UV : TEXCOORD2;
-    float3 Tangent : TEXCOORD3;
-    float3 Bitangent : TEXCOORD4;
-};
-
-struct SPIRV_Cross_Output
-{
-    float2 f_UV : TEXCOORD0;
-    float4 gl_Position : SV_Position;
-};
-
-void vert_main()
-{
-    gl_Position = float4(Position.x, Position.y, 0.0f, 1.0f);
-    f_UV = UV;
-}
-
-SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
-{
-    Position = stage_input.Position;
-    UV = stage_input.UV;
-    vert_main();
-    SPIRV_Cross_Output stage_output;
-    stage_output.gl_Position = gl_Position;
-    stage_output.f_UV = f_UV;
-    return stage_output;
-}
+#include "screen/genericvert.glsl"
     </vertex>
-    <fragment passIndex="0">
-#include "screen/ssao.1.hlsl"
-    </fragment>
-    <fragment passIndex="1">
-#include "screen/ssao.2.hlsl"
+    <fragment>
+#version 450
+
+#include "uniforms/transform.glsl"
+#include "libs/hash.glsl"
+
+layout(location = 0) in vec2 f_UV;
+layout(location = 0) out vec4 out_Color;
+
+layout(set = 1, binding = 0) uniform texture2D positionTex;
+layout(set = 1, binding = 1) uniform texture2D normalTex;
+layout(set = 1, binding = 2) uniform sampler texSampler;
+
+vec3 getPosition(in vec2 uv) 
+{
+    return texture(sampler2D(positionTex, texSampler), uv).xyz;
+}
+
+vec3 getNormal(in vec2 uv) 
+{
+    return texture(sampler2D(normalTex, texSampler), uv).xyz;
+}
+
+vec2 getRandom(in vec2 uv) 
+{
+    return normalize(hash22(uv*1000.0f) * 2.0f - 1.0f); 
+}
+
+float doAmbientOcclusion(in vec2 tcoord,in vec2 uv, in vec3 p, in vec3 cnorm, in float scale, in float bias, in float intensity) 
+{
+    vec3 diff = getPosition(tcoord + uv) - p; 
+    vec3 v = normalize(diff); 
+    float d = length(diff)*scale; 
+    return max(0.0,dot(cnorm,v)-bias)*(1.0/(1.0+d))*intensity;
+}
+
+void main()
+{
+    const float scale = 0.1;
+    const float intensity = 2.0f;
+    const float radius = 0.1;
+    const float bias = 0.025f;
+    vec2 vec[4];
+    vec[0] = vec2(1,0);
+    vec[1] = vec2(-1,0); 
+    vec[2] = vec2(0,1);
+    vec[3] = vec2(0,-1);
+    const int iterations = 64; 
+    float ao = 0.0f; 
+
+    vec3 p = getPosition(f_UV); 
+    vec3 n = getNormal(f_UV); 
+    vec2 rand = getRandom(f_UV); 
+    float rad = radius/p.z;
+    for (int j = 0; j &lt; iterations; j++) 
+    {
+        vec2 coord1 = reflect(vec[j%4],rand)*rad; 
+        
+        ao += doAmbientOcclusion(f_UV,coord1*0.25, p, n, scale, bias, intensity);
+    }
+    ao /=float(iterations);
+    ao = 1.0 - ao;
+    
+    out_Color = vec4(vec3(ao), 1.0f);
+}
     </fragment>
 </shader>

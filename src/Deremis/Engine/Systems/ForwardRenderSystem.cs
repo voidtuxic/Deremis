@@ -128,6 +128,9 @@ namespace Deremis.Engine.Systems
                 app.AssetManager.Get<Shader>(ScreenShader),
                 app.GraphicsDevice.SwapchainFramebuffer);
             screenRenderMaterial.SetTexture("screenTex", app.CopyTexture);
+
+            var secondTexRt = app.GetRenderTexture("ssaoTex", Application.COLOR_PIXEL_FORMAT);
+            screenRenderMaterial.SetTexture("secondTex", secondTexRt.CopyTexture);
         }
 
         public string RegisterMesh(string name, Mesh mesh)
@@ -363,20 +366,12 @@ namespace Deremis.Engine.Systems
         {
             commandList.Begin();
 
-            var world = Matrix4x4.Identity;
-            var normalWorld = Matrix4x4.Identity;
-            if (Matrix4x4.Invert(world, out normalWorld))
-            {
-                normalWorld = Matrix4x4.Transpose(normalWorld);
-            }
             commandList.UpdateBuffer(
                 app.MaterialManager.TransformBuffer,
                 0,
                 new TransformResource
                 {
                     viewProjMatrix = viewProjMatrix,
-                    worldMatrix = world,
-                    normalWorldMatrix = normalWorld,
                     viewMatrix = viewMatrix,
                     projMatrix = projMatrix
                 });

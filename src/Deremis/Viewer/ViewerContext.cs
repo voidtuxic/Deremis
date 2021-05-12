@@ -25,24 +25,19 @@ namespace Deremis.Viewer
         {
             this.app = app;
 
-            var hdrTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/env4/env4.hdr", new TextureHandler.Options(false, false, false, true)));
-            var hdrIrrTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/env4/env4_irr_###.tga", new TextureHandler.Options(cubemap: true)));
-            var hdrRadTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/env4/env4_rad_###_***.tga", new TextureHandler.Options(cubemap: true, mipmapCount: 5)));
+            var hdrTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/env3/env3.hdr", new TextureHandler.Options(false, false, false, true)));
+            var hdrIrrTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/env3/env3_irr_###.tga", new TextureHandler.Options(cubemap: true)));
+            var hdrRadTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/env3/env3_rad_###_***.tga", new TextureHandler.Options(cubemap: true, mipmapCount: 5)));
             var brdfLutTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/ibl_brdf_lut.png"));
 
-            var panaModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/gameboy.obj"));
+            var panaModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/mg08.obj"));
             var tableModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/plane.obj"));
 
-            // var shader = AssetManager.current.Get<Shader>(new AssetDescription("Shaders/pbr_gbuffer.xml"));
             var shaderfwd = AssetManager.current.Get<Shader>(new AssetDescription("Shaders/pbr.xml"));
 
-            var panaDiffuseTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Gameboy_low_Gameboy_BaseColor.png"));
-            var panaNormalTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Gameboy_low_Gameboy_Normal.png"));
-            var panaMRATex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Gameboy_mra.png"));
-
-            var tableDiffuseTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/rocky_albedo.png"));
-            var tableSpecularTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/rocky_mra.png"));
-            var tableNormalTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/rocky_normal.png"));
+            var panaDiffuseTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/albedo.png"));
+            var panaNormalTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/normal.png"));
+            var panaMRATex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/mra.png"));
 
             Skybox.Init(app, hdrTex);
 
@@ -57,7 +52,7 @@ namespace Deremis.Viewer
                 color: new Vector3(1f, 0.9f, 0.75f),
                 type: 0
             );
-            light.Set(new Transform(Vector3.Zero, Quaternion.CreateFromYawPitchRoll(MathF.PI / 4f, -MathF.PI / 3f, 0), Vector3.One));
+            light.Set(new Transform(Vector3.Zero, Quaternion.CreateFromYawPitchRoll(MathF.PI / 4f, -MathF.PI / 8f, 0), Vector3.One));
             // light = app.CreateLight(
             //     color: Vector3.One,
             //     type: 2, innerCutoff: DMath.ToRadians(56), outerCutoff: DMath.ToRadians(60)
@@ -82,7 +77,7 @@ namespace Deremis.Viewer
 
             var panaMat = app.MaterialManager.CreateMaterial("pana", shaderfwd);
             panaMat.SetProperty("albedo", Vector3.One);
-            panaMat.SetProperty("metallic", 0.35f);
+            panaMat.SetProperty("metallic", 1.0f);
             panaMat.SetProperty("roughness", 1.0f);
             panaMat.SetProperty("ao", 1.0f);
             panaMat.SetTexture("albedoTexture", panaDiffuseTex);
@@ -95,11 +90,8 @@ namespace Deremis.Viewer
             var tableMat = app.MaterialManager.CreateMaterial("table", shaderfwd);
             tableMat.SetProperty("albedo", Vector3.One);
             tableMat.SetProperty("metallic", 0.0f);
-            tableMat.SetProperty("roughness", 0.75f);
+            tableMat.SetProperty("roughness", 1f);
             tableMat.SetProperty("ao", 1.0f);
-            // tableMat.SetTexture("albedoTexture", tableDiffuseTex);
-            // tableMat.SetTexture("mraTexture", tableSpecularTex);
-            // tableMat.SetTexture("normalTexture", tableNormalTex);
             tableMat.SetSampler(sampler);
             tableMat.SetTexture("environmentTexture", hdrIrrTex.View);
             tableMat.SetTexture("prefilteredEnvTexture", hdrRadTex.View);
@@ -107,17 +99,24 @@ namespace Deremis.Viewer
 
             var tableEntity = tableModel.Spawn(app, tableMat.Name, new Transform(new Vector3(0, -2, 0), Quaternion.Identity, Vector3.One));
 
-            var length = 10;
-            var offset = 10;
+            var length = 1;
+            var offset = 1;
             var random = new Random();
+            var rotate = 0f;
             for (var x = 0; x < length; x++)
             {
                 for (var y = 0; y < length; y++)
                 {
                     var entityfwd = panaModel.Spawn(app, panaMat.Name,
                         new Transform(new Vector3(x * offset - length / 2f * offset, 0, y * offset - length / 2f * offset),
-                        Quaternion.CreateFromYawPitchRoll((float)random.NextDouble() * MathF.PI * 2f, 0, 0), Vector3.One * 2f));
+                        Quaternion.CreateFromYawPitchRoll(MathF.PI / 2f, 0, 0), Vector3.One / 2f));
                     entityfwd.SetAsChildOf(tableEntity);
+                    app.MainSystem.Add(new ActionSystem<float>(delta =>
+                    {
+                        rotate += delta;
+                        entityfwd.Set(new Transform(new Vector3(x * offset - length / 2f * offset, 0, y * offset - length / 2f * offset),
+                            Quaternion.CreateFromYawPitchRoll(MathF.PI / 2f + rotate, 0, 0), Vector3.One / 2f));
+                    }));
                 }
             }
         }

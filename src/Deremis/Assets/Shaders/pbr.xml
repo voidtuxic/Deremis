@@ -67,7 +67,7 @@ void main()
     float metal = min(0.9, mra.r * metallic);
     float rough = mra.g * roughness;
     float aoVal = mra.b * ao;
-    vec3 irradiance = CorrectGamma(texture(samplerCube(environmentTexture, texSampler), normalDir).rgb);
+    vec3 irradiance = texture(samplerCube(environmentTexture, texSampler), normalDir).rgb;
 
     vec3 V = normalize(GetViewPos() - f_position);
     vec3 R = reflect(-V, normalDir);

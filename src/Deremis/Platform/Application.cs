@@ -307,6 +307,12 @@ namespace Deremis.Platform
             return entity;
         }
 
+        public void SubmitAndWait(CommandList commandList)
+        {
+            GraphicsDevice.SubmitCommands(commandList);
+            GraphicsDevice.WaitForIdle();
+        }
+
         public void UpdateScreenTexture(CommandList commandList)
         {
             if (MSAA == TextureSampleCount.Count1)
@@ -318,7 +324,7 @@ namespace Deremis.Platform
                 commandList.Begin();
                 commandList.ResolveTexture(screenColorTexture, CopyTexture.VeldridTexture);
                 commandList.End();
-                ForwardRender.SubmitAndWait();
+                SubmitAndWait(commandList);
             }
         }
 
@@ -332,34 +338,34 @@ namespace Deremis.Platform
             commandList.Begin();
             commandList.CopyTexture(left, right);
             commandList.End();
-            ForwardRender.SubmitAndWait();
+            SubmitAndWait(commandList);
         }
 
-        public void UpdateRenderTextures(CommandList commandList)
+        public void UpdateRenderTextures(CommandList commandList, params string[] limit)
         {
+            if (renderTextures.Count == 0) return;
             commandList.Begin();
-            foreach (var rt in renderTextures.Values)
+            if (limit.Length == 0)
             {
-                rt.UpdateCopyTexture(commandList);
+                foreach (var rt in renderTextures.Values)
+                {
+                    rt.UpdateCopyTexture(commandList);
+                }
+            }
+            else
+            {
+                foreach (var rt in limit)
+                {
+                    renderTextures[rt].UpdateCopyTexture(commandList);
+                }
             }
             commandList.End();
-            ForwardRender.SubmitAndWait();
-        }
-
-        public void UpdateRenderTextures(CommandList commandList, string baseName)
-        {
-            commandList.Begin();
-            foreach (var rt in renderTextures)
-            {
-                if (rt.Key.Contains(baseName))
-                    rt.Value.UpdateCopyTexture(commandList);
-            }
-            commandList.End();
-            ForwardRender.SubmitAndWait();
+            SubmitAndWait(commandList);
         }
 
         public void ClearDeferredFramebuffers(CommandList commandList)
         {
+            if (deferredFramebuffers.Count == 0) return;
             commandList.Begin();
             foreach (var item in deferredFramebuffers)
             {
@@ -370,7 +376,7 @@ namespace Deremis.Platform
                 }
             }
             commandList.End();
-            ForwardRender.SubmitAndWait();
+            SubmitAndWait(commandList);
         }
 
         public void Dispose()

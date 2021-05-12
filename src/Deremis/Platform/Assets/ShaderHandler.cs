@@ -170,6 +170,9 @@ namespace Deremis.Platform.Assets
             foreach (XmlNode child in node)
             {
                 var format = VertexElementFormat.Float1;
+                var arrayCount = 1;
+                if (child.Attributes != null && child.Attributes["isArray"] != null)
+                    arrayCount = int.Parse(child.Attributes["isArray"].Value);
                 switch (child.Name)
                 {
                     case "float":
@@ -188,7 +191,8 @@ namespace Deremis.Platform.Assets
                 shader.Properties.Add(child.Attributes["name"].Value, new Shader.Property
                 {
                     Order = index,
-                    Format = format
+                    Format = format,
+                    ArrayCount = arrayCount
                 });
                 index++;
             }

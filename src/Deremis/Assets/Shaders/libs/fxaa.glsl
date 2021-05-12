@@ -64,6 +64,7 @@ vec4 fxaa(vec2 fragCoord, vec2 resolution,
     vec3 rgbSW = texture(sampler2D(screenTex, texSampler),  v_rgbSW).xyz;
     vec3 rgbSE = texture(sampler2D(screenTex, texSampler),  v_rgbSE).xyz;
     vec4 texColor = texture(sampler2D(screenTex, texSampler),  v_rgbM);
+    float ssao = clamp(texture(sampler2D(ssaoTex, texSampler), v_rgbM).r,0,1);
     vec3 rgbM  = texColor.xyz;
     vec3 luma = vec3(0.299, 0.587, 0.114);
     float lumaNW = dot(rgbNW, luma);
@@ -98,7 +99,7 @@ vec4 fxaa(vec2 fragCoord, vec2 resolution,
         color = vec4(rgbA, texColor.a);
     else
         color = vec4(rgbB, texColor.a);
-    return color;
+    return color * ssao;
 }
 
 void texcoords(vec2 fragCoord, vec2 resolution,

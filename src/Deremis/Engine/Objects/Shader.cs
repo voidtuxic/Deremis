@@ -21,6 +21,7 @@ namespace Deremis.Engine.Objects
             public int Order;
             public VertexElementFormat Format;
             public object Value;
+            public int ArrayCount;
         }
 
         public struct Resource

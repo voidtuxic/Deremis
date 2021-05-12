@@ -12,7 +12,6 @@ namespace Deremis.Engine.Objects
         public TextureView View => CopyTexture.View;
 
         private bool isMultisampled;
-        private VeldridTexture resolveTexture;
 
         public RenderTexture(Application app, string name, uint width, uint height, PixelFormat format, bool isDepth) : base(name)
         {
@@ -24,13 +23,6 @@ namespace Deremis.Engine.Objects
             var renderTargetTex = app.Factory.CreateTexture(ref texDescription);
             renderTargetTex.Name = $"{name}_render";
             RenderTarget = new Texture($"{name}_render", renderTargetTex, null);
-
-            if (isMultisampled)
-            {
-                texDescription.SampleCount = TextureSampleCount.Count1;
-                resolveTexture = app.Factory.CreateTexture(ref texDescription);
-                resolveTexture.Name = $"{name}_resolve";
-            }
 
             texDescription = TextureDescription.Texture2D(
                 width, height, 1, 1,
@@ -47,8 +39,7 @@ namespace Deremis.Engine.Objects
         {
             if (isMultisampled)
             {
-                commandList.ResolveTexture(RenderTarget.VeldridTexture, resolveTexture);
-                commandList.CopyTexture(resolveTexture, CopyTexture.VeldridTexture);
+                commandList.ResolveTexture(RenderTarget.VeldridTexture, CopyTexture.VeldridTexture);
             }
             else
             {
@@ -58,7 +49,6 @@ namespace Deremis.Engine.Objects
 
         public override void Dispose()
         {
-            resolveTexture?.Dispose();
             RenderTarget.Dispose();
             CopyTexture.Dispose();
         }

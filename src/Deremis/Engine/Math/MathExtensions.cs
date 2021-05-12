@@ -12,5 +12,10 @@ namespace Deremis.Engine.Math
         {
             return radians * 180f / MathF.PI;
         }
+
+        public static float Lerp(float a, float b, float f)
+        {
+            return a + f * (b - a);
+        }
     }
 }

@@ -8,6 +8,7 @@
     </config>
     <resources>
         <texture2d name="screenTex" />
+        <texture2d name="ssaoTex" />
     </resources>
     <vertex>
 #include "screen/genericvert.glsl"
@@ -23,7 +24,8 @@ layout(location = 0) in vec2 f_UV;
 layout(location = 0) out vec4 out_Color;
 
 layout(set = 1, binding = 0) uniform texture2D screenTex;
-layout(set = 1, binding = 1) uniform sampler texSampler;
+layout(set = 1, binding = 1) uniform texture2D ssaoTex;
+layout(set = 1, binding = 2) uniform sampler texSampler;
 
 #include "libs/fxaa.glsl"
 
@@ -54,6 +56,7 @@ void main()
     
     float d = distance(f_UV, vec2(0.5))*2;
     color *= 1.0 - 0.45 * d;
+
     out_Color = vec4(color, 1.0);
 }
     </fragment>

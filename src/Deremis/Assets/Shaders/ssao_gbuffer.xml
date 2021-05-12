@@ -12,6 +12,7 @@
     <fragment>
 #version 450
 
+#include "uniforms/transform.glsl"
 #include "genericfrag.glsl"
 
 layout(location = 1) out vec4 out_Normal;

@@ -55,7 +55,7 @@ namespace Deremis.Engine.Objects
             foreach (var property in shader.Properties)
             {
                 var val = property.Value;
-                val.Value = GetDefaultParameterValue(property.Value.Format);
+                val.Value = GetDefaultParameterValue(property.Value);
                 properties.Add(property.Key, val);
             }
 
@@ -182,9 +182,19 @@ namespace Deremis.Engine.Objects
 
         public void SetProperty<T>(string name, T value) where T : unmanaged
         {
+            SetPropertyInternal(name, value);
+        }
+
+        public void SetProperty<T>(string name, T[] value) where T : unmanaged
+        {
+            SetPropertyInternal(name, value);
+        }
+
+        private void SetPropertyInternal<T>(string name, T value)
+        {
             if (DeferredLightingMaterial != null)
             {
-                DeferredLightingMaterial.SetProperty(name, value);
+                DeferredLightingMaterial.SetPropertyInternal(name, value);
             }
 
             if (!properties.ContainsKey(name)) return;
@@ -233,19 +243,66 @@ namespace Deremis.Engine.Objects
                 switch (property.Format)
                 {
                     case VertexElementFormat.Float1:
-                        array = new[] { (float)property.Value };
+                        if (property.ArrayCount == 1)
+                            array = new[] { (float)property.Value };
+                        else array = (float[])property.Value;
                         break;
                     case VertexElementFormat.Float2:
-                        array = new float[2];
-                        ((Vector2)property.Value).CopyTo(array);
+                        if (property.ArrayCount == 1)
+                        {
+                            array = new float[2];
+                            ((Vector2)property.Value).CopyTo(array);
+                        }
+                        else
+                        {
+                            var data = (Vector2[])property.Value;
+                            var floats = new List<float>();
+                            foreach (var val in data)
+                            {
+                                floats.Add(val.X);
+                                floats.Add(val.Y);
+                            }
+                            array = floats.ToArray();
+                        }
                         break;
                     case VertexElementFormat.Float3:
-                        array = new float[3];
-                        ((Vector3)property.Value).CopyTo(array);
+                        if (property.ArrayCount == 1)
+                        {
+                            array = new float[3];
+                            ((Vector3)property.Value).CopyTo(array);
+                        }
+                        else
+                        {
+                            var data = (Vector3[])property.Value;
+                            var floats = new List<float>();
+                            foreach (var val in data)
+                            {
+                                floats.Add(val.X);
+                                floats.Add(val.Y);
+                                floats.Add(val.Z);
+                            }
+                            array = floats.ToArray();
+                        }
                         break;
                     case VertexElementFormat.Float4:
-                        array = new float[4];
-                        ((Vector4)property.Value).CopyTo(array);
+                        if (property.ArrayCount == 1)
+                        {
+                            array = new float[4];
+                            ((Vector4)property.Value).CopyTo(array);
+                        }
+                        else
+                        {
+                            var data = (Vector4[])property.Value;
+                            var floats = new List<float>();
+                            foreach (var val in data)
+                            {
+                                floats.Add(val.X);
+                                floats.Add(val.Y);
+                                floats.Add(val.Z);
+                                floats.Add(val.W);
+                            }
+                            array = floats.ToArray();
+                        }
                         break;
                 }
                 if (array != null)
@@ -294,14 +351,14 @@ namespace Deremis.Engine.Objects
             PassFramebuffer?.Dispose();
         }
 
-        public static object GetDefaultParameterValue(VertexElementFormat format)
+        public static object GetDefaultParameterValue(Shader.Property property)
         {
-            switch (format)
+            switch (property.Format)
             {
-                case VertexElementFormat.Float1: return 0f;
-                case VertexElementFormat.Float2: return Vector2.Zero;
-                case VertexElementFormat.Float3: return Vector3.Zero;
-                case VertexElementFormat.Float4: return Vector4.Zero;
+                case VertexElementFormat.Float1: return property.ArrayCount > 1 ? new float[property.ArrayCount] : 0f;
+                case VertexElementFormat.Float2: return property.ArrayCount > 1 ? new Vector2[property.ArrayCount] : Vector2.Zero;
+                case VertexElementFormat.Float3: return property.ArrayCount > 1 ? new Vector3[property.ArrayCount] : Vector3.Zero;
+                case VertexElementFormat.Float4: return property.ArrayCount > 1 ? new Vector4[property.ArrayCount] : Vector4.Zero;
                 default: return null;
             }
         }

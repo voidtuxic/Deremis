@@ -7,12 +7,13 @@ using Shader = Deremis.Engine.Objects.Shader;
 using Deremis.Engine.Rendering.Resources;
 using System.Collections.Generic;
 using Texture = Deremis.Engine.Objects.Texture;
+using Deremis.Engine.Systems;
 
 namespace Deremis.Engine.Rendering
 {
     public class MaterialManager : IDisposable
     {
-        private const uint MAX_MATERIAL_BUFFER_SIZE = 256;
+        private const uint MAX_MATERIAL_BUFFER_SIZE = 2048;
         private const uint MAX_LIGHT_BUFFER_SIZE = 256;
 
         public static MaterialManager current;
@@ -71,6 +72,15 @@ namespace Deremis.Engine.Rendering
             }
 
             material.Build(fb, gbufferTextureViews);
+            foreach (var resource in shader.Resources.Values)
+            {
+                if (resource.Name.Equals(SSAOSystem.RenderTextureName))
+                {
+                    var ssaoRt = app.GetRenderTexture(SSAOSystem.RenderTextureName, Application.COLOR_PIXEL_FORMAT);
+                    material.SetTexture(SSAOSystem.RenderTextureName, ssaoRt.CopyTexture);
+                    continue;
+                }
+            }
             materials.TryAdd(name, material);
             return material;
         }
