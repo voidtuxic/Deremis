@@ -20,30 +20,17 @@ namespace Deremis.Engine.Systems
 {
     public class ForwardRenderSystem : AEntityMultiMapSystem<float, Drawable>
     {
-        public const string BloomTextureName = "bloomTex";
         public static ForwardRenderSystem current;
-        public static AssetDescription ScreenShader = new AssetDescription
-        {
-            name = "screen_postprocess",
-            path = "Shaders/screen/postprocess.xml"
-        };
-
-        public static AssetDescription BloomBlurShader = new AssetDescription
-        {
-            name = "bloom_blur",
-            path = "Shaders/screen/bloom_blur.xml"
-        };
 
         private readonly Application app;
         private readonly CommandList commandList;
 
         private readonly EntitySet cameraSet;
         private readonly EntitySet lightSet;
-        private readonly EntityMultiMap<Drawable> deferredObjectsMap;
+        // private readonly EntityMultiMap<Drawable> deferredObjectsMap;
 
         private readonly ConcurrentDictionary<string, Mesh> meshes = new ConcurrentDictionary<string, Mesh>();
-        private readonly Dictionary<string, Material> deferredMaterials = new Dictionary<string, Material>();
-        private readonly Dictionary<string, Material> screenPassMaterials = new Dictionary<string, Material>();
+        // private readonly Dictionary<string, Material> deferredMaterials = new Dictionary<string, Material>();
 
         private bool isDrawValid;
         private Material material;
@@ -53,8 +40,6 @@ namespace Deremis.Engine.Systems
         private Matrix4x4 viewProjMatrix;
 
         public RgbaFloat ClearColor { get; set; } = RgbaFloat.Black;
-        private Material screenRenderMaterial;
-        public Mesh ScreenRenderMesh { get; private set; }
 
         public ForwardRenderSystem(Application app, World world) : base(world
             .GetEntities()
@@ -76,13 +61,12 @@ namespace Deremis.Engine.Systems
                 .With<Light>()
                 .With<Transform>()
                 .AsSet();
-            deferredObjectsMap = world.GetEntities()
-                .With<Drawable>()
-                .With<Transform>()
-                .With<Deferred>()
-                .With<Render>(CanRenderToScreen)
-                .AsMultiMap<Drawable>();
-            InitScreenData();
+            // deferredObjectsMap = world.GetEntities()
+            //     .With<Drawable>()
+            //     .With<Transform>()
+            //     .With<Deferred>()
+            //     .With<Render>(CanRenderToScreen)
+            //     .AsMultiMap<Drawable>();
         }
 
         private static bool CanRenderToScreen(in Render render)
@@ -95,60 +79,6 @@ namespace Deremis.Engine.Systems
             return render.Shadows;
         }
 
-        private void InitScreenData()
-        {
-            ScreenRenderMesh = new Mesh("screen");
-            ScreenRenderMesh.Indexed = false;
-            ScreenRenderMesh.Add(new Rendering.Vertex
-            {
-                Position = new Vector3(-1, 1, 0),
-                UV = new Vector2(0, 0)
-            });
-            ScreenRenderMesh.Add(new Rendering.Vertex
-            {
-                Position = new Vector3(-1, -1, 0),
-                UV = new Vector2(0, 1)
-            });
-            ScreenRenderMesh.Add(new Rendering.Vertex
-            {
-                Position = new Vector3(1, -1, 0),
-                UV = new Vector2(1, 1)
-            });
-            ScreenRenderMesh.Add(new Rendering.Vertex
-            {
-                Position = new Vector3(-1, 1, 0),
-                UV = new Vector2(0, 0)
-            });
-            ScreenRenderMesh.Add(new Rendering.Vertex
-            {
-                Position = new Vector3(1, -1, 0),
-                UV = new Vector2(1, 1)
-            });
-            ScreenRenderMesh.Add(new Rendering.Vertex
-            {
-                Position = new Vector3(1, 1, 0),
-                UV = new Vector2(1, 0)
-            });
-            ScreenRenderMesh.UpdateBuffers();
-            screenRenderMaterial = app.MaterialManager.CreateMaterial(
-                ScreenShader.name,
-                app.AssetManager.Get<Shader>(ScreenShader),
-                app.GraphicsDevice.SwapchainFramebuffer);
-            screenRenderMaterial.SetTexture("screenTex", app.CopyTexture);
-            screenRenderMaterial.SetSampler(new SamplerDescription
-            {
-                AddressModeU = SamplerAddressMode.Border,
-                AddressModeV = SamplerAddressMode.Border,
-                AddressModeW = SamplerAddressMode.Border,
-                Filter = SamplerFilter.Anisotropic,
-                LodBias = 0,
-                MinimumLod = 0,
-                MaximumAnisotropy = 16,
-                MaximumLod = uint.MaxValue,
-                BorderColor = SamplerBorderColor.TransparentBlack
-            });
-        }
-
         public string RegisterMesh(string name, Mesh mesh)
         {
             meshes.TryAdd(name, mesh);
@@ -157,30 +87,18 @@ namespace Deremis.Engine.Systems
 
         public void RegisterDeferred(Material deferredMat)
         {
-            foreach (var mat in deferredMaterials.Values)
-            {
-                if (mat.DeferredLightingMaterial == deferredMat.DeferredLightingMaterial)
-                    return;
-            }
-            deferredMaterials.TryAdd(deferredMat.Name, deferredMat);
-        }
-
-        public Material GetScreenPass(string name)
-        {
-            if (screenPassMaterials.ContainsKey(name)) return screenPassMaterials[name];
-
-            return null;
+            // foreach (var mat in deferredMaterials.Values)
+            // {
+            //     if (mat.DeferredLightingMaterial == deferredMat.DeferredLightingMaterial)
+            //         return;
+            // }
+            // deferredMaterials.TryAdd(deferredMat.Name, deferredMat);
         }
 
         public Mesh GetMesh(string name)
         {
             if (meshes.ContainsKey(name)) return meshes[name];
             return null;
-        }
-
-        public void RegisterScreenPass(Material material)
-        {
-            screenPassMaterials.TryAdd(material.Name, material);
         }
 
         private void SetFramebuffer(Framebuffer framebuffer = null)
@@ -333,89 +251,35 @@ namespace Deremis.Engine.Systems
 
         protected override void PostUpdate(float state)
         {
-            DrawScreenPasses();
             app.UpdateScreenTexture(commandList);
-
-            UpdateScreenBuffer(screenRenderMaterial, app.GraphicsDevice.SwapchainFramebuffer);
-
-            app.GraphicsDevice.SwapBuffers();
         }
 
         private void DrawDeferred()
         {
-            if (deferredMaterials.Count != 0)
-            {
-                commandList.Begin();
-                foreach (var key in deferredObjectsMap.Keys)
-                {
-                    if (InitDrawable(key, null, false, false) && deferredObjectsMap.TryGetEntities(key, out var entities))
-                    {
-                        isDrawValid = true;
-                        Update(0, in key, entities);
-                    }
-                }
-                commandList.End();
-                SubmitAndWait();
+            // if (deferredMaterials.Count != 0)
+            // {
+            //     commandList.Begin();
+            //     foreach (var key in deferredObjectsMap.Keys)
+            //     {
+            //         if (InitDrawable(key, null, false, false) && deferredObjectsMap.TryGetEntities(key, out var entities))
+            //         {
+            //             isDrawValid = true;
+            //             Update(0, in key, entities);
+            //         }
+            //     }
+            //     commandList.End();
+            //     SubmitAndWait();
 
-                app.UpdateRenderTextures(commandList);
+            //     app.UpdateRenderTextures(commandList);
 
-                foreach (var material in deferredMaterials.Values)
-                {
-                    UpdateScreenBuffer(material.DeferredLightingMaterial, app.ScreenFramebuffer);
-                }
-            }
+            //     foreach (var material in deferredMaterials.Values)
+            //     {
+            //         UpdateScreenBuffer(material.DeferredLightingMaterial, app.ScreenFramebuffer);
+            //     }
+            // }
         }
 
-        private void DrawScreenPasses()
-        {
-            if (screenPassMaterials.Count != 0)
-            {
-                foreach (var material in screenPassMaterials.Values)
-                {
-                    app.UpdateRenderTextures(commandList, material.Shader.PassColorTargetBaseName);
-                    UpdateScreenBuffer(material, material.Framebuffer);
-                }
-                app.UpdateScreenTexture(commandList);
-            }
-        }
 
-        private void UpdateScreenBuffer(Material material, Framebuffer framebuffer)
-        {
-            commandList.Begin();
-
-            commandList.UpdateBuffer(
-                app.MaterialManager.TransformBuffer,
-                0,
-                new TransformResource
-                {
-                    viewProjMatrix = viewProjMatrix,
-                    viewMatrix = viewMatrix,
-                    projMatrix = projMatrix
-                });
-            commandList.UpdateBuffer(app.MaterialManager.MaterialBuffer, 0, material.GetValueArray());
-            commandList.End();
-
-            for (var i = 0; i < material.Shader.PassCount; i++)
-            {
-                commandList.Begin();
-                bool isLastPass = i == material.Shader.PassCount - 1;
-                SetFramebuffer(isLastPass ? framebuffer : material.PassFramebuffer);
-
-                commandList.SetVertexBuffer(0, ScreenRenderMesh.VertexBuffer);
-                commandList.SetPipeline(material.GetPipeline(i));
-                commandList.SetGraphicsResourceSet(0, app.MaterialManager.GeneralResourceSet);
-                commandList.SetGraphicsResourceSet(1, material.ResourceSet);
-
-                commandList.Draw(
-                    vertexCount: ScreenRenderMesh.VertexCount,
-                    instanceCount: 1,
-                    vertexStart: 0,
-                    instanceStart: 0);
-                commandList.End();
-                SubmitAndWait();
-                app.UpdateRenderTextures(commandList, material.Shader.PassColorTargetBaseName);
-            }
-        }
 
         public void SubmitAndWait()
         {

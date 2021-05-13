@@ -210,13 +210,13 @@ namespace Deremis.Engine.Systems
                 if (i == 0) commandList.ClearColorTarget(0, RgbaFloat.Clear);
                 commandList.UpdateBuffer(app.MaterialManager.MaterialBuffer, 0, ScreenMaterials[i].GetValueArray());
 
-                commandList.SetVertexBuffer(0, app.ForwardRender.ScreenRenderMesh.VertexBuffer);
+                commandList.SetVertexBuffer(0, app.ScreenRender.ScreenRenderMesh.VertexBuffer);
                 commandList.SetPipeline(ScreenMaterials[i].GetPipeline(0));
                 commandList.SetGraphicsResourceSet(0, app.MaterialManager.GeneralResourceSet);
                 commandList.SetGraphicsResourceSet(1, ScreenMaterials[i].ResourceSet);
 
                 commandList.Draw(
-                    vertexCount: app.ForwardRender.ScreenRenderMesh.VertexCount,
+                    vertexCount: app.ScreenRender.ScreenRenderMesh.VertexCount,
                     instanceCount: 1,
                     vertexStart: 0,
                     instanceStart: 0);

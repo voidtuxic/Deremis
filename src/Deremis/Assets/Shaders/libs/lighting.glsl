@@ -27,8 +27,8 @@ vec3 GetBloom(vec3 color)
 {
     const vec3 luminanceVector = vec3(0.2126, 0.7152, 0.0722);
     float luminance = dot(luminanceVector, color);
-    luminance = max(0.0, luminance - 0.7);
-    vec3 bloom = color * sign(luminance);
+    luminance = max(0.15, max(0.0, luminance - 1.0));
+    vec3 bloom = color * luminance;
 
     return bloom;
 }

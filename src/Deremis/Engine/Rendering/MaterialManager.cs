@@ -82,10 +82,10 @@ namespace Deremis.Engine.Rendering
                     continue;
                 }
 
-                if (resource.Name.Equals(ForwardRenderSystem.BloomTextureName))
+                if (resource.Name.Equals(ScreenRenderSystem.BloomTextureName))
                 {
-                    var rt = app.GetRenderTexture(ForwardRenderSystem.BloomTextureName, Application.COLOR_PIXEL_FORMAT);
-                    material.SetTexture(ForwardRenderSystem.BloomTextureName, rt.CopyTexture);
+                    var rt = app.GetRenderTexture(ScreenRenderSystem.BloomTextureName, Application.COLOR_PIXEL_FORMAT);
+                    material.SetTexture(ScreenRenderSystem.BloomTextureName, rt.CopyTexture);
                     continue;
                 }
             }

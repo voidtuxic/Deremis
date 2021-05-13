@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using DefaultEcs;
+using DefaultEcs.System;
 using DefaultEcs.Threading;
 using Deremis.Engine.Core;
 using Deremis.Engine.Objects;
@@ -43,6 +44,7 @@ namespace Deremis.Platform
         public World DefaultWorld { get; private set; }
         public ForwardRenderSystem ForwardRender { get; private set; }
         public ShadowRenderSystem ShadowRender { get; private set; }
+        public ScreenRenderSystem ScreenRender { get; private set; }
         public SSAOSystem SSAO { get; private set; }
         public CullSystem Cull { get; private set; }
         public IParallelRunner ParallelSystemRunner { get; private set; }
@@ -111,6 +113,7 @@ namespace Deremis.Platform
 
             DefaultWorld = new World();
             ParallelSystemRunner = new DefaultParallelRunner(Environment.ProcessorCount);
+            ScreenRender = new ScreenRenderSystem(this, DefaultWorld);
             ForwardRender = new ForwardRenderSystem(this, DefaultWorld);
             ShadowRender = new ShadowRenderSystem(this, DefaultWorld);
             SSAO = new SSAOSystem(this, DefaultWorld);
@@ -120,6 +123,7 @@ namespace Deremis.Platform
             MainSystem.Add(SSAO);
             MainSystem.Add(ShadowRender);
             MainSystem.Add(ForwardRender);
+            MainSystem.Add(new ActionSystem<float>(ScreenRender.Update));
 
             LoadDefaultAssets();
 
@@ -139,7 +143,7 @@ namespace Deremis.Platform
                 Width, Height, 1, 1,
                 DEPTH_PIXEL_FORMAT, TextureUsage.DepthStencil, MSAA));
             ScreenDepthTexture.Name = "screenDepth";
-            var bloomRt = GetRenderTexture(ForwardRenderSystem.BloomTextureName, COLOR_PIXEL_FORMAT);
+            var bloomRt = GetRenderTexture(ScreenRenderSystem.BloomTextureName, COLOR_PIXEL_FORMAT);
             ScreenFramebuffer = Factory.CreateFramebuffer(new FramebufferDescription(ScreenDepthTexture, screenColorTexture, bloomRt.RenderTarget.VeldridTexture));
 
             var copyTexture = Factory.CreateTexture(TextureDescription.Texture2D(
@@ -161,9 +165,9 @@ namespace Deremis.Platform
             AssetManager.Get<Texture>(MissingTex);
             AssetManager.Get<Texture>(MissingNormalTex);
 
-            var bloomRt = GetRenderTexture(ForwardRenderSystem.BloomTextureName, Application.COLOR_PIXEL_FORMAT);
+            var bloomRt = GetRenderTexture(ScreenRenderSystem.BloomTextureName, Application.COLOR_PIXEL_FORMAT);
             var bloomFb = Factory.CreateFramebuffer(new FramebufferDescription(ScreenDepthTexture, bloomRt.RenderTarget.VeldridTexture));
-            GetScreenPass("bloom", AssetManager.current.Get<Shader>(ForwardRenderSystem.BloomBlurShader), bloomFb);
+            GetScreenPass("bloom", AssetManager.current.Get<Shader>(ScreenRenderSystem.BloomBlurShader), bloomFb);
         }
 
         public void Run()
@@ -206,7 +210,7 @@ namespace Deremis.Platform
 
         public Material GetScreenPass(string name, Shader shader, Framebuffer fb = null)
         {
-            var material = ForwardRender.GetScreenPass(name);
+            var material = ScreenRender.GetScreenPass(name);
             if (material == null)
             {
                 material = MaterialManager.CreateMaterial(name, shader);
@@ -236,7 +240,7 @@ namespace Deremis.Platform
                     material.SetupMultipass(gbufferTextures);
                 }
                 GraphicsDevice.WaitForIdle();
-                ForwardRender.RegisterScreenPass(material);
+                ScreenRender.RegisterScreenPass(material);
             }
             return material;
         }
