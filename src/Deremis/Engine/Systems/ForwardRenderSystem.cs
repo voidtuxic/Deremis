@@ -20,11 +20,18 @@ namespace Deremis.Engine.Systems
 {
     public class ForwardRenderSystem : AEntityMultiMapSystem<float, Drawable>
     {
+        public const string BloomTextureName = "bloomTex";
         public static ForwardRenderSystem current;
         public static AssetDescription ScreenShader = new AssetDescription
         {
             name = "screen_postprocess",
             path = "Shaders/screen/postprocess.xml"
+        };
+
+        public static AssetDescription BloomBlurShader = new AssetDescription
+        {
+            name = "bloom_blur",
+            path = "Shaders/screen/bloom_blur.xml"
         };
 
         private readonly Application app;
@@ -128,9 +135,18 @@ namespace Deremis.Engine.Systems
                 app.AssetManager.Get<Shader>(ScreenShader),
                 app.GraphicsDevice.SwapchainFramebuffer);
             screenRenderMaterial.SetTexture("screenTex", app.CopyTexture);
-
-            var secondTexRt = app.GetRenderTexture("ssaoTex", Application.COLOR_PIXEL_FORMAT);
-            screenRenderMaterial.SetTexture("secondTex", secondTexRt.CopyTexture);
+            screenRenderMaterial.SetSampler(new SamplerDescription
+            {
+                AddressModeU = SamplerAddressMode.Border,
+                AddressModeV = SamplerAddressMode.Border,
+                AddressModeW = SamplerAddressMode.Border,
+                Filter = SamplerFilter.Anisotropic,
+                LodBias = 0,
+                MinimumLod = 0,
+                MaximumAnisotropy = 16,
+                MaximumLod = uint.MaxValue,
+                BorderColor = SamplerBorderColor.TransparentBlack
+            });
         }
 
         public string RegisterMesh(string name, Mesh mesh)
@@ -181,6 +197,7 @@ namespace Deremis.Engine.Systems
 
             SetFramebuffer();
             commandList.ClearColorTarget(0, ClearColor);
+            commandList.ClearColorTarget(1, RgbaFloat.Clear); // bloom
             commandList.ClearDepthStencil(1f);
 
             if (cameraSet.Count == 0)
@@ -316,9 +333,8 @@ namespace Deremis.Engine.Systems
 
         protected override void PostUpdate(float state)
         {
-            DrawDeferred();
-            app.UpdateScreenTexture(commandList);
             DrawScreenPasses();
+            app.UpdateScreenTexture(commandList);
 
             UpdateScreenBuffer(screenRenderMaterial, app.GraphicsDevice.SwapchainFramebuffer);
 
@@ -356,7 +372,8 @@ namespace Deremis.Engine.Systems
             {
                 foreach (var material in screenPassMaterials.Values)
                 {
-                    UpdateScreenBuffer(material, app.ScreenFramebuffer);
+                    app.UpdateRenderTextures(commandList, material.Shader.PassColorTargetBaseName);
+                    UpdateScreenBuffer(material, material.Framebuffer);
                 }
                 app.UpdateScreenTexture(commandList);
             }
@@ -396,8 +413,7 @@ namespace Deremis.Engine.Systems
                     instanceStart: 0);
                 commandList.End();
                 SubmitAndWait();
-                if (material.Shader.IsMultipass && !isLastPass)
-                    app.UpdateRenderTextures(commandList, material.Shader.PassColorTargetBaseName);
+                app.UpdateRenderTextures(commandList, material.Shader.PassColorTargetBaseName);
             }
         }
 

@@ -9,6 +9,7 @@
     <resources>
         <texture2d name="screenTex" />
         <texture2d name="ssaoTex" />
+        <texture2d name="bloomTex" />
     </resources>
     <vertex>
 #include "screen/genericvert.glsl"
@@ -18,6 +19,7 @@
 
 #include "uniforms/transform.glsl"
 #include "libs/lighting.glsl"
+#include "libs/math.glsl"
 
 
 layout(location = 0) in vec2 f_UV;
@@ -25,7 +27,8 @@ layout(location = 0) out vec4 out_Color;
 
 layout(set = 1, binding = 0) uniform texture2D screenTex;
 layout(set = 1, binding = 1) uniform texture2D ssaoTex;
-layout(set = 1, binding = 2) uniform sampler texSampler;
+layout(set = 1, binding = 2) uniform texture2D bloomTex;
+layout(set = 1, binding = 3) uniform sampler texSampler;
 
 #include "libs/fxaa.glsl"
 
@@ -52,14 +55,13 @@ void main()
     texcoords(uv, res, v_rgbNW, v_rgbNE, v_rgbSW, v_rgbSE, v_rgbM);
 
     vec3 color = fxaa(uv, res, v_rgbNW, v_rgbNE, v_rgbSW, v_rgbSE, v_rgbM).rgb;
+
+        vec4 bloom = texture(sampler2D(bloomTex,texSampler), f_UV);
+        color += bloom.rgb;
+
     color = acesFilm(color);
-    
     float d = distance(f_UV, vec2(0.5))*2;
     color *= 1.0 - 0.45 * d;
-
-    if(f_UV.x &lt; 0.25 &amp;&amp; f_UV.y &lt; 0.25) {
-        color = texture(sampler2D(ssaoTex, texSampler), f_UV*4.0).rgb;
-    }
 
     out_Color = vec4(color, 1.0);
 }

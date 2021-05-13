@@ -139,7 +139,8 @@ namespace Deremis.Platform
                 Width, Height, 1, 1,
                 DEPTH_PIXEL_FORMAT, TextureUsage.DepthStencil, MSAA));
             ScreenDepthTexture.Name = "screenDepth";
-            ScreenFramebuffer = Factory.CreateFramebuffer(new FramebufferDescription(ScreenDepthTexture, screenColorTexture));
+            var bloomRt = GetRenderTexture(ForwardRenderSystem.BloomTextureName, COLOR_PIXEL_FORMAT);
+            ScreenFramebuffer = Factory.CreateFramebuffer(new FramebufferDescription(ScreenDepthTexture, screenColorTexture, bloomRt.RenderTarget.VeldridTexture));
 
             var copyTexture = Factory.CreateTexture(TextureDescription.Texture2D(
                 Width, Height, 1, 1,
@@ -159,6 +160,10 @@ namespace Deremis.Platform
             AssetManager.Get<Shader>(new AssetDescription("Shaders/pbr.xml"));
             AssetManager.Get<Texture>(MissingTex);
             AssetManager.Get<Texture>(MissingNormalTex);
+
+            var bloomRt = GetRenderTexture(ForwardRenderSystem.BloomTextureName, Application.COLOR_PIXEL_FORMAT);
+            var bloomFb = Factory.CreateFramebuffer(new FramebufferDescription(ScreenDepthTexture, bloomRt.RenderTarget.VeldridTexture));
+            GetScreenPass("bloom", AssetManager.current.Get<Shader>(ForwardRenderSystem.BloomBlurShader), bloomFb);
         }
 
         public void Run()
@@ -199,7 +204,7 @@ namespace Deremis.Platform
             }
         }
 
-        public Material GetScreenPass(string name, Shader shader)
+        public Material GetScreenPass(string name, Shader shader, Framebuffer fb = null)
         {
             var material = ForwardRender.GetScreenPass(name);
             if (material == null)
@@ -225,7 +230,7 @@ namespace Deremis.Platform
                         gbufferTextureViews.Add(rt.CopyTexture.View);
                     }
                 }
-                material.Build(ScreenFramebuffer, gbufferTextureViews);
+                material.Build(fb ?? ScreenFramebuffer, gbufferTextureViews);
                 if (material.Shader.IsMultipass)
                 {
                     material.SetupMultipass(gbufferTextures);
@@ -356,6 +361,7 @@ namespace Deremis.Platform
             {
                 foreach (var rt in limit)
                 {
+                    if (rt == null) continue;
                     renderTextures[rt].UpdateCopyTexture(commandList);
                 }
             }

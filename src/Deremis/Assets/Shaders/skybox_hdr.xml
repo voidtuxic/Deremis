@@ -34,9 +34,11 @@ void main()
 
 #include "uniforms/transform.glsl"
 #include "libs/math.glsl"
+#include "libs/lighting.glsl"
 
 layout(location = 0) in vec3 f_position;
 layout(location = 0) out vec4 out_Color;
+layout(location = 1) out vec4 out_Bloom;
 
 layout(set = 1, binding = 0) uniform texture2D skyboxTexture;
 layout(set = 1, binding = 1) uniform sampler texSampler;
@@ -46,6 +48,8 @@ void main()
     vec2 uv = SampleSphericalMap(normalize(f_position));
     vec3 color = texture(sampler2D(skyboxTexture, texSampler), uv).rgb;
     out_Color = vec4(color, 1.0);
+    vec3 bloom = GetBloom(color);
+    out_Bloom = vec4(bloom, 1.0);
 }
     </fragment>
 </shader>

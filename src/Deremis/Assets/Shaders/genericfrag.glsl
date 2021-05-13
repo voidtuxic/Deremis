@@ -7,3 +7,4 @@ layout(location = 3) in mat3 f_TBN;
 layout(location = 6) in mat4 f_FragPosLightSpace;
 
 layout(location = 0) out vec4 out_Color;
+layout(location = 1) out vec4 out_Bloom;

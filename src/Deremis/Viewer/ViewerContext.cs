@@ -80,6 +80,7 @@ namespace Deremis.Viewer
             panaMat.SetProperty("metallic", 1.0f);
             panaMat.SetProperty("roughness", 1.0f);
             panaMat.SetProperty("ao", 1.0f);
+            // panaMat.SetProperty("emissiveStrength", 1.0f);
             panaMat.SetTexture("albedoTexture", panaDiffuseTex);
             panaMat.SetTexture("mraTexture", panaMRATex);
             panaMat.SetTexture("normalTexture", panaNormalTex);
@@ -88,7 +89,7 @@ namespace Deremis.Viewer
             panaMat.SetTexture("prefilteredEnvTexture", hdrRadTex.View);
             panaMat.SetTexture("brdfLutTex", brdfLutTex.View);
             var tableMat = app.MaterialManager.CreateMaterial("table", shaderfwd);
-            tableMat.SetProperty("albedo", Vector3.One);
+            tableMat.SetProperty("albedo", Vector3.One * 0.5f);
             tableMat.SetProperty("metallic", 0.0f);
             tableMat.SetProperty("roughness", 1f);
             tableMat.SetProperty("ao", 1.0f);

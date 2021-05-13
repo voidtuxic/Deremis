@@ -23,13 +23,14 @@ namespace Deremis.Engine.Objects
         };
         private static SamplerDescription screenSampler = new SamplerDescription
         {
-            AddressModeU = SamplerAddressMode.Wrap,
-            AddressModeV = SamplerAddressMode.Wrap,
-            AddressModeW = SamplerAddressMode.Wrap,
+            AddressModeU = SamplerAddressMode.Border,
+            AddressModeV = SamplerAddressMode.Border,
+            AddressModeW = SamplerAddressMode.Border,
             Filter = SamplerFilter.MinLinear_MagLinear_MipLinear,
             LodBias = 0,
             MinimumLod = 0,
             MaximumLod = uint.MaxValue,
+            BorderColor = SamplerBorderColor.TransparentBlack
         };
 
         private readonly List<Pipeline> pipelines = new List<Pipeline>();

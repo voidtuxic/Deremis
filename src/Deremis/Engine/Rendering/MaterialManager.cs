@@ -72,12 +72,20 @@ namespace Deremis.Engine.Rendering
             }
 
             material.Build(fb, gbufferTextureViews);
+            // TODO ehhhhhhh
             foreach (var resource in shader.Resources.Values)
             {
                 if (resource.Name.Equals(SSAOSystem.RenderTextureName))
                 {
-                    var ssaoRt = app.GetRenderTexture(SSAOSystem.RenderTextureName, Application.COLOR_PIXEL_FORMAT);
-                    material.SetTexture(SSAOSystem.RenderTextureName, ssaoRt.CopyTexture);
+                    var rt = app.GetRenderTexture(SSAOSystem.RenderTextureName, Application.COLOR_PIXEL_FORMAT);
+                    material.SetTexture(SSAOSystem.RenderTextureName, rt.CopyTexture);
+                    continue;
+                }
+
+                if (resource.Name.Equals(ForwardRenderSystem.BloomTextureName))
+                {
+                    var rt = app.GetRenderTexture(ForwardRenderSystem.BloomTextureName, Application.COLOR_PIXEL_FORMAT);
+                    material.SetTexture(ForwardRenderSystem.BloomTextureName, rt.CopyTexture);
                     continue;
                 }
             }

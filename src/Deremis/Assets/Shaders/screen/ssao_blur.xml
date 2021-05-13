@@ -30,7 +30,7 @@ layout(set = 1, binding = 1) uniform sampler texSampler;
 void main()
 {
     vec2 resolution = textureSize(sampler2D(ssaoTex, texSampler), 0);
-    float Pi = 6.28318530718; // Pi*2
+    const float Pi = 6.28318530718; // Pi*2
     
     // GAUSSIAN BLUR SETTINGS {{{
     const float Directions = 16.0; // BLUR DIRECTIONS (Default 16.0 - More is better but slower)

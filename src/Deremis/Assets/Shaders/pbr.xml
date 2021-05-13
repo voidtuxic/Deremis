@@ -90,6 +90,9 @@ void main()
 
     color += texture(sampler2D(emissiveTexture, texSampler), f_UV).rgb * emissiveStrength;
     out_Color = vec4(color, 1);
+    
+    vec3 bloom = GetBloom(color);
+    out_Bloom = vec4(bloom, 1.0);
 }
     </fragment>
 </shader>
