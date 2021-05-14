@@ -73,11 +73,11 @@ namespace Deremis.Engine.Objects
 
             ClearPipelines();
 
-            if (Framebuffer != app.ScreenFramebuffer)
+            if (Framebuffer != app.ScreenRender.ScreenFramebuffer)
             {
                 Framebuffer?.Dispose();
             }
-            Framebuffer = framebuffer ?? app.ScreenFramebuffer;
+            Framebuffer = framebuffer ?? app.ScreenRender.ScreenFramebuffer;
 
             var resources = new List<Shader.Resource>(this.resources.Values).ToArray();
             Array.Sort(resources, new ShaderResourceOrderCompare());
@@ -138,7 +138,7 @@ namespace Deremis.Engine.Objects
 
             ClearPipelines();
             PassFramebuffer?.Dispose();
-            PassFramebuffer = app.Factory.CreateFramebuffer(new FramebufferDescription(app.ScreenDepthTexture, colorTargets.ToArray()));
+            PassFramebuffer = app.Factory.CreateFramebuffer(new FramebufferDescription(app.ScreenRender.ScreenDepthTexture.RenderTarget.VeldridTexture, colorTargets.ToArray()));
 
             for (var i = 0; i < Shader.PassCount; i++)
             {

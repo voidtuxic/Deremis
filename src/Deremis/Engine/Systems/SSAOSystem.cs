@@ -70,19 +70,18 @@ namespace Deremis.Engine.Systems
                 .With<Camera>()
                 .With<Transform>()
                 .AsSet();
-            CreateResources();
         }
 
         public void CreateResources()
         {
             DisposeScreenTargets();
 
-            var renderDepthTex = app.GetRenderTexture("ssao_depth", Application.DEPTH_PIXEL_FORMAT, TextureScale, true);
-            var positionRt = app.GetRenderTexture("ssao_position", Application.COLOR_PIXEL_FORMAT, TextureScale);
-            var normalRt = app.GetRenderTexture("ssao_normal", Application.COLOR_PIXEL_FORMAT, TextureScale);
+            var renderDepthTex = app.ScreenRender.GetRenderTexture("ssao_depth", ScreenRenderSystem.DEPTH_PIXEL_FORMAT, TextureScale, true);
+            var positionRt = app.ScreenRender.GetRenderTexture("ssao_position", ScreenRenderSystem.COLOR_PIXEL_FORMAT, TextureScale);
+            var normalRt = app.ScreenRender.GetRenderTexture("ssao_normal", ScreenRenderSystem.COLOR_PIXEL_FORMAT, TextureScale);
             SceneFramebuffer = app.Factory.CreateFramebuffer(new FramebufferDescription(renderDepthTex.RenderTarget.VeldridTexture, positionRt.RenderTarget.VeldridTexture, normalRt.RenderTarget.VeldridTexture));
 
-            var renderTex = app.GetRenderTexture(RenderTextureName, Application.COLOR_PIXEL_FORMAT, TextureScale);
+            var renderTex = app.ScreenRender.GetRenderTexture(RenderTextureName, ScreenRenderSystem.COLOR_PIXEL_FORMAT, TextureScale);
             ScreenFramebuffer = app.Factory.CreateFramebuffer(new FramebufferDescription(renderDepthTex.RenderTarget.VeldridTexture, renderTex.RenderTarget.VeldridTexture));
             Texture = renderTex.CopyTexture;
 
@@ -191,7 +190,7 @@ namespace Deremis.Engine.Systems
         protected override void PostUpdate(float state)
         {
             app.GraphicsDevice.WaitForIdle();
-            app.UpdateRenderTextures(commandList, "ssao_position", "ssao_normal");
+            app.ScreenRender.UpdateRenderTextures(commandList, "ssao_position", "ssao_normal");
 
             commandList.Begin();
 
@@ -228,7 +227,7 @@ namespace Deremis.Engine.Systems
                         instanceStart: 0);
                     commandList.End();
                     SubmitAndWait();
-                    app.UpdateRenderTextures(commandList, RenderTextureName);
+                    app.ScreenRender.UpdateRenderTextures(commandList, RenderTextureName);
                 }
             }
             app.GraphicsDevice.WaitForIdle();

@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Deremis.Engine.Objects;
 using Deremis.Engine.Rendering.Resources;
+using Deremis.Engine.Systems;
 using Deremis.Platform;
 using Deremis.Platform.Assets;
 using SixLabors.ImageSharp;
@@ -141,7 +142,7 @@ namespace Deremis.Engine.Rendering.Helpers
             hdrBRDFIntegrationTexture?.Dispose();
             var depthTexture = app.Factory.CreateTexture(TextureDescription.Texture2D(
                 MAP_SIZE, MAP_SIZE, 1, 1,
-                Application.DEPTH_PIXEL_FORMAT, TextureUsage.DepthStencil, TextureSampleCount.Count1));
+                ScreenRenderSystem.DEPTH_PIXEL_FORMAT, TextureUsage.DepthStencil, TextureSampleCount.Count1));
             depthTexture.Name = "irradiance_cubemap_depth";
             var cubemapTexture = app.Factory.CreateTexture(TextureDescription.Texture2D(
                 MAP_SIZE, MAP_SIZE, 1, 1,

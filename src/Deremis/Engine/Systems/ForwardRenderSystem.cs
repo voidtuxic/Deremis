@@ -110,11 +110,11 @@ namespace Deremis.Engine.Systems
 
         protected override void PreUpdate(float state)
         {
-            app.ClearDeferredFramebuffers(mainCommandList);
+            // app.ScreenRender.ClearDeferredFramebuffers(mainCommandList);
 
             mainCommandList.Begin();
 
-            mainCommandList.SetFramebuffer(app.ScreenFramebuffer);
+            mainCommandList.SetFramebuffer(app.ScreenRender.ScreenFramebuffer);
             mainCommandList.SetFullViewports();
             mainCommandList.ClearColorTarget(0, ClearColor);
             // mainCommandList.ClearColorTarget(1, RgbaFloat.Clear); // bloom
@@ -196,7 +196,7 @@ namespace Deremis.Engine.Systems
         {
             var commandList = state.commandList;
             commandList.Begin();
-            commandList.SetFramebuffer(app.ScreenFramebuffer);
+            commandList.SetFramebuffer(app.ScreenRender.ScreenFramebuffer);
             commandList.SetFullViewports();
             commandList.UpdateBuffer(app.MaterialManager.MaterialBuffer, 0, state.material.GetValueArray());
             commandList.SetVertexBuffer(0, state.mesh.VertexBuffer);
@@ -273,7 +273,7 @@ namespace Deremis.Engine.Systems
         protected override void PostUpdate(float deltaSeconds)
         {
             app.GraphicsDevice.WaitForIdle();
-            app.UpdateScreenTexture(mainCommandList);
+            app.ScreenRender.UpdateScreenTexture(mainCommandList);
         }
 
         private void DrawDeferred()

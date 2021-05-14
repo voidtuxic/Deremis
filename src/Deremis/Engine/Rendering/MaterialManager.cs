@@ -77,14 +77,14 @@ namespace Deremis.Engine.Rendering
             {
                 if (resource.Name.Equals(SSAOSystem.RenderTextureName))
                 {
-                    var rt = app.GetRenderTexture(SSAOSystem.RenderTextureName, Application.COLOR_PIXEL_FORMAT, SSAOSystem.TextureScale);
+                    var rt = app.ScreenRender.GetRenderTexture(SSAOSystem.RenderTextureName, ScreenRenderSystem.COLOR_PIXEL_FORMAT, SSAOSystem.TextureScale);
                     material.SetTexture(SSAOSystem.RenderTextureName, rt.CopyTexture);
                     continue;
                 }
 
                 if (resource.Name.Equals(ScreenRenderSystem.BloomTextureName))
                 {
-                    var rt = app.GetRenderTexture(ScreenRenderSystem.BloomTextureName, Application.COLOR_PIXEL_FORMAT, ScreenRenderSystem.TextureScale);
+                    var rt = app.ScreenRender.GetRenderTexture(ScreenRenderSystem.BloomTextureName, ScreenRenderSystem.COLOR_PIXEL_FORMAT, ScreenRenderSystem.TextureScale);
                     material.SetTexture(ScreenRenderSystem.BloomTextureName, rt.CopyTexture);
                     continue;
                 }

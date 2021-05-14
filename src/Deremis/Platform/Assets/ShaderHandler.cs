@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
 using Deremis.Engine.Objects;
+using Deremis.Engine.Systems;
 using Veldrid;
 using Shader = Deremis.Engine.Objects.Shader;
 
@@ -159,7 +160,7 @@ namespace Deremis.Platform.Assets
             foreach (XmlNode child in node)
             {
                 if (child.Name != "output") continue;
-                var format = Application.COLOR_PIXEL_FORMAT;
+                var format = ScreenRenderSystem.COLOR_PIXEL_FORMAT;
                 shader.Outputs.Add((child.Attributes["name"].Value, format));
             }
         }
