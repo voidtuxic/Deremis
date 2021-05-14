@@ -100,8 +100,8 @@ namespace Deremis.Viewer
 
             var tableEntity = tableModel.Spawn(app, tableMat.Name, new Transform(new Vector3(0, -2, 0), Quaternion.Identity, Vector3.One));
 
-            var length = 4;
-            var offset = 20;
+            var length = 1;
+            var offset = 0;
             var random = new Random();
             var rotate = 0f;
             for (var x = 0; x < length; x++)
@@ -112,14 +112,14 @@ namespace Deremis.Viewer
                         new Transform(new Vector3(x * offset - length / 2f * offset, 0, y * offset - length / 2f * offset),
                         Quaternion.CreateFromYawPitchRoll(MathF.PI / 2f, 0, 0), Vector3.One / 4f));
                     entityfwd.SetAsChildOf(tableEntity);
-                    // app.MainSystem.Add(new ActionSystem<float>(delta =>
-                    // {
-                    //     rotate += delta / 10f;
-                    //     entityfwd.Set(new Transform(new Vector3(
-                    //         MathF.Cos(rotate / 2f) * 30,
-                    //         0, MathF.Sin(rotate / 2f) * 30),
-                    //         Quaternion.CreateFromYawPitchRoll(MathF.PI / 2f + rotate, 0, 0), Vector3.One / 3f));
-                    // }));
+                    app.MainSystem.Add(new ActionSystem<float>(delta =>
+                    {
+                        rotate += delta / 10f;
+                        entityfwd.Set(new Transform(new Vector3(
+                            MathF.Cos(rotate / 2f) * 30,
+                            0, MathF.Sin(rotate / 2f) * 30),
+                            Quaternion.CreateFromYawPitchRoll(MathF.PI / 2f + rotate, 0, 0), Vector3.One / 3f));
+                    }));
                 }
             }
         }
