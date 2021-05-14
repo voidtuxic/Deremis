@@ -20,6 +20,7 @@ namespace Deremis.Engine.Systems
     public class SSAOSystem : AEntityMultiMapSystem<float, Drawable>
     {
         public const string RenderTextureName = "ssaoTex";
+        public const float TextureScale = 2f;
         public static AssetDescription GbufferShader = new AssetDescription
         {
             name = "ssao_gbuffer",
@@ -76,12 +77,13 @@ namespace Deremis.Engine.Systems
         {
             DisposeScreenTargets();
 
-            var positionRt = app.GetRenderTexture("position", Application.COLOR_PIXEL_FORMAT);
-            var normalRt = app.GetRenderTexture("normal", Application.COLOR_PIXEL_FORMAT);
-            SceneFramebuffer = app.Factory.CreateFramebuffer(new FramebufferDescription(app.ScreenDepthTexture, positionRt.RenderTarget.VeldridTexture, normalRt.RenderTarget.VeldridTexture));
+            var renderDepthTex = app.GetRenderTexture("ssao_depth", Application.DEPTH_PIXEL_FORMAT, TextureScale, true);
+            var positionRt = app.GetRenderTexture("ssao_position", Application.COLOR_PIXEL_FORMAT, TextureScale);
+            var normalRt = app.GetRenderTexture("ssao_normal", Application.COLOR_PIXEL_FORMAT, TextureScale);
+            SceneFramebuffer = app.Factory.CreateFramebuffer(new FramebufferDescription(renderDepthTex.RenderTarget.VeldridTexture, positionRt.RenderTarget.VeldridTexture, normalRt.RenderTarget.VeldridTexture));
 
-            var renderTex = app.GetRenderTexture(RenderTextureName, Application.COLOR_PIXEL_FORMAT);
-            ScreenFramebuffer = app.Factory.CreateFramebuffer(new FramebufferDescription(app.ScreenDepthTexture, renderTex.RenderTarget.VeldridTexture));
+            var renderTex = app.GetRenderTexture(RenderTextureName, Application.COLOR_PIXEL_FORMAT, TextureScale);
+            ScreenFramebuffer = app.Factory.CreateFramebuffer(new FramebufferDescription(renderDepthTex.RenderTarget.VeldridTexture, renderTex.RenderTarget.VeldridTexture));
             Texture = renderTex.CopyTexture;
 
             GbufferMaterial = app.MaterialManager.CreateMaterial(
@@ -100,6 +102,7 @@ namespace Deremis.Engine.Systems
                 app.AssetManager.Get<Shader>(BlurShader),
                 ScreenFramebuffer);
             ssaoBlurMat.SetTexture(RenderTextureName, renderTex.CopyTexture);
+            ssaoBlurMat.SetupMultipass(ScreenFramebuffer);
 
             ScreenMaterials.Add(ssaoMat);
             ScreenMaterials.Add(ssaoBlurMat);
@@ -182,12 +185,13 @@ namespace Deremis.Engine.Systems
         protected override void PostUpdate(float state, Drawable key)
         {
             commandList.End();
+            app.GraphicsDevice.SubmitCommands(commandList);
         }
 
         protected override void PostUpdate(float state)
         {
-            SubmitAndWait();
-            app.UpdateRenderTextures(commandList, "position", "normal");
+            app.GraphicsDevice.WaitForIdle();
+            app.UpdateRenderTextures(commandList, "ssao_position", "ssao_normal");
 
             commandList.Begin();
 
@@ -204,26 +208,30 @@ namespace Deremis.Engine.Systems
 
             for (var i = 0; i < ScreenMaterials.Count; i++)
             {
-                commandList.Begin();
-                commandList.SetFramebuffer(ScreenFramebuffer);
-                commandList.SetFullViewports();
-                if (i == 0) commandList.ClearColorTarget(0, RgbaFloat.Clear);
-                commandList.UpdateBuffer(app.MaterialManager.MaterialBuffer, 0, ScreenMaterials[i].GetValueArray());
+                for (var j = 0; j < ScreenMaterials[i].Shader.PassCount; j++)
+                {
+                    commandList.Begin();
+                    commandList.SetFramebuffer(ScreenFramebuffer);
+                    commandList.SetFullViewports();
+                    if (i == 0) commandList.ClearColorTarget(0, RgbaFloat.Clear);
+                    if (j == 0) commandList.UpdateBuffer(app.MaterialManager.MaterialBuffer, 0, ScreenMaterials[i].GetValueArray());
 
-                commandList.SetVertexBuffer(0, app.ScreenRender.ScreenRenderMesh.VertexBuffer);
-                commandList.SetPipeline(ScreenMaterials[i].GetPipeline(0));
-                commandList.SetGraphicsResourceSet(0, app.MaterialManager.GeneralResourceSet);
-                commandList.SetGraphicsResourceSet(1, ScreenMaterials[i].ResourceSet);
+                    commandList.SetVertexBuffer(0, app.ScreenRender.ScreenRenderMesh.VertexBuffer);
+                    commandList.SetPipeline(ScreenMaterials[i].GetPipeline(j));
+                    commandList.SetGraphicsResourceSet(0, app.MaterialManager.GeneralResourceSet);
+                    commandList.SetGraphicsResourceSet(1, ScreenMaterials[i].ResourceSet);
 
-                commandList.Draw(
-                    vertexCount: app.ScreenRender.ScreenRenderMesh.VertexCount,
-                    instanceCount: 1,
-                    vertexStart: 0,
-                    instanceStart: 0);
-                commandList.End();
-                SubmitAndWait();
-                app.UpdateRenderTextures(commandList, RenderTextureName);
+                    commandList.Draw(
+                        vertexCount: app.ScreenRender.ScreenRenderMesh.VertexCount,
+                        instanceCount: 1,
+                        vertexStart: 0,
+                        instanceStart: 0);
+                    commandList.End();
+                    SubmitAndWait();
+                    app.UpdateRenderTextures(commandList, RenderTextureName);
+                }
             }
+            app.GraphicsDevice.WaitForIdle();
         }
 
         public void SubmitAndWait()

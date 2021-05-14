@@ -12,6 +12,7 @@ namespace Deremis.Engine.Systems
     public class ScreenRenderSystem
     {
         public const string BloomTextureName = "bloomTex";
+        public const float TextureScale = 1;
         public static AssetDescription ScreenShader = new AssetDescription
         {
             name = "screen_postprocess",
@@ -132,8 +133,7 @@ namespace Deremis.Engine.Systems
             for (var i = 0; i < material.Shader.PassCount; i++)
             {
                 commandList.Begin();
-                bool isLastPass = i == material.Shader.PassCount - 1;
-                commandList.SetFramebuffer(isLastPass ? framebuffer : material.PassFramebuffer);
+                commandList.SetFramebuffer(framebuffer);
                 commandList.SetFullViewports();
 
                 commandList.SetVertexBuffer(0, ScreenRenderMesh.VertexBuffer);

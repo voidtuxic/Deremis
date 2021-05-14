@@ -44,17 +44,18 @@ vec2 getRandom(in vec2 uv)
     return normalize(hash22(uv*1000.0f) * 2.0f - 1.0f); 
 }
 
-float doAmbientOcclusion(in vec2 tcoord,in vec2 uv, in vec3 p, in vec3 cnorm, in float scale, in float bias, in float intensity) 
+float doAmbientOcclusion(in vec2 tcoord,in vec2 uv, in vec3 p, in vec3 cnorm, in float scale, in float bias, in float intensity, in float radius) 
 {
     vec3 diff = getPosition(tcoord + uv) - p; 
     vec3 v = normalize(diff); 
     float d = length(diff)*scale; 
-    return max(0.0,dot(cnorm,v)-bias)*(1.0/(1.0+d))*intensity;
+    float rangeCheck = smoothstep(0.0, 1.0, radius / min(0.0001, abs(diff.z)));
+    return max(0.0,dot(cnorm,v)-bias)*(1.0/(1.0+d))*intensity*rangeCheck;
 }
 
 void main()
 {
-    const float scale = 0.001;
+    const float scale = 0.1;
     const float intensity = 3.5f;
     const float radius = 0.5;
     const float bias = 0.025f;
@@ -74,13 +75,13 @@ void main()
     {
         vec2 coord1 = reflect(vec[j%4],rand)*rad; 
         
-        ao += doAmbientOcclusion(f_UV,coord1*0.25, p, n, scale, bias, intensity);
+        ao += doAmbientOcclusion(f_UV,coord1*0.25, p, n, scale, bias, intensity, radius);
     }
     ao /=float(iterations);
-    ao = pow(ao, 1.5);
+    ao = pow(ao, 5);
     ao = 1.0 - ao;
     
-    out_Color = vec4(vec3(ao), 1.0f);
+    out_Color = vec4(vec3(clamp(ao, 0 , 1)), 1.0f);
 }
     </fragment>
 </shader>

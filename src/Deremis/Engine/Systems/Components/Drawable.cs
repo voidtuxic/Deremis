@@ -6,5 +6,10 @@ namespace Deremis.Engine.Systems.Components
     {
         public string mesh;
         public string material;
+
+        public override int GetHashCode()
+        {
+            return mesh.GetHashCode() & material.GetHashCode();
+        }
     }
 }

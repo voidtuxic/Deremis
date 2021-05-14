@@ -23,18 +23,25 @@ namespace Deremis.Engine.Systems
         public static ForwardRenderSystem current;
 
         private readonly Application app;
-        private readonly CommandList commandList;
+        private readonly CommandList mainCommandList;
 
         private readonly EntitySet cameraSet;
         private readonly EntitySet lightSet;
         // private readonly EntityMultiMap<Drawable> deferredObjectsMap;
 
+        public struct DrawState
+        {
+            public int hashCode;
+            public CommandList commandList;
+            public bool isValid;
+            public Material material;
+            public Mesh mesh;
+        }
+
         private readonly ConcurrentDictionary<string, Mesh> meshes = new ConcurrentDictionary<string, Mesh>();
+        private readonly ConcurrentDictionary<int, DrawState> drawStates = new ConcurrentDictionary<int, DrawState>();
         // private readonly Dictionary<string, Material> deferredMaterials = new Dictionary<string, Material>();
 
-        private bool isDrawValid;
-        private Material material;
-        private Mesh mesh;
         private Matrix4x4 viewMatrix;
         private Matrix4x4 projMatrix;
         private Matrix4x4 viewProjMatrix;
@@ -51,8 +58,8 @@ namespace Deremis.Engine.Systems
         {
             current = this;
             this.app = app;
-            commandList = app.Factory.CreateCommandList();
-            commandList.Name = "MainCommandList";
+            mainCommandList = app.Factory.CreateCommandList();
+            mainCommandList.Name = "MainCommandList";
             cameraSet = world.GetEntities()
                 .With<Camera>()
                 .With<Transform>()
@@ -101,29 +108,17 @@ namespace Deremis.Engine.Systems
             return null;
         }
 
-        private void SetFramebuffer(Framebuffer framebuffer = null)
-        {
-            commandList.SetFramebuffer(framebuffer ?? app.ScreenFramebuffer);
-            commandList.SetFullViewports();
-        }
-
         protected override void PreUpdate(float state)
         {
-            app.ClearDeferredFramebuffers(commandList);
+            app.ClearDeferredFramebuffers(mainCommandList);
 
-            commandList.Begin();
+            mainCommandList.Begin();
 
-            SetFramebuffer();
-            commandList.ClearColorTarget(0, ClearColor);
-            commandList.ClearColorTarget(1, RgbaFloat.Clear); // bloom
-            commandList.ClearDepthStencil(1f);
-
-            if (cameraSet.Count == 0)
-            {
-                isDrawValid = false;
-                return;
-            }
-            isDrawValid = true;
+            mainCommandList.SetFramebuffer(app.ScreenFramebuffer);
+            mainCommandList.SetFullViewports();
+            mainCommandList.ClearColorTarget(0, ClearColor);
+            // mainCommandList.ClearColorTarget(1, RgbaFloat.Clear); // bloom
+            mainCommandList.ClearDepthStencil(1f);
 
             Span<Entity> cameras = stackalloc Entity[cameraSet.Count];
             cameraSet.GetEntities().CopyTo(cameras);
@@ -148,62 +143,96 @@ namespace Deremis.Engine.Systems
 
                 lightValues.AddRange(light.GetValueArray(ref transform));
             }
-            commandList.UpdateBuffer(app.MaterialManager.LightBuffer, 0, lightValues.ToArray());
-            commandList.End();
-            SubmitAndWait();
+            mainCommandList.UpdateBuffer(app.MaterialManager.LightBuffer, 0, lightValues.ToArray());
+            mainCommandList.End();
+
+            app.GraphicsDevice.SubmitCommands(mainCommandList);
+            app.GraphicsDevice.WaitForIdle();
         }
 
-        protected override void PreUpdate(float state, Drawable key)
+        private DrawState GetState(int hashCode)
         {
-            if (!isDrawValid) return;
-            isDrawValid = InitDrawable(key);
-        }
-
-        private bool InitDrawable(Drawable key, Material drawMat = null, bool checkDeferred = true, bool begin = true)
-        {
-            material = drawMat ?? app.MaterialManager.GetMaterial(key.material);
-            if (material == null || (checkDeferred && material.Shader.IsDeferred))
+            if (!drawStates.ContainsKey(hashCode))
             {
-                return false;
+                var commandList = app.Factory.CreateCommandList();
+                var state = new DrawState { commandList = commandList, hashCode = hashCode };
+                if (drawStates.TryAdd(hashCode, state))
+                {
+                    return state;
+                }
+                else
+                {
+                    commandList.Dispose();
+                    return default;
+                }
             }
-            mesh = GetMesh(key.mesh);
-            var pipeline = material.GetPipeline(0);
-            if (pipeline != null && mesh != null)
-            {
-                SetPipeline(pipeline, begin);
-                isDrawValid = true;
-            }
-            else return false;
-            return true;
+            return drawStates[hashCode];
         }
 
-        private void SetPipeline(Pipeline pipeline, bool begin)
+        private void SetState(int hashCode, DrawState state)
         {
-            if (begin)
-                commandList.Begin();
-            SetFramebuffer(material.Framebuffer);
-            commandList.UpdateBuffer(app.MaterialManager.MaterialBuffer, 0, material.GetValueArray());
-            commandList.SetVertexBuffer(0, mesh.VertexBuffer);
-            if (mesh.Indexed)
-                commandList.SetIndexBuffer(mesh.IndexBuffer, IndexFormat.UInt32);
+            if (!drawStates.ContainsKey(hashCode)) return;
+            drawStates[hashCode] = state;
+        }
+
+        private void InitDrawable(in Drawable key)
+        {
+            var state = GetState(key.GetHashCode());
+            state.material = app.MaterialManager.GetMaterial(key.material);
+            state.mesh = GetMesh(key.mesh);
+            if (state.material == null || state.mesh == null || mainCommandList == null)
+            {
+                state.isValid = false;
+                SetState(key.GetHashCode(), state);
+                return;
+            }
+            state.isValid = true;
+            var pipeline = state.material.GetPipeline(0);
+            SetPipeline(pipeline, ref state);
+            SetState(key.GetHashCode(), state);
+        }
+
+        private void SetPipeline(Pipeline pipeline, ref DrawState state)
+        {
+            var commandList = state.commandList;
+            commandList.Begin();
+            commandList.SetFramebuffer(app.ScreenFramebuffer);
+            commandList.SetFullViewports();
+            commandList.UpdateBuffer(app.MaterialManager.MaterialBuffer, 0, state.material.GetValueArray());
+            commandList.SetVertexBuffer(0, state.mesh.VertexBuffer);
+            if (state.mesh.Indexed)
+                commandList.SetIndexBuffer(state.mesh.IndexBuffer, IndexFormat.UInt32);
             commandList.SetPipeline(pipeline);
             commandList.SetGraphicsResourceSet(0, app.MaterialManager.GeneralResourceSet);
-            commandList.SetGraphicsResourceSet(1, material.ResourceSet);
+            commandList.SetGraphicsResourceSet(1, state.material.ResourceSet);
+            state.commandList = commandList;
         }
 
-        protected override void Update(float state, in Drawable key, ReadOnlySpan<Entity> entities)
+        protected override void Update(float deltaSeconds, in Drawable key, ReadOnlySpan<Entity> entities)
         {
-            if (!isDrawValid) return;
+            var state = GetState(key.GetHashCode());
+            InitDrawable(in key);
+            if (!state.isValid) return;
 
             foreach (ref readonly var entity in entities)
             {
                 if (entity.Get<Render>().Screen)
-                    Draw(in entity);
+                {
+                    Draw(in key, in entity);
+                }
             }
+
+            var commandList = state.commandList;
+            commandList.End();
+
+            app.GraphicsDevice.SubmitCommands(commandList);
         }
 
-        private void Draw(in Entity entity)
+        private void Draw(in Drawable key, in Entity entity)
         {
+            var state = GetState(key.GetHashCode());
+            if (!state.isValid) return;
+            var commandList = state.commandList;
             var transform = entity.GetWorldTransform();
             var world = transform.ToMatrix();
             var normalWorld = Matrix4x4.Identity;
@@ -226,32 +255,25 @@ namespace Deremis.Engine.Systems
                     lightSpaceMatrix3 = app.ShadowRender.GetCascadeLightViewMatrix(1),
                 });
 
-            if (mesh.Indexed)
+            if (state.mesh.Indexed)
                 commandList.DrawIndexed(
-                    indexCount: mesh.IndexCount,
+                    indexCount: state.mesh.IndexCount,
                     instanceCount: 1,
                     indexStart: 0,
                     vertexOffset: 0,
                     instanceStart: 0);
             else
                 commandList.Draw(
-                    vertexCount: mesh.VertexCount,
+                    vertexCount: state.mesh.VertexCount,
                     instanceCount: 1,
                     vertexStart: 0,
                     instanceStart: 0);
         }
 
-        protected override void PostUpdate(float state, Drawable key)
+        protected override void PostUpdate(float deltaSeconds)
         {
-            commandList.End();
-            app.GraphicsDevice.SubmitCommands(commandList);
-            // kinda defeats the purpose of general preupdate...
-            isDrawValid = true;
-        }
-
-        protected override void PostUpdate(float state)
-        {
-            app.UpdateScreenTexture(commandList);
+            app.GraphicsDevice.WaitForIdle();
+            app.UpdateScreenTexture(mainCommandList);
         }
 
         private void DrawDeferred()
@@ -277,14 +299,6 @@ namespace Deremis.Engine.Systems
             //         UpdateScreenBuffer(material.DeferredLightingMaterial, app.ScreenFramebuffer);
             //     }
             // }
-        }
-
-
-
-        public void SubmitAndWait()
-        {
-            app.GraphicsDevice.SubmitCommands(commandList);
-            app.GraphicsDevice.WaitForIdle();
         }
     }
 }

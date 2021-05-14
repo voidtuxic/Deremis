@@ -6,55 +6,23 @@
         <RasterizerState depthClipEnabled="true" scissorTestEnabled="false" cullMode="None" fillMode="Solid" frontFace="Clockwise" />
         <PrimitiveTopology>TriangleList</PrimitiveTopology>
     </config>
-    <properties>
-        <vec3 isArray="64" name="samples" />
-    </properties>
+    <multipass name="ssaoTex" colorTargetCount="1" />
     <resources>
         <texture2d name="ssaoTex" />
     </resources>
     <vertex>
 #include "screen/genericvert.glsl"
     </vertex>
-    <fragment>
-#version 450
-
-#include "uniforms/transform.glsl"
-#include "libs/hash.glsl"
-
-layout(location = 0) in vec2 f_UV;
-layout(location = 0) out vec4 out_Color;
-
-layout(set = 1, binding = 0) uniform texture2D ssaoTex;
-layout(set = 1, binding = 1) uniform sampler texSampler;
-
-void main()
-{
-    vec2 resolution = textureSize(sampler2D(ssaoTex, texSampler), 0);
-    const float Pi = 6.28318530718; // Pi*2
-    
-    // GAUSSIAN BLUR SETTINGS {{{
-    const float Directions = 16.0; // BLUR DIRECTIONS (Default 16.0 - More is better but slower)
-    const float Quality = 3.0; // BLUR QUALITY (Default 4.0 - More is better but slower)
-    const float Size = 12.0; // BLUR SIZE (Radius)
-    // GAUSSIAN BLUR SETTINGS }}}
-
-    vec2 Radius = Size/resolution.xy;
-
-    // Pixel colour
-    vec4 Color = texture(sampler2D(ssaoTex, texSampler), f_UV);
-    
-    // Blur calculations
-    for( float d=0.0; d &lt; Pi; d+=Pi/Directions)
-    {
-		for(float i=1.0/Quality; i&lt;=1.0; i+=1.0/Quality)
-        {
-			Color += texture( sampler2D(ssaoTex, texSampler), f_UV+vec2(cos(d),sin(d))*Radius*i);		
-        }
-    }
-    
-    // Output to screen
-    Color /= Quality * Directions - 15.0;
-    out_Color = vec4(Color.rgb, 1.0f);
-}
+    <fragment passIndex="0">
+#include "screen/bloom_blur_h.glsl"
+    </fragment>
+    <fragment passIndex="1">
+#include "screen/bloom_blur_v.glsl"
+    </fragment>
+    <fragment passIndex="2">
+#include "screen/bloom_blur_h.glsl"
+    </fragment>
+    <fragment passIndex="3">
+#include "screen/bloom_blur_v.glsl"
     </fragment>
 </shader>

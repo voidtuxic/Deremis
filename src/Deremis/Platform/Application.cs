@@ -100,7 +100,7 @@ namespace Deremis.Platform
                 SyncToVerticalBlank = true,
                 SwapchainSrgbFormat = true,
 #if DEBUG
-                Debug = true,
+                // Debug = true,
 #endif
             };
             GraphicsDevice = VeldridStartup.CreateGraphicsDevice(Window, options, GraphicsBackend.Direct3D11);
@@ -143,7 +143,7 @@ namespace Deremis.Platform
                 Width, Height, 1, 1,
                 DEPTH_PIXEL_FORMAT, TextureUsage.DepthStencil, MSAA));
             ScreenDepthTexture.Name = "screenDepth";
-            var bloomRt = GetRenderTexture(ScreenRenderSystem.BloomTextureName, COLOR_PIXEL_FORMAT);
+            var bloomRt = GetRenderTexture(ScreenRenderSystem.BloomTextureName, COLOR_PIXEL_FORMAT, ScreenRenderSystem.TextureScale);
             ScreenFramebuffer = Factory.CreateFramebuffer(new FramebufferDescription(ScreenDepthTexture, screenColorTexture, bloomRt.RenderTarget.VeldridTexture));
 
             var copyTexture = Factory.CreateTexture(TextureDescription.Texture2D(
@@ -165,9 +165,10 @@ namespace Deremis.Platform
             AssetManager.Get<Texture>(MissingTex);
             AssetManager.Get<Texture>(MissingNormalTex);
 
-            var bloomRt = GetRenderTexture(ScreenRenderSystem.BloomTextureName, Application.COLOR_PIXEL_FORMAT);
-            var bloomFb = Factory.CreateFramebuffer(new FramebufferDescription(ScreenDepthTexture, bloomRt.RenderTarget.VeldridTexture));
-            GetScreenPass("bloom", AssetManager.current.Get<Shader>(ScreenRenderSystem.BloomBlurShader), bloomFb);
+            var bloomRt = GetRenderTexture(ScreenRenderSystem.BloomTextureName, Application.COLOR_PIXEL_FORMAT, ScreenRenderSystem.TextureScale);
+            var bloomDepthRt = GetRenderTexture("bloom_depth", Application.DEPTH_PIXEL_FORMAT, ScreenRenderSystem.TextureScale, true);
+            var bloomFb = Factory.CreateFramebuffer(new FramebufferDescription(bloomDepthRt.RenderTarget.VeldridTexture, bloomRt.RenderTarget.VeldridTexture));
+            GetScreenPass("bloom", AssetManager.current.Get<Shader>(ScreenRenderSystem.BloomBlurShader), ScreenRenderSystem.TextureScale, bloomFb);
         }
 
         public void Run()
@@ -186,29 +187,29 @@ namespace Deremis.Platform
             }
         }
 
-        public void GetDeferredFramebuffer(Shader shader, out Framebuffer fb, out List<TextureView> gbufferTextureViews)
-        {
-            gbufferTextureViews = new List<TextureView>();
-            var colorTargets = new List<Veldrid.Texture>();
-            for (int i = 0; i < shader.Outputs.Count; i++)
-            {
-                PixelFormat outputFormat = shader.Outputs[i].Item2;
-                var rt = GetRenderTexture(shader.Outputs[i].Item1, outputFormat);
-                colorTargets.Add(rt.RenderTarget.VeldridTexture);
-                gbufferTextureViews.Add(rt.CopyTexture.View);
-            }
-            if (deferredFramebuffers.ContainsKey(shader))
-            {
-                fb = deferredFramebuffers[shader];
-            }
-            else
-            {
-                fb = Factory.CreateFramebuffer(new FramebufferDescription(ScreenDepthTexture, colorTargets.ToArray()));
-                deferredFramebuffers.Add(shader, fb);
-            }
-        }
+        // public void GetDeferredFramebuffer(Shader shader, out Framebuffer fb, out List<TextureView> gbufferTextureViews)
+        // {
+        //     gbufferTextureViews = new List<TextureView>();
+        //     var colorTargets = new List<Veldrid.Texture>();
+        //     for (int i = 0; i < shader.Outputs.Count; i++)
+        //     {
+        //         PixelFormat outputFormat = shader.Outputs[i].Item2;
+        //         var rt = GetRenderTexture(shader.Outputs[i].Item1, outputFormat);
+        //         colorTargets.Add(rt.RenderTarget.VeldridTexture);
+        //         gbufferTextureViews.Add(rt.CopyTexture.View);
+        //     }
+        //     if (deferredFramebuffers.ContainsKey(shader))
+        //     {
+        //         fb = deferredFramebuffers[shader];
+        //     }
+        //     else
+        //     {
+        //         fb = Factory.CreateFramebuffer(new FramebufferDescription(ScreenDepthTexture, colorTargets.ToArray()));
+        //         deferredFramebuffers.Add(shader, fb);
+        //     }
+        // }
 
-        public Material GetScreenPass(string name, Shader shader, Framebuffer fb = null)
+        public Material GetScreenPass(string name, Shader shader, float scale, Framebuffer fb = null)
         {
             var material = ScreenRender.GetScreenPass(name);
             if (material == null)
@@ -226,7 +227,7 @@ namespace Deremis.Platform
                     }
                     if (resource.Value.Kind == ResourceKind.TextureReadOnly)
                     {
-                        var rt = GetRenderTexture(resource.Key, COLOR_PIXEL_FORMAT);
+                        var rt = GetRenderTexture(resource.Key, COLOR_PIXEL_FORMAT, scale);
                         if (material.Shader.IsMultipass && resource.Key.Contains(material.Shader.PassColorTargetBaseName))
                         {
                             gbufferTextures.Add(rt.RenderTarget.VeldridTexture);
@@ -245,10 +246,10 @@ namespace Deremis.Platform
             return material;
         }
 
-        public RenderTexture GetRenderTexture(string name, PixelFormat format, bool isDepth = false)
+        public RenderTexture GetRenderTexture(string name, PixelFormat format, float scale, bool isDepth = false)
         {
             if (renderTextures.ContainsKey(name)) return renderTextures[name];
-            var rt = new RenderTexture(this, name, Width, Height, format, isDepth);
+            var rt = new RenderTexture(this, name, (uint)(Width / scale), (uint)(Height / scale), format, isDepth);
             renderTextures.Add(name, rt);
             return rt;
         }

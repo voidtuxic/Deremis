@@ -77,7 +77,7 @@ namespace Deremis.Viewer
 
             var panaMat = app.MaterialManager.CreateMaterial("pana", shaderfwd);
             panaMat.SetProperty("albedo", Vector3.One);
-            panaMat.SetProperty("metallic", 1.0f);
+            panaMat.SetProperty("metallic", 0.3f);
             panaMat.SetProperty("roughness", 1.0f);
             panaMat.SetProperty("ao", 1.0f);
             // panaMat.SetProperty("emissiveStrength", 1.0f);
@@ -100,8 +100,8 @@ namespace Deremis.Viewer
 
             var tableEntity = tableModel.Spawn(app, tableMat.Name, new Transform(new Vector3(0, -2, 0), Quaternion.Identity, Vector3.One));
 
-            var length = 1;
-            var offset = 1;
+            var length = 4;
+            var offset = 20;
             var random = new Random();
             var rotate = 0f;
             for (var x = 0; x < length; x++)
@@ -110,14 +110,16 @@ namespace Deremis.Viewer
                 {
                     var entityfwd = panaModel.Spawn(app, panaMat.Name,
                         new Transform(new Vector3(x * offset - length / 2f * offset, 0, y * offset - length / 2f * offset),
-                        Quaternion.CreateFromYawPitchRoll(MathF.PI / 2f, 0, 0), Vector3.One / 2f));
+                        Quaternion.CreateFromYawPitchRoll(MathF.PI / 2f, 0, 0), Vector3.One / 4f));
                     entityfwd.SetAsChildOf(tableEntity);
-                    app.MainSystem.Add(new ActionSystem<float>(delta =>
-                    {
-                        rotate += delta;
-                        entityfwd.Set(new Transform(new Vector3(x * offset - length / 2f * offset, 0, y * offset - length / 2f * offset),
-                            Quaternion.CreateFromYawPitchRoll(MathF.PI / 2f + rotate, 0, 0), Vector3.One / 2f));
-                    }));
+                    // app.MainSystem.Add(new ActionSystem<float>(delta =>
+                    // {
+                    //     rotate += delta / 10f;
+                    //     entityfwd.Set(new Transform(new Vector3(
+                    //         MathF.Cos(rotate / 2f) * 30,
+                    //         0, MathF.Sin(rotate / 2f) * 30),
+                    //         Quaternion.CreateFromYawPitchRoll(MathF.PI / 2f + rotate, 0, 0), Vector3.One / 3f));
+                    // }));
                 }
             }
         }

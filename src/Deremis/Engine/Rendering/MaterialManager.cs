@@ -66,10 +66,10 @@ namespace Deremis.Engine.Rendering
             Framebuffer fb = framebuffer;
             List<TextureView> gbufferTextureViews = null;
             // assume the user know what they're doing with the framebuffer
-            if (shader.IsDeferred && fb == null)
-            {
-                app.GetDeferredFramebuffer(shader, out fb, out gbufferTextureViews);
-            }
+            // if (shader.IsDeferred && fb == null)
+            // {
+            //     app.GetDeferredFramebuffer(shader, out fb, out gbufferTextureViews);
+            // }
 
             material.Build(fb, gbufferTextureViews);
             // TODO ehhhhhhh
@@ -77,14 +77,14 @@ namespace Deremis.Engine.Rendering
             {
                 if (resource.Name.Equals(SSAOSystem.RenderTextureName))
                 {
-                    var rt = app.GetRenderTexture(SSAOSystem.RenderTextureName, Application.COLOR_PIXEL_FORMAT);
+                    var rt = app.GetRenderTexture(SSAOSystem.RenderTextureName, Application.COLOR_PIXEL_FORMAT, SSAOSystem.TextureScale);
                     material.SetTexture(SSAOSystem.RenderTextureName, rt.CopyTexture);
                     continue;
                 }
 
                 if (resource.Name.Equals(ScreenRenderSystem.BloomTextureName))
                 {
-                    var rt = app.GetRenderTexture(ScreenRenderSystem.BloomTextureName, Application.COLOR_PIXEL_FORMAT);
+                    var rt = app.GetRenderTexture(ScreenRenderSystem.BloomTextureName, Application.COLOR_PIXEL_FORMAT, ScreenRenderSystem.TextureScale);
                     material.SetTexture(ScreenRenderSystem.BloomTextureName, rt.CopyTexture);
                     continue;
                 }

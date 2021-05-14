@@ -8,6 +8,7 @@ vec3 FresnelSchlick(vec3 SpecularColor,vec3 E,vec3 H, float roughness)
     return SpecularColor + (max(vec3(1.0 - roughness), SpecularColor) - SpecularColor) * pow(1.0 - saturate(dot(E, H)), 5);
 }
 
+// ----------------------------------------------------------------------------
 float DistributionGGX(vec3 N, vec3 H, float roughness)
 {
     float a = roughness*roughness;
@@ -24,7 +25,7 @@ float DistributionGGX(vec3 N, vec3 H, float roughness)
 // ----------------------------------------------------------------------------
 float GeometrySchlickGGX(float NdotV, float roughness)
 {
-    float r = (roughness + 1.0);
+    float r = (roughness*roughness + 1.0);
     float k = (r*r) / 8.0;
 
     float nom   = NdotV;
@@ -45,14 +46,15 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 
 vec3 CalculatePBR(mat4 fragParams, mat4 viewParams, mat4 fragPosLightSpace, float fragDepth)
 {
-    vec3 fragPos = fragParams[0].xyz;
+    const vec3 posOffset = vec3(2048);
+    vec3 fragPos = fragParams[0].xyz + posOffset;
     vec3 N = fragParams[1].xyz;
     vec3 albedo = fragParams[2].xyz;
     float metal = fragParams[3].x;
     float rough = fragParams[3].y;
     float ao = fragParams[3].z;
 
-    vec3 viewPos = viewParams[0].xyz;
+    vec3 viewPos = viewParams[0].xyz + posOffset;
     vec3 V = normalize(viewPos - fragPos);
     vec3 irradiance = viewParams[1].xyz;
 
@@ -62,11 +64,11 @@ vec3 CalculatePBR(mat4 fragParams, mat4 viewParams, mat4 fragPosLightSpace, floa
     vec3 Lo = vec3(0.0);
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, albedo, metal);
-    vec3 diffuse = irradiance * albedo;
 
     for(int i = 0; i < MAX_LIGHTS; i++) 
     {
         float lightType = Lights[i].Type;
+        vec3 lightPosition = Lights[i].Position + posOffset;
         vec3 L;
         float attenuation = 1;
         float shadow = 0;
@@ -78,8 +80,8 @@ vec3 CalculatePBR(mat4 fragParams, mat4 viewParams, mat4 fragPosLightSpace, floa
         }
         else if(lightType == 1)
         {
-            L = normalize(Lights[i].Position - fragPos);
-            float distance = length(Lights[i].Position - fragPos);
+            L = normalize(lightPosition - fragPos);
+            float distance = length(lightPosition - fragPos);
             float range = max(MIN_RANGE, Lights[i].Range);
             float linear = LINEAR_FACTOR/range;
             float quadratic = QUADRATIC_FACTOR/(range*range);
@@ -89,7 +91,7 @@ vec3 CalculatePBR(mat4 fragParams, mat4 viewParams, mat4 fragPosLightSpace, floa
         {
             float lightInnerCutOff = Lights[i].InnerCutoff;
             float lightOuterCutOff = Lights[i].OuterCutoff;
-            L = normalize(Lights[i].Position - fragPos);
+            L = normalize(lightPosition - fragPos);
             float theta = dot(L, normalize(-Lights[i].Direction));
             float epsilon = lightOuterCutOff - lightInnerCutOff;
             intensity = clamp((theta - lightInnerCutOff) / epsilon, 0.0, 1.0);
@@ -100,23 +102,24 @@ vec3 CalculatePBR(mat4 fragParams, mat4 viewParams, mat4 fragPosLightSpace, floa
         vec3 H = normalize(V + L);
         vec3 radiance = Lights[i].Color * attenuation;
 
-        vec3 F =  FresnelSchlick(F0, V, H, rough);
+        vec3 F =  FresnelSchlick(F0, H, V, rough);
         float NDF = DistributionGGX(N, H, rough);
         float G   = GeometrySmith(N, V, L, rough);
-        vec3 specular = NDF * G * F;
+        vec3 specular = (NDF * G * F);
 
         vec3 kS = F;
         vec3 kD = vec3(1.0) - kS;
         kD *= 1.0 - metal;
         
-        Lo += ((kD * diffuse + specular) * radiance * NdotL * intensity) * (1.0 - shadow);
+        Lo += ((kD * albedo / PI + specular) * radiance * NdotL * intensity) * (1.0 - shadow);
     }
+    vec3 diffuse = irradiance * albedo;
     vec3 F =  FresnelSchlick(F0, N, V, rough);
     vec3 kS = F;
     vec3 kD = 1.0 - kS;
     kD *= 1.0 - metal;
     vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
-    vec3 ambient = (kD * diffuse + specular/12.0) * ao;
+    vec3 ambient = (kD * diffuse + specular/8.0) * ao;
     vec3 color = ambient + Lo;
     return color;
 }

@@ -149,6 +149,24 @@ namespace Deremis.Engine.Objects
             }
         }
 
+        public void SetupMultipass(Framebuffer framebuffer)
+        {
+            if (!Shader.IsMultipass) return;
+            var app = Application.current;
+
+            ClearPipelines();
+            PassFramebuffer?.Dispose();
+            PassFramebuffer = framebuffer;
+
+            for (var i = 0; i < Shader.PassCount; i++)
+            {
+                var description = Shader.GetPipelineDescription(i);
+                description.ResourceLayouts = new ResourceLayout[] { app.MaterialManager.GeneralResourceLayout, resourceLayout };
+                description.Outputs = framebuffer.OutputDescription;
+                pipelines.Add(app.Factory.CreateGraphicsPipeline(description));
+            }
+        }
+
         public void BuildResourceSet()
         {
             var app = Application.current;

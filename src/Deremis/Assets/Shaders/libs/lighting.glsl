@@ -25,10 +25,11 @@ vec3 CorrectGamma(vec3 color) {
 
 vec3 GetBloom(vec3 color) 
 {
+    vec3 tonemapped = vec3(1.0) - exp(-color * 1.0);
     const vec3 luminanceVector = vec3(0.2126, 0.7152, 0.0722);
-    float luminance = dot(luminanceVector, color);
+    float luminance = dot(luminanceVector, tonemapped);
     luminance = max(0.15, max(0.0, luminance - 1.0));
-    vec3 bloom = color * luminance;
+    vec3 bloom = tonemapped * luminance;
 
     return bloom;
 }
