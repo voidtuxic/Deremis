@@ -35,15 +35,15 @@ namespace Deremis.Engine.Objects
             nodes.Add(new Node { mesh = mesh, transform = transform });
         }
 
-        public Entity Spawn(Application app, string material, Transform transform, bool shadows = true)
+        public Entity Spawn(Scene scene, string material, Transform transform, bool shadows = true)
         {
-            Entity entity = app.CreateTransform(Name);
+            Entity entity = scene.CreateTransform(Name);
             entity.Set(transform);
             foreach (var node in nodes)
             {
                 var mesh = Meshes[node.mesh];
                 if (mesh == null) continue;
-                var child = app.Spawn(mesh.Name, mesh, material, shadows);
+                var child = scene.Spawn(mesh.Name, mesh, material, shadows);
                 child.Set(node.transform);
                 child.SetAsChildOf(entity);
             }

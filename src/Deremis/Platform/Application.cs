@@ -49,7 +49,6 @@ namespace Deremis.Platform
         public CullSystem Cull { get; private set; }
         public IParallelRunner ParallelSystemRunner { get; private set; }
         public SequentialListSystem<float> MainSystem { get; private set; }
-        private int entityCounter = 0;
 
         public AssetManager AssetManager { get; private set; }
         public MaterialManager MaterialManager { get; private set; }
@@ -252,69 +251,6 @@ namespace Deremis.Platform
             var rt = new RenderTexture(this, name, (uint)(Width / scale), (uint)(Height / scale), format, isDepth);
             renderTextures.Add(name, rt);
             return rt;
-        }
-
-        public Entity CreateEntity(string name = "Entity")
-        {
-            var entity = DefaultWorld.CreateEntity();
-            entity.Set(new Metadata { entityId = entityCounter, name = name });
-            entityCounter++;
-            return entity;
-        }
-
-        public Entity CreateTransform(string name)
-        {
-            var entity = CreateEntity(name);
-            entity.Set(new Transform
-            {
-                position = Vector3.Zero,
-                rotation = Quaternion.Identity,
-                scale = Vector3.One
-            });
-            return entity;
-        }
-
-        public Entity CreateCamera(string name = "Camera", float fov = MathF.PI / 4f, float near = 0.1f, float far = 500)
-        {
-            var entity = CreateTransform(name);
-            entity.Set(Camera.CreatePerspective(fov, Window.Width / (float)Window.Height, near, far));
-            return entity;
-        }
-
-        public Entity CreateLight(string name = "Light", Vector3 color = default, int type = 0, float range = 1, float innerCutoff = 0, float outerCutoff = 0)
-        {
-            var entity = CreateTransform(name);
-            entity.Set(new Light
-            {
-                color = color,
-                type = type,
-                range = range,
-                innerCutoff = innerCutoff,
-                outerCutoff = outerCutoff
-            });
-            return entity;
-        }
-
-        public Entity Spawn(string name, Mesh mesh, string materialName, bool shadows = true)
-        {
-            var material = MaterialManager.GetMaterial(materialName);
-            var entity = CreateTransform(name);
-            entity.Set(new Drawable
-            {
-                mesh = ForwardRender.RegisterMesh(mesh.Name, mesh),
-                material = materialName
-            });
-            entity.Set(new Render(false, shadows));
-            if (material.Shader.IsDeferred)
-            {
-                entity.Set(new Deferred());
-            }
-            if (shadows)
-            {
-                entity.Set(new ShadowMapped());
-            }
-
-            return entity;
         }
 
         public void SubmitAndWait(CommandList commandList)

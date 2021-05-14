@@ -39,16 +39,18 @@ namespace Deremis.Viewer
             var panaNormalTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/normal.png"));
             var panaMRATex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/mra.png"));
 
-            Skybox.Init(app, hdrTex);
+            var scene = new Scene(app, "hello deremis");
 
-            var camera = app.CreateCamera();
+            Skybox.Init(scene, hdrTex);
+
+            var camera = scene.CreateCamera();
             camera.Set(Transform.FromTarget(new Vector3(20, 5, 0), Vector3.Zero, Vector3.UnitY));
             var freeCam = new FreeCamera(app);
             int entityId = camera.Get<Metadata>().entityId;
             freeCam.SetCameraId(entityId);
             app.Cull.SetCameraId(entityId);
 
-            var light = app.CreateLight(
+            var light = scene.CreateLight(
                 color: new Vector3(1f, 0.9f, 0.75f),
                 type: 0
             );
@@ -98,7 +100,7 @@ namespace Deremis.Viewer
             tableMat.SetTexture("prefilteredEnvTexture", hdrRadTex.View);
             tableMat.SetTexture("brdfLutTex", brdfLutTex.View);
 
-            var tableEntity = tableModel.Spawn(app, tableMat.Name, new Transform(new Vector3(0, -2, 0), Quaternion.Identity, Vector3.One));
+            var tableEntity = tableModel.Spawn(scene, tableMat.Name, new Transform(new Vector3(0, -2, 0), Quaternion.Identity, Vector3.One));
 
             var length = 1;
             var offset = 0;
@@ -108,7 +110,7 @@ namespace Deremis.Viewer
             {
                 for (var y = 0; y < length; y++)
                 {
-                    var entityfwd = panaModel.Spawn(app, panaMat.Name,
+                    var entityfwd = panaModel.Spawn(scene, panaMat.Name,
                         new Transform(new Vector3(x * offset - length / 2f * offset, 0, y * offset - length / 2f * offset),
                         Quaternion.CreateFromYawPitchRoll(MathF.PI / 2f, 0, 0), Vector3.One / 4f));
                     entityfwd.SetAsChildOf(tableEntity);

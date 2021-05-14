@@ -112,24 +112,24 @@ namespace Deremis.Engine.Rendering.Helpers
             return mesh;
         }
 
-        public static void SetHDR(Application app, Texture hdr)
+        public static void SetHDR(Scene scene, Texture hdr)
         {
-            var material = app.MaterialManager.GetMaterial(NAME);
+            var material = scene.App.MaterialManager.GetMaterial(NAME);
 
             if (material == null)
-                material = app.MaterialManager.CreateMaterial(NAME, app.AssetManager.Get<Shader>(Shader));
+                material = scene.App.MaterialManager.CreateMaterial(NAME, scene.App.AssetManager.Get<Shader>(Shader));
 
             material.SetSampler(Veldrid.SamplerDescription.Linear);
             material.SetTexture("skybox", hdr);
         }
 
-        public static void Init(Application app, Texture hdr)
+        public static void Init(Scene scene, Texture hdr)
         {
-            SetHDR(app, hdr);
+            SetHDR(scene, hdr);
             if (!initialized)
             {
                 var mesh = GetMesh();
-                app.Spawn(NAME, mesh, NAME, false);
+                scene.Spawn(NAME, mesh, NAME, false);
                 initialized = true;
                 // BuildIBL(app, hdr);
             }
