@@ -10,6 +10,7 @@
     <PackageReference Include="AssimpNet" Version="5.0.0-beta1" />
     <PackageReference Include="DefaultEcs" Version="0.15.2" />
     <PackageReference Include="Microsoft.DotNet.ILCompiler" Version="6.0.0-*" />
+    <PackageReference Include="NetOctree" Version="1.0.1" />
     <PackageReference Include="StbImageSharp" Version="2.22.5" />
     <PackageReference Include="Tedd.RandomUtils" Version="1.0.6" />
     <PackageReference Include="Veldrid.SPIRV" Version="1.0.14" />

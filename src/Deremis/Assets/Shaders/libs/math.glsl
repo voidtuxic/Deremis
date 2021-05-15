@@ -1,4 +1,5 @@
 #define PI 3.14159265359
+#define INV_PI 0.31830988618
 
 float saturate(float value) {
     return clamp(value, 0.0, 1.0);

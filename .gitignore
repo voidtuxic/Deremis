@@ -47,3 +47,5 @@ msbuild.wrn
 *.hdr
 *.csp
 *.conf
+*.7z
+*.aseprite

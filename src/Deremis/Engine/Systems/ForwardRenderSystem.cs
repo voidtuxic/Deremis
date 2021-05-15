@@ -25,13 +25,13 @@ namespace Deremis.Engine.Systems
         private readonly Application app;
         private readonly CommandList mainCommandList;
 
-        private readonly EntitySet cameraSet;
-        private readonly EntitySet lightSet;
+        private Scene currentScene;
+
         // private readonly EntityMultiMap<Drawable> deferredObjectsMap;
 
-        public struct DrawState
+        internal class DrawState
         {
-            public int hashCode;
+            public string key;
             public CommandList commandList;
             public bool isValid;
             public Material material;
@@ -39,7 +39,7 @@ namespace Deremis.Engine.Systems
         }
 
         private readonly ConcurrentDictionary<string, Mesh> meshes = new ConcurrentDictionary<string, Mesh>();
-        private readonly ConcurrentDictionary<int, DrawState> drawStates = new ConcurrentDictionary<int, DrawState>();
+        private readonly ConcurrentDictionary<string, DrawState> drawStates = new ConcurrentDictionary<string, DrawState>();
         // private readonly Dictionary<string, Material> deferredMaterials = new Dictionary<string, Material>();
 
         private Matrix4x4 viewMatrix;
@@ -60,14 +60,6 @@ namespace Deremis.Engine.Systems
             this.app = app;
             mainCommandList = app.Factory.CreateCommandList();
             mainCommandList.Name = "MainCommandList";
-            cameraSet = world.GetEntities()
-                .With<Camera>()
-                .With<Transform>()
-                .AsSet();
-            lightSet = world.GetEntities()
-                .With<Light>()
-                .With<Transform>()
-                .AsSet();
             // deferredObjectsMap = world.GetEntities()
             //     .With<Drawable>()
             //     .With<Transform>()
@@ -84,6 +76,12 @@ namespace Deremis.Engine.Systems
         private static bool CanRenderToShadowMap(in Render render)
         {
             return render.Shadows;
+        }
+
+        public void SetAsCurrentScene(Scene scene)
+        {
+            currentScene = scene;
+            scene.Enable();
         }
 
         public string RegisterMesh(string name, Mesh mesh)
@@ -120,97 +118,50 @@ namespace Deremis.Engine.Systems
             // mainCommandList.ClearColorTarget(1, RgbaFloat.Clear); // bloom
             mainCommandList.ClearDepthStencil(1f);
 
-            Span<Entity> cameras = stackalloc Entity[cameraSet.Count];
-            cameraSet.GetEntities().CopyTo(cameras);
-            foreach (ref readonly Entity camEntity in cameras)
+            if (currentScene != null)
             {
-                ref var transform = ref camEntity.Get<Transform>();
-                viewMatrix = transform.ToViewMatrix();
-                projMatrix = camEntity.Get<Camera>().projection;
-                viewProjMatrix = Matrix4x4.Multiply(viewMatrix, projMatrix);
+                var cameraSet = currentScene.CameraSet;
+                Span<Entity> cameras = stackalloc Entity[cameraSet.Count];
+                cameraSet.GetEntities().CopyTo(cameras);
+                foreach (ref readonly Entity camEntity in cameras)
+                {
+                    ref var transform = ref camEntity.Get<Transform>();
+                    viewMatrix = transform.ToViewMatrix();
+                    projMatrix = camEntity.Get<Camera>().projection;
+                    viewProjMatrix = Matrix4x4.Multiply(viewMatrix, projMatrix);
 
-                // TODO handle more than one camera
-                break;
+                    // TODO handle more than one camera
+                    break;
+                }
             }
-
-            Span<Entity> lights = stackalloc Entity[lightSet.Count];
-            var lightValues = new List<float>();
-            lightSet.GetEntities().CopyTo(lights);
-            foreach (ref readonly Entity lightEntity in lights)
-            {
-                ref var transform = ref lightEntity.Get<Transform>();
-                ref var light = ref lightEntity.Get<Light>();
-
-                lightValues.AddRange(light.GetValueArray(ref transform));
-            }
-            mainCommandList.UpdateBuffer(app.MaterialManager.LightBuffer, 0, lightValues.ToArray());
             mainCommandList.End();
 
             app.GraphicsDevice.SubmitCommands(mainCommandList);
             app.GraphicsDevice.WaitForIdle();
         }
 
-        private DrawState GetState(int hashCode)
+        private DrawState GetState(string key)
         {
-            if (!drawStates.ContainsKey(hashCode))
+            if (!drawStates.ContainsKey(key))
             {
                 var commandList = app.Factory.CreateCommandList();
-                var state = new DrawState { commandList = commandList, hashCode = hashCode };
-                if (drawStates.TryAdd(hashCode, state))
+                var state = new DrawState { commandList = commandList, key = key };
+                if (drawStates.TryAdd(key, state))
                 {
                     return state;
                 }
                 else
                 {
                     commandList.Dispose();
-                    return default;
+                    return null;
                 }
             }
-            return drawStates[hashCode];
-        }
-
-        private void SetState(int hashCode, DrawState state)
-        {
-            if (!drawStates.ContainsKey(hashCode)) return;
-            drawStates[hashCode] = state;
-        }
-
-        private void InitDrawable(in Drawable key)
-        {
-            var state = GetState(key.GetHashCode());
-            state.material = app.MaterialManager.GetMaterial(key.material);
-            state.mesh = GetMesh(key.mesh);
-            if (state.material == null || state.mesh == null || mainCommandList == null)
-            {
-                state.isValid = false;
-                SetState(key.GetHashCode(), state);
-                return;
-            }
-            state.isValid = true;
-            var pipeline = state.material.GetPipeline(0);
-            SetPipeline(pipeline, ref state);
-            SetState(key.GetHashCode(), state);
-        }
-
-        private void SetPipeline(Pipeline pipeline, ref DrawState state)
-        {
-            var commandList = state.commandList;
-            commandList.Begin();
-            commandList.SetFramebuffer(app.ScreenRender.ScreenFramebuffer);
-            commandList.SetFullViewports();
-            commandList.UpdateBuffer(app.MaterialManager.MaterialBuffer, 0, state.material.GetValueArray());
-            commandList.SetVertexBuffer(0, state.mesh.VertexBuffer);
-            if (state.mesh.Indexed)
-                commandList.SetIndexBuffer(state.mesh.IndexBuffer, IndexFormat.UInt32);
-            commandList.SetPipeline(pipeline);
-            commandList.SetGraphicsResourceSet(0, app.MaterialManager.GeneralResourceSet);
-            commandList.SetGraphicsResourceSet(1, state.material.ResourceSet);
-            state.commandList = commandList;
+            return drawStates[key];
         }
 
         protected override void Update(float deltaSeconds, in Drawable key, ReadOnlySpan<Entity> entities)
         {
-            var state = GetState(key.GetHashCode());
+            var state = GetState(key.ToString());
             InitDrawable(in key);
             if (!state.isValid) return;
 
@@ -228,9 +179,41 @@ namespace Deremis.Engine.Systems
             app.GraphicsDevice.SubmitCommands(commandList);
         }
 
+        private void InitDrawable(in Drawable key)
+        {
+            string drawKey = key.ToString();
+            var state = GetState(drawKey);
+            state.material = app.MaterialManager.GetMaterial(key.material);
+            state.mesh = GetMesh(key.mesh);
+            if (state.material == null || state.mesh == null || mainCommandList == null)
+            {
+                state.isValid = false;
+                return;
+            }
+            state.isValid = true;
+            var pipeline = state.material.GetPipeline(0);
+            SetPipeline(pipeline, state);
+        }
+
+        private void SetPipeline(Pipeline pipeline, DrawState state)
+        {
+            var list = state.commandList;
+            list.Begin();
+            list.SetFramebuffer(app.ScreenRender.ScreenFramebuffer);
+            list.SetFullViewports();
+            list.UpdateBuffer(app.MaterialManager.MaterialBuffer, 0, state.material.GetValueArray());
+            list.SetVertexBuffer(0, state.mesh.VertexBuffer);
+            if (state.mesh.Indexed)
+                list.SetIndexBuffer(state.mesh.IndexBuffer, IndexFormat.UInt32);
+            list.SetPipeline(pipeline);
+            list.SetGraphicsResourceSet(0, app.MaterialManager.GeneralResourceSet);
+            list.SetGraphicsResourceSet(1, state.material.ResourceSet);
+            state.commandList = list;
+        }
+
         private void Draw(in Drawable key, in Entity entity)
         {
-            var state = GetState(key.GetHashCode());
+            var state = GetState(key.ToString());
             if (!state.isValid) return;
             var commandList = state.commandList;
             var transform = entity.GetWorldTransform();
@@ -254,6 +237,9 @@ namespace Deremis.Engine.Systems
                     lightSpaceMatrix2 = app.ShadowRender.GetCascadeLightViewMatrix(0),
                     lightSpaceMatrix3 = app.ShadowRender.GetCascadeLightViewMatrix(1),
                 });
+
+            var lightValues = currentScene.LightVolumes.GetNearbyValues(transform, 50);
+            commandList.UpdateBuffer(app.MaterialManager.LightBuffer, 0, lightValues);
 
             if (state.mesh.Indexed)
                 commandList.DrawIndexed(

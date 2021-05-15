@@ -23,6 +23,7 @@ namespace Deremis.Viewer
         public FreeCamera(Application app)
         {
             this.app = app;
+            app.Window.CursorVisible = false;
             var world = app.DefaultWorld;
             cameraSet = world.GetEntities().With<Camera>().With<Transform>().With<Metadata>().AsSet();
             app.MainSystem.Add(new ActionSystem<float>(Update));

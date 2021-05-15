@@ -41,6 +41,8 @@ namespace Deremis.Viewer
 
             var scene = new Scene(app, "hello deremis");
 
+            app.ForwardRender.SetAsCurrentScene(scene);
+
             Skybox.Init(scene, hdrTex);
 
             var camera = scene.CreateCamera();
@@ -55,15 +57,15 @@ namespace Deremis.Viewer
                 type: 0
             );
             light.Set(new Transform(Vector3.Zero, Quaternion.CreateFromYawPitchRoll(MathF.PI / 4f, -MathF.PI / 8f, 0), Vector3.One));
-            // light = app.CreateLight(
-            //     color: Vector3.One,
-            //     type: 2, innerCutoff: DMath.ToRadians(56), outerCutoff: DMath.ToRadians(60)
-            // );
+            light = scene.CreateLight(
+                color: Vector3.UnitY * 5,
+                type: 1, range: 50
+            );
 
-            // app.MainSystem.Add(new ActionSystem<float>(delta =>
-            // {
-            //     light.SetSameAs<Transform>(camera);
-            // }));
+            app.MainSystem.Add(new ActionSystem<float>(delta =>
+            {
+                light.SetSameAs<Transform>(camera);
+            }));
 
             SamplerDescription sampler = new SamplerDescription
             {
@@ -102,8 +104,8 @@ namespace Deremis.Viewer
 
             var tableEntity = tableModel.Spawn(scene, tableMat.Name, new Transform(new Vector3(0, -2, 0), Quaternion.Identity, Vector3.One));
 
-            var length = 1;
-            var offset = 0;
+            var length = 4;
+            var offset = 20;
             var random = new Random();
             var rotate = 0f;
             for (var x = 0; x < length; x++)
@@ -111,17 +113,17 @@ namespace Deremis.Viewer
                 for (var y = 0; y < length; y++)
                 {
                     var entityfwd = panaModel.Spawn(scene, panaMat.Name,
-                        new Transform(new Vector3(x * offset - length / 2f * offset, 0, y * offset - length / 2f * offset),
+                        new Transform(new Vector3(x * offset - length / 2f * offset + offset / 2f, 0, y * offset - length / 2f * offset + offset / 2f),
                         Quaternion.CreateFromYawPitchRoll(MathF.PI / 2f, 0, 0), Vector3.One / 4f));
                     entityfwd.SetAsChildOf(tableEntity);
-                    app.MainSystem.Add(new ActionSystem<float>(delta =>
-                    {
-                        rotate += delta / 10f;
-                        entityfwd.Set(new Transform(new Vector3(
-                            MathF.Cos(rotate / 2f) * 30,
-                            0, MathF.Sin(rotate / 2f) * 30),
-                            Quaternion.CreateFromYawPitchRoll(MathF.PI / 2f + rotate, 0, 0), Vector3.One / 3f));
-                    }));
+                    // app.MainSystem.Add(new ActionSystem<float>(delta =>
+                    // {
+                    //     rotate += delta / 10f;
+                    //     entityfwd.Set(new Transform(new Vector3(
+                    //         MathF.Cos(rotate / 2f) * 30,
+                    //         0, MathF.Sin(rotate / 2f) * 30),
+                    //         Quaternion.CreateFromYawPitchRoll(MathF.PI / 2f + rotate, 0, 0), Vector3.One / 3f));
+                    // }));
                 }
             }
         }

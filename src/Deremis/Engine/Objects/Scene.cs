@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using DefaultEcs;
+using Deremis.Engine.Systems;
 using Deremis.Engine.Systems.Components;
 using Deremis.Platform;
 
@@ -11,18 +12,37 @@ namespace Deremis.Engine.Objects
     {
         private readonly Application app;
         private int entityCounter = 0;
-        private EntitySet sceneEntitiesSet;
-        private EntitySet disabledSceneEntitiesSet;
+        private bool isEnabled = true;
 
-        private World world => app.DefaultWorld;
+        private readonly EntitySet sceneEntitiesSet;
+        private readonly EntitySet disabledSceneEntitiesSet;
+        private readonly EntitySet cameraSet;
+        private readonly EntitySet lightSet;
 
+        public World World => app.DefaultWorld;
         public Application App => app;
+        public EntitySet CameraSet => cameraSet;
+        public EntitySet LightSet => lightSet;
+
+        public LightVolumeSystem LightVolumes { get; private set; }
+
 
         public Scene(Application app, string name) : base(name)
         {
             this.app = app;
-            sceneEntitiesSet = world.GetEntities().With<Metadata>(IsSceneMetadata).AsSet();
-            disabledSceneEntitiesSet = world.GetDisabledEntities().With<Metadata>(IsSceneMetadata).AsSet();
+            sceneEntitiesSet = World.GetEntities().With<Metadata>(IsSceneMetadata).AsSet();
+            disabledSceneEntitiesSet = World.GetDisabledEntities().With<Metadata>(IsSceneMetadata).AsSet();
+            cameraSet = World.GetEntities()
+                .With<Camera>()
+                .With<Transform>()
+                .With<Metadata>(IsSceneMetadata)
+                .AsSet();
+            lightSet = World.GetEntities()
+                .With<Light>()
+                .With<Transform>()
+                .With<Metadata>(IsSceneMetadata)
+                .AsSet();
+            LightVolumes = new LightVolumeSystem(this, app.ParallelSystemRunner);
         }
 
         private bool IsSceneMetadata(in Metadata value)
@@ -32,21 +52,31 @@ namespace Deremis.Engine.Objects
 
         public void Enable()
         {
-            Span<Entity> entities = stackalloc Entity[disabledSceneEntitiesSet.Count];
-            disabledSceneEntitiesSet.GetEntities().CopyTo(entities);
-            foreach (ref readonly Entity entity in entities)
+            app.MainSystem.Insert(0, LightVolumes);
+            if (!isEnabled)
             {
-                entity.Enable();
+                Span<Entity> entities = stackalloc Entity[disabledSceneEntitiesSet.Count];
+                disabledSceneEntitiesSet.GetEntities().CopyTo(entities);
+                foreach (ref readonly Entity entity in entities)
+                {
+                    entity.Enable();
+                }
+                isEnabled = true;
             }
         }
 
         public void Disable()
         {
-            Span<Entity> entities = stackalloc Entity[sceneEntitiesSet.Count];
-            sceneEntitiesSet.GetEntities().CopyTo(entities);
-            foreach (ref readonly Entity entity in entities)
+            app.MainSystem.Remove(LightVolumes);
+            if (isEnabled)
             {
-                entity.Disable();
+                Span<Entity> entities = stackalloc Entity[sceneEntitiesSet.Count];
+                sceneEntitiesSet.GetEntities().CopyTo(entities);
+                foreach (ref readonly Entity entity in entities)
+                {
+                    entity.Disable();
+                }
+                isEnabled = false;
             }
         }
 
@@ -62,7 +92,7 @@ namespace Deremis.Engine.Objects
 
         public Entity CreateEntity(string name = "Entity")
         {
-            var entity = world.CreateEntity();
+            var entity = World.CreateEntity();
             entity.Set(new Metadata { entityId = entityCounter, name = name, scene = this.Name });
             entityCounter++;
             return entity;
@@ -90,14 +120,16 @@ namespace Deremis.Engine.Objects
         public Entity CreateLight(string name = "Light", Vector3 color = default, int type = 0, float range = 1, float innerCutoff = 0, float outerCutoff = 0)
         {
             var entity = CreateTransform(name);
-            entity.Set(new Light
+            Light light = new Light
             {
                 color = color,
                 type = type,
                 range = range,
                 innerCutoff = innerCutoff,
                 outerCutoff = outerCutoff
-            });
+            };
+            entity.Set(light);
+            LightVolumes.RegisterLight(entity.Get<Transform>(), light);
             return entity;
         }
 

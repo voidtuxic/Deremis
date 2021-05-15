@@ -34,5 +34,10 @@ namespace Deremis.Engine.Systems.Components
 
             return values.ToArray();
         }
+
+        public override int GetHashCode()
+        {
+            return type.GetHashCode() ^ color.GetHashCode() ^ range.GetHashCode() ^ innerCutoff.GetHashCode() ^ outerCutoff.GetHashCode();
+        }
     }
 }

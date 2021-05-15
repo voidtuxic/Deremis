@@ -2,10 +2,10 @@
 #include "libs/math.glsl"
 #include "libs/shadow.glsl"
 
-// based off https://seblagarde.wordpress.com/2011/08/17/hello-world/
-vec3 FresnelSchlick(vec3 SpecularColor,vec3 E,vec3 H, float roughness)
+#define OneOnLN2_x6 8.656170 // == 1/ln(2) * 6   (6 is SpecularPower of 5 + 1)
+vec3 FresnelSchlick(vec3 specColor, vec3 E,vec3 H)
 {
-    return SpecularColor + (max(vec3(1.0 - roughness), SpecularColor) - SpecularColor) * pow(1.0 - saturate(dot(E, H)), 5);
+    return specColor + (1.0f - specColor) * exp2(-OneOnLN2_x6 * saturate(dot(E, H)));
 }
 
 // ----------------------------------------------------------------------------
@@ -36,7 +36,7 @@ float GeometrySchlickGGX(float NdotV, float roughness)
 // ----------------------------------------------------------------------------
 float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 {
-    float NdotV = max(dot(N, V), 0.0);
+    float NdotV = max(dot(N, V), 0.00005);
     float NdotL = max(dot(N, L), 0.0);
     float ggx2 = GeometrySchlickGGX(NdotV, roughness);
     float ggx1 = GeometrySchlickGGX(NdotL, roughness);
@@ -62,7 +62,7 @@ vec3 CalculatePBR(mat4 fragParams, mat4 viewParams, mat4 fragPosLightSpace, floa
     vec2 brdf = viewParams[3].xy;
 
     vec3 Lo = vec3(0.0);
-    vec3 F0 = vec3(0.04);
+    vec3 F0 = vec3(1.0);
     F0 = mix(F0, albedo, metal);
 
     for(int i = 0; i < MAX_LIGHTS; i++) 
@@ -72,7 +72,6 @@ vec3 CalculatePBR(mat4 fragParams, mat4 viewParams, mat4 fragPosLightSpace, floa
         vec3 L;
         float attenuation = 1;
         float shadow = 0;
-        float intensity = 1.0;
         if (lightType == 0)
         {
             L = normalize(-Lights[i].Direction);
@@ -94,7 +93,7 @@ vec3 CalculatePBR(mat4 fragParams, mat4 viewParams, mat4 fragPosLightSpace, floa
             L = normalize(lightPosition - fragPos);
             float theta = dot(L, normalize(-Lights[i].Direction));
             float epsilon = lightOuterCutOff - lightInnerCutOff;
-            intensity = clamp((theta - lightInnerCutOff) / epsilon, 0.0, 1.0);
+            attenuation = clamp((theta - lightInnerCutOff) / epsilon, 0.0, 1.0);
         }
 
         float NdotL = max(dot(N, L), 0.0);
@@ -102,24 +101,24 @@ vec3 CalculatePBR(mat4 fragParams, mat4 viewParams, mat4 fragPosLightSpace, floa
         vec3 H = normalize(V + L);
         vec3 radiance = Lights[i].Color * attenuation;
 
-        vec3 F =  FresnelSchlick(F0, H, V, rough);
-        float NDF = DistributionGGX(N, H, rough);
-        float G   = GeometrySmith(N, V, L, rough);
-        vec3 specular = (NDF * G * F);
+        vec3 F =  FresnelSchlick(F0, L, H);
+        float NDF = DistributionGGX(N, L, rough);
+        float G   = GeometrySmith(N, H, L, rough);
+        vec3 specular = (F * NDF * G);
 
         vec3 kS = F;
         vec3 kD = vec3(1.0) - kS;
         kD *= 1.0 - metal;
         
-        Lo += ((kD * albedo / PI + specular) * radiance * NdotL * intensity) * (1.0 - shadow);
+        Lo += ((kD * albedo / PI + specular) * radiance * NdotL) * (1.0 - shadow);
     }
     vec3 diffuse = irradiance * albedo;
-    vec3 F =  FresnelSchlick(F0, N, V, rough);
+    vec3 F =  FresnelSchlick(F0, N, V);
     vec3 kS = F;
     vec3 kD = 1.0 - kS;
     kD *= 1.0 - metal;
     vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
-    vec3 ambient = (kD * diffuse + specular/8.0) * ao;
+    vec3 ambient = (kD * diffuse + specular * 0.08) * ao * F0;
     vec3 color = ambient + Lo;
     return color;
 }
