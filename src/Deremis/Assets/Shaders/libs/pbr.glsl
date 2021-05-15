@@ -110,7 +110,7 @@ vec3 CalculatePBR(mat4 fragParams, mat4 viewParams, mat4 fragPosLightSpace, floa
         vec3 kD = vec3(1.0) - kS;
         kD *= 1.0 - metal;
         
-        Lo += ((kD * albedo / PI + specular) * radiance * NdotL) * (1.0 - shadow);
+        Lo += ((kD * albedo + specular) * radiance * NdotL) * (1.0 - shadow);
     }
     vec3 diffuse = irradiance * albedo;
     vec3 F =  FresnelSchlick(F0, N, V);
@@ -118,7 +118,7 @@ vec3 CalculatePBR(mat4 fragParams, mat4 viewParams, mat4 fragPosLightSpace, floa
     vec3 kD = 1.0 - kS;
     kD *= 1.0 - metal;
     vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
-    vec3 ambient = (kD * diffuse + specular * 0.08) * ao * F0;
+    vec3 ambient = (kD * diffuse + specular * 0.08) * ao;
     vec3 color = ambient + Lo;
     return color;
 }

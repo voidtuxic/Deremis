@@ -14,7 +14,7 @@ namespace Deremis.Engine.Rendering
     public class MaterialManager : IDisposable
     {
         private const uint MAX_MATERIAL_BUFFER_SIZE = 2048;
-        private const uint MAX_LIGHT_BUFFER_SIZE = 256;
+        private const uint MAX_LIGHT_BUFFER_SIZE = 512;
 
         public static MaterialManager current;
         private readonly Application app;

@@ -67,11 +67,11 @@ void main()
     float metal = min(0.9, mra.r * metallic);
     float rough =  max(0.01, mra.g * roughness);
     float aoVal = mra.b * ao;
-    vec3 irradiance = texture(samplerCube(environmentTexture, texSampler), normalDir).rgb;
+    vec3 irradiance = CorrectGamma(texture(samplerCube(environmentTexture, texSampler), normalDir).rgb);
 
     vec3 V = normalize(GetViewPos() - f_position);
     const float MAX_REFLECTION_LOD = 5.0;
-    vec3 prefilteredColor = textureLod(samplerCube(prefilteredEnvTexture, texSampler), normalDir, rough * MAX_REFLECTION_LOD).rgb;
+    vec3 prefilteredColor = CorrectGamma(textureLod(samplerCube(prefilteredEnvTexture, texSampler), normalDir, rough * MAX_REFLECTION_LOD).rgb);
     vec2 envBRDF = texture(sampler2D(brdfLutTex, texSampler), vec2(max(dot(normalDir, V), 0.0001), rough)).rg;
 
     mat4 fragParams = mat4(

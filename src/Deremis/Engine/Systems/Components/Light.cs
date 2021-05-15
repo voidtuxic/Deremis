@@ -5,6 +5,7 @@ namespace Deremis.Engine.Systems.Components
 {
     public struct Light
     {
+        public int id;
         public float type;
         public Vector3 color;
         public float range;

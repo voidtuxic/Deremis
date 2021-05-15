@@ -21,7 +21,7 @@ namespace Deremis.Engine.Systems
     {
         public const uint SHADOW_MAP_FAR = 50;
         public const uint SHADOW_MAP_RADIUS = 100;
-        public const uint SHADOW_MAP_WIDTH = 2048;
+        public const uint SHADOW_MAP_WIDTH = 1024;
         public static AssetDescription ShadowMapShader = new AssetDescription
         {
             name = "shadow_map",

@@ -12,6 +12,7 @@ namespace Deremis.Engine.Objects
     {
         private readonly Application app;
         private int entityCounter = 0;
+        private int lightCounter = 0;
         private bool isEnabled = true;
 
         private readonly EntitySet sceneEntitiesSet;
@@ -42,7 +43,7 @@ namespace Deremis.Engine.Objects
                 .With<Transform>()
                 .With<Metadata>(IsSceneMetadata)
                 .AsSet();
-            LightVolumes = new LightVolumeSystem(this, app.ParallelSystemRunner);
+            LightVolumes = new LightVolumeSystem(this);
         }
 
         private bool IsSceneMetadata(in Metadata value)
@@ -122,6 +123,7 @@ namespace Deremis.Engine.Objects
             var entity = CreateTransform(name);
             Light light = new Light
             {
+                id = lightCounter,
                 color = color,
                 type = type,
                 range = range,
@@ -130,6 +132,7 @@ namespace Deremis.Engine.Objects
             };
             entity.Set(light);
             LightVolumes.RegisterLight(entity.Get<Transform>(), light);
+            lightCounter++;
             return entity;
         }
 

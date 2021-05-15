@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 using DefaultEcs;
 using DefaultEcs.System;
 using DefaultEcs.Threading;
@@ -12,7 +13,7 @@ namespace Deremis.Engine.Systems
 {
     public class LightVolumeSystem : AEntitySetSystem<float>
     {
-        public const int MAX_LIGHTS = 4;
+        public const int MAX_LIGHTS = 8;
 
         private (Transform, Light) sunLight;
         private BoundsOctree<Light> pointLightOctree;
@@ -21,13 +22,12 @@ namespace Deremis.Engine.Systems
 
         public Light SunLight => sunLight.Item2;
 
-        public LightVolumeSystem(Scene scene, IParallelRunner runner)
+        public LightVolumeSystem(Scene scene)
             : base(
                 scene.World.GetEntities()
                     .With<Light>()
                     .WhenChanged<Transform>()
-                    .AsSet(),
-                runner)
+                    .AsSet())
         {
             this.scene = scene;
             pointLightOctree = new BoundsOctree<Light>(2048, Point.Zero, 1, 1);
@@ -41,8 +41,8 @@ namespace Deremis.Engine.Systems
             ref var light = ref entity.Get<Light>();
             if (light.type == 1)
             {
-                pointLightTransforms.Remove(light);
-                pointLightOctree.Remove(light);
+                if (pointLightTransforms.Remove(light))
+                    pointLightOctree.Remove(light);
             }
             RegisterLight(transform, light);
         }
@@ -67,6 +67,7 @@ namespace Deremis.Engine.Systems
             lightValues.AddRange(SunLight.GetValueArray(ref sunLight.Item1));
             var lights = new List<Light>();
             pointLightOctree.GetColliding(lights, new Octree.BoundingBox(new Point(transform.position.X, transform.position.Y, transform.position.Z), Point.One * radius));
+            lights.Sort(new LightDistanceComparer(transform.position, pointLightTransforms));
             for (var i = 1; i < MAX_LIGHTS; i++)
             {
                 if (lights.Count >= i)
@@ -81,6 +82,27 @@ namespace Deremis.Engine.Systems
                 }
             }
             return lightValues.ToArray();
+        }
+
+
+
+        public class LightDistanceComparer : IComparer<Light>
+        {
+            private readonly Vector3 position;
+            private readonly Dictionary<Light, Transform> pointLightTransforms;
+
+            public LightDistanceComparer(Vector3 position, Dictionary<Light, Transform> pointLightTransforms)
+            {
+                this.position = position;
+                this.pointLightTransforms = pointLightTransforms;
+            }
+
+            public int Compare(Light x, Light y)
+            {
+                var xDist = Vector3.DistanceSquared(pointLightTransforms[x].position, position);
+                var yDist = Vector3.DistanceSquared(pointLightTransforms[y].position, position);
+                return xDist.CompareTo(yDist);
+            }
         }
     }
 }

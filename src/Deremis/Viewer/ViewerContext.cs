@@ -25,9 +25,9 @@ namespace Deremis.Viewer
         {
             this.app = app;
 
-            var hdrTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/env3/env3.hdr", new TextureHandler.Options(false, false, false, true)));
-            var hdrIrrTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/env3/env3_irr_###.tga", new TextureHandler.Options(cubemap: true)));
-            var hdrRadTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/env3/env3_rad_###_***.tga", new TextureHandler.Options(cubemap: true, mipmapCount: 5)));
+            var hdrTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/gradient/gradient.hdr", new TextureHandler.Options(false, false, false, true)));
+            var hdrIrrTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/gradient/gradient_irr_###.tga", new TextureHandler.Options(cubemap: true)));
+            var hdrRadTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/gradient/gradient_rad_###_***.tga", new TextureHandler.Options(cubemap: true, mipmapCount: 5)));
             var brdfLutTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/ibl_brdf_lut.png"));
 
             var panaModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/mg08.obj"));
@@ -56,15 +56,15 @@ namespace Deremis.Viewer
                 color: new Vector3(1f, 0.9f, 0.75f),
                 type: 0
             );
-            light.Set(new Transform(Vector3.Zero, Quaternion.CreateFromYawPitchRoll(MathF.PI / 4f, -MathF.PI / 8f, 0), Vector3.One));
-            light = scene.CreateLight(
+            light.Set(new Transform(Vector3.Zero, Quaternion.CreateFromYawPitchRoll(MathF.PI / 4f, -MathF.PI / 4f, 0), Vector3.One));
+            var spotlight = scene.CreateLight(
                 color: Vector3.UnitY * 5,
                 type: 1, range: 50
             );
 
             app.MainSystem.Add(new ActionSystem<float>(delta =>
             {
-                light.SetSameAs<Transform>(camera);
+                spotlight.SetSameAs<Transform>(camera);
             }));
 
             SamplerDescription sampler = new SamplerDescription
@@ -104,10 +104,11 @@ namespace Deremis.Viewer
 
             var tableEntity = tableModel.Spawn(scene, tableMat.Name, new Transform(new Vector3(0, -2, 0), Quaternion.Identity, Vector3.One));
 
-            var length = 4;
+            var length = 5;
             var offset = 20;
             var random = new Random();
             var rotate = 0f;
+            var rng = new Tedd.RandomUtils.FastRandom();
             for (var x = 0; x < length; x++)
             {
                 for (var y = 0; y < length; y++)
@@ -116,6 +117,14 @@ namespace Deremis.Viewer
                         new Transform(new Vector3(x * offset - length / 2f * offset + offset / 2f, 0, y * offset - length / 2f * offset + offset / 2f),
                         Quaternion.CreateFromYawPitchRoll(MathF.PI / 2f, 0, 0), Vector3.One / 4f));
                     entityfwd.SetAsChildOf(tableEntity);
+
+                    light = scene.CreateLight(
+                        color: new Vector3(rng.NextFloat(),
+                                           rng.NextFloat(),
+                                           rng.NextFloat()) * 10,
+                        type: 1, range: 20
+                    );
+                    light.Set(entityfwd.GetWorldTransform());
                     // app.MainSystem.Add(new ActionSystem<float>(delta =>
                     // {
                     //     rotate += delta / 10f;

@@ -148,6 +148,7 @@ namespace Deremis.Engine.Systems
 
         protected override void Update(float state, in Drawable key, in Entity entity)
         {
+            if (key.mesh.Equals(Rendering.Helpers.Skybox.NAME)) return;
             var transform = entity.GetWorldTransform();
             var world = transform.ToMatrix();
             var normalWorld = world;
