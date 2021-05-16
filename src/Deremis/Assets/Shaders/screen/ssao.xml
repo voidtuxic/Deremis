@@ -55,16 +55,16 @@ float doAmbientOcclusion(in vec2 tcoord,in vec2 uv, in vec3 p, in vec3 cnorm, in
 
 void main()
 {
-    const float scale = 0.1;
-    const float intensity = 3.5f;
+    const float scale = 50;
+    const float intensity = 10;
     const float radius = 0.5;
-    const float bias = 0.025f;
+    const float bias = 0.1f;
     vec2 vec[4];
     vec[0] = vec2(1,0);
     vec[1] = vec2(-1,0); 
     vec[2] = vec2(0,1);
     vec[3] = vec2(0,-1);
-    const int iterations = 32; 
+    const int iterations = 4; 
     float ao = 0.0f; 
 
     vec3 p = getPosition(f_UV); 
@@ -74,14 +74,18 @@ void main()
     for (int j = 0; j &lt; iterations; j++) 
     {
         vec2 coord1 = reflect(vec[j%4],rand)*rad; 
+        vec2 coord2 = vec2(coord1.x*0.707 - coord1.y*0.707, coord1.x*0.707 + coord1.y*0.707); 
         
         ao += doAmbientOcclusion(f_UV,coord1*0.25, p, n, scale, bias, intensity, radius);
+        ao += doAmbientOcclusion(f_UV,coord2*0.5, p, n, scale, bias, intensity, radius); 
+        ao += doAmbientOcclusion(f_UV,coord1*0.75, p, n, scale, bias, intensity, radius); 
+        ao += doAmbientOcclusion(f_UV,coord2, p, n, scale, bias, intensity, radius); 
     }
-    ao /=float(iterations);
-    ao = pow(ao, 50);
+    ao /=float(iterations) * 4.0;
+    ao = pow(ao, 2);
     ao = 1.0 - ao;
     
-    out_Color = vec4(vec3(clamp(ao, 0 , 1)), 1.0f);
+    out_Color = vec4(vec3(clamp(ao, -1 , 1)), 1.0f);
 }
     </fragment>
 </shader>

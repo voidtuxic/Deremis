@@ -111,7 +111,7 @@ namespace Deremis.Engine.Objects
             return entity;
         }
 
-        public Entity CreateCamera(string name = "Camera", float fov = MathF.PI / 4f, float near = 0.1f, float far = 500)
+        public Entity CreateCamera(string name = "Camera", float fov = MathF.PI / 3f, float near = 0.1f, float far = 500)
         {
             var entity = CreateTransform(name);
             entity.Set(Camera.CreatePerspective(fov, app.Width / (float)app.Height, near, far));

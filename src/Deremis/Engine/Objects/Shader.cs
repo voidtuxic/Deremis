@@ -42,6 +42,7 @@ namespace Deremis.Engine.Objects
         public bool IsDeferred { get; private set; }
         public Shader DeferredLightingShader { get; private set; }
         public bool IsMultipass { get; private set; }
+        public bool IsInstanced { get; private set; }
         public int PassColorTargetCount { get; private set; }
         public string PassColorTargetBaseName { get; private set; }
 
@@ -91,8 +92,9 @@ namespace Deremis.Engine.Objects
             return pipelines[passIndex];
         }
 
-        public void Build()
+        public void Build(bool instanced)
         {
+            IsInstanced = instanced;
             var vertexShaderDesc = new ShaderDescription(
                 ShaderStages.Vertex,
                 vertexCode,
@@ -118,10 +120,20 @@ namespace Deremis.Engine.Objects
                 }
 
                 var pipeline = DefaultPipeline;
-                pipeline.ShaderSet = new ShaderSetDescription(
-                    vertexLayouts: new VertexLayoutDescription[] { Vertex.VertexLayout },
-                    shaders: Shaders[i]
-                );
+                if (instanced)
+                {
+                    pipeline.ShaderSet = new ShaderSetDescription(
+                        vertexLayouts: new VertexLayoutDescription[] { Vertex.VertexLayout, VertexInstance.GetVertexLayout() },
+                        shaders: Shaders[i]
+                    );
+                }
+                else
+                {
+                    pipeline.ShaderSet = new ShaderSetDescription(
+                        vertexLayouts: new VertexLayoutDescription[] { Vertex.VertexLayout },
+                        shaders: Shaders[i]
+                    );
+                }
                 pipelines.Add(pipeline);
             }
         }

@@ -25,22 +25,4 @@
     <fragment passIndex="3">
 #include "screen/bloom_blur_v.glsl"
     </fragment>
-    <fragment passIndex="4">
-#include "screen/bloom_blur_h.glsl"
-    </fragment>
-    <fragment passIndex="5">
-#include "screen/bloom_blur_v.glsl"
-    </fragment>
-    <fragment passIndex="6">
-#include "screen/bloom_blur_h.glsl"
-    </fragment>
-    <fragment passIndex="7">
-#include "screen/bloom_blur_v.glsl"
-    </fragment>
-    <fragment passIndex="8">
-#include "screen/bloom_blur_h.glsl"
-    </fragment>
-    <fragment passIndex="9">
-#include "screen/bloom_blur_v.glsl"
-    </fragment>
 </shader>

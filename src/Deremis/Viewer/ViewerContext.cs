@@ -30,14 +30,14 @@ namespace Deremis.Viewer
             var hdrRadTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/gradient/gradient_rad_###_***.tga", new TextureHandler.Options(cubemap: true, mipmapCount: 5)));
             var brdfLutTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/ibl_brdf_lut.png"));
 
-            var panaModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/mg08.obj"));
+            var panaModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/rock001.obj"));
             var tableModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/plane.obj"));
 
-            var shaderfwd = AssetManager.current.Get<Shader>(new AssetDescription("Shaders/pbr.xml"));
+            var shaderfwd = AssetManager.current.Get<Shader>(new AssetDescription("Shaders/pbr_instanced.xml"));
 
-            var panaDiffuseTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/albedo.png"));
-            var panaNormalTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/normal.png"));
-            var panaMRATex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/mra.png"));
+            var panaDiffuseTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/001_low_albedo.png"));
+            var panaNormalTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/001_low_normal.png"));
+            var panaMRATex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/001_low_mra.png"));
 
             var scene = new Scene(app, "hello deremis");
 
@@ -46,7 +46,7 @@ namespace Deremis.Viewer
             Skybox.Init(scene, hdrTex);
 
             var camera = scene.CreateCamera();
-            camera.Set(Transform.FromTarget(new Vector3(20, 5, 0), Vector3.Zero, Vector3.UnitY));
+            camera.Set(Transform.FromTarget(new Vector3(50, 40, -50), Vector3.Zero, Vector3.UnitY));
             var freeCam = new FreeCamera(app);
             int entityId = camera.Get<Metadata>().entityId;
             freeCam.SetCameraId(entityId);
@@ -57,15 +57,15 @@ namespace Deremis.Viewer
                 type: 0
             );
             light.Set(new Transform(Vector3.Zero, Quaternion.CreateFromYawPitchRoll(MathF.PI / 4f, -MathF.PI / 4f, 0), Vector3.One));
-            var spotlight = scene.CreateLight(
-                color: Vector3.UnitY * 5,
-                type: 1, range: 50
-            );
+            // var spotlight = scene.CreateLight(
+            //     color: Vector3.UnitY * 5,
+            //     type: 1, range: 50
+            // );
 
-            app.MainSystem.Add(new ActionSystem<float>(delta =>
-            {
-                spotlight.SetSameAs<Transform>(camera);
-            }));
+            // app.MainSystem.Add(new ActionSystem<float>(delta =>
+            // {
+            //     spotlight.SetSameAs<Transform>(camera);
+            // }));
 
             SamplerDescription sampler = new SamplerDescription
             {
@@ -81,7 +81,7 @@ namespace Deremis.Viewer
 
             var panaMat = app.MaterialManager.CreateMaterial("pana", shaderfwd);
             panaMat.SetProperty("albedo", Vector3.One);
-            panaMat.SetProperty("metallic", 0.3f);
+            panaMat.SetProperty("metallic", 0.0f);
             panaMat.SetProperty("roughness", 1.0f);
             panaMat.SetProperty("ao", 1.0f);
             // panaMat.SetProperty("emissiveStrength", 1.0f);
@@ -102,29 +102,34 @@ namespace Deremis.Viewer
             tableMat.SetTexture("prefilteredEnvTexture", hdrRadTex.View);
             tableMat.SetTexture("brdfLutTex", brdfLutTex.View);
 
-            var tableEntity = tableModel.Spawn(scene, tableMat.Name, new Transform(new Vector3(0, -2, 0), Quaternion.Identity, Vector3.One));
+            // var tableEntity = tableModel.Spawn(scene, tableMat.Name, new Transform(new Vector3(0, -2, 0), Quaternion.Identity, Vector3.One));
 
-            var length = 5;
-            var offset = 20;
+            var rings = 5;
+            var offset = 15;
+            var count = 8;
+            var step = MathF.PI * 2f / count;
             var random = new Random();
-            var rotate = 0f;
             var rng = new Tedd.RandomUtils.FastRandom();
-            for (var x = 0; x < length; x++)
+            for (var x = 0; x < rings; x++)
             {
-                for (var y = 0; y < length; y++)
+                var localOff = offset + (x * offset) + (x * offset / 5);
+                for (var y = 0; y < count; y++)
                 {
                     var entityfwd = panaModel.Spawn(scene, panaMat.Name,
-                        new Transform(new Vector3(x * offset - length / 2f * offset + offset / 2f, 0, y * offset - length / 2f * offset + offset / 2f),
-                        Quaternion.CreateFromYawPitchRoll(MathF.PI / 2f, 0, 0), Vector3.One / 4f));
-                    entityfwd.SetAsChildOf(tableEntity);
+                        new Transform(new Vector3(MathF.Cos(step * y) * (localOff),
+                                                  0,
+                                                  MathF.Sin(step * y) * (localOff)),
+                        Quaternion.CreateFromYawPitchRoll(rng.NextFloat() * MathF.PI, rng.NextFloat() * MathF.PI, rng.NextFloat() * MathF.PI),
+                        Vector3.One * (1 + x / 1.15f)));
+                    // entityfwd.SetAsChildOf(tableEntity);
 
-                    light = scene.CreateLight(
-                        color: new Vector3(rng.NextFloat(),
-                                           rng.NextFloat(),
-                                           rng.NextFloat()) * 10,
-                        type: 1, range: 20
-                    );
-                    light.Set(entityfwd.GetWorldTransform());
+                    // light = scene.CreateLight(
+                    //     color: new Vector3(rng.NextFloat(),
+                    //                        rng.NextFloat(),
+                    //                        rng.NextFloat()) * 10,
+                    //     type: 1, range: 20
+                    // );
+                    // light.Set(entityfwd.GetWorldTransform());
                     // app.MainSystem.Add(new ActionSystem<float>(delta =>
                     // {
                     //     rotate += delta / 10f;

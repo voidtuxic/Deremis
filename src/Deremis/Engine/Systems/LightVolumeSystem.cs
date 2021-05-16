@@ -65,20 +65,23 @@ namespace Deremis.Engine.Systems
         {
             var lightValues = new List<float>();
             lightValues.AddRange(SunLight.GetValueArray(ref sunLight.Item1));
-            var lights = new List<Light>();
-            pointLightOctree.GetColliding(lights, new Octree.BoundingBox(new Point(transform.position.X, transform.position.Y, transform.position.Z), Point.One * radius));
-            lights.Sort(new LightDistanceComparer(transform.position, pointLightTransforms));
-            for (var i = 1; i < MAX_LIGHTS; i++)
+            if (pointLightOctree.Count > 0)
             {
-                if (lights.Count >= i)
+                var lights = new List<Light>();
+                pointLightOctree.GetColliding(lights, new Octree.BoundingBox(new Point(transform.position.X, transform.position.Y, transform.position.Z), Point.One * radius));
+                lights.Sort(new LightDistanceComparer(transform.position, pointLightTransforms));
+                for (var i = 1; i < MAX_LIGHTS; i++)
                 {
-                    var lightTransform = pointLightTransforms[lights[i - 1]];
-                    lightValues.AddRange(lights[i - 1].GetValueArray(ref lightTransform));
-                }
-                else
-                {
-                    var emptyTransform = new Transform();
-                    lightValues.AddRange(new Light().GetValueArray(ref emptyTransform));
+                    if (lights.Count >= i)
+                    {
+                        var lightTransform = pointLightTransforms[lights[i - 1]];
+                        lightValues.AddRange(lights[i - 1].GetValueArray(ref lightTransform));
+                    }
+                    else
+                    {
+                        var emptyTransform = new Transform();
+                        lightValues.AddRange(new Light().GetValueArray(ref emptyTransform));
+                    }
                 }
             }
             return lightValues.ToArray();

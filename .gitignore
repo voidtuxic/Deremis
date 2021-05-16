@@ -49,3 +49,9 @@ msbuild.wrn
 *.conf
 *.7z
 *.aseprite
+*.blend
+*.mtl
+*.blend1
+*.spp
+*.painter_lock
+*.assbin

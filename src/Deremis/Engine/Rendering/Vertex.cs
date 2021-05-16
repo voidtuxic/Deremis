@@ -21,4 +21,21 @@ namespace Deremis.Engine.Rendering
             new VertexElementDescription("Tangent", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float3),
             new VertexElementDescription("Bitangent", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float3));
     }
+    public struct VertexInstance
+    {
+        public Matrix4x4 World;
+
+        public static uint SizeInBytes = (uint)Unsafe.SizeOf<VertexInstance>();
+
+        public static VertexLayoutDescription GetVertexLayout()
+        {
+            var layout = new VertexLayoutDescription(
+                new VertexElementDescription("WR1", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4),
+                new VertexElementDescription("WR2", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4),
+                new VertexElementDescription("WR3", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4),
+                new VertexElementDescription("WR4", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float4));
+            layout.InstanceStepRate = 1;
+            return layout;
+        }
+    }
 }

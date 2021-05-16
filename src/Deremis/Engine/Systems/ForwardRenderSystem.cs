@@ -20,12 +20,14 @@ namespace Deremis.Engine.Systems
 {
     public class ForwardRenderSystem : AEntityMultiMapSystem<float, Drawable>
     {
+        public const uint INSTANCE_BUFFER_SIZE = 64 * 1024;
         public static ForwardRenderSystem current;
 
         private readonly Application app;
         private readonly CommandList mainCommandList;
 
         private Scene currentScene;
+        private Transform emptyTransform = new Transform();
 
         // private readonly EntityMultiMap<Drawable> deferredObjectsMap;
 
@@ -36,6 +38,7 @@ namespace Deremis.Engine.Systems
             public bool isValid;
             public Material material;
             public Mesh mesh;
+            public DeviceBuffer instanceBuffer;
         }
 
         private readonly ConcurrentDictionary<string, Mesh> meshes = new ConcurrentDictionary<string, Mesh>();
@@ -162,24 +165,65 @@ namespace Deremis.Engine.Systems
         protected override void Update(float deltaSeconds, in Drawable key, ReadOnlySpan<Entity> entities)
         {
             var state = GetState(key.ToString());
-            InitDrawable(in key);
-            if (!state.isValid) return;
+            var material = app.MaterialManager.GetMaterial(key.material);
 
-            foreach (ref readonly var entity in entities)
+            if (material.Shader.IsInstanced && state.instanceBuffer == null)
             {
-                if (entity.Get<Render>().Screen)
-                {
-                    Draw(in key, in entity);
-                }
+                state.instanceBuffer = app.Factory.CreateBuffer(new BufferDescription(INSTANCE_BUFFER_SIZE, BufferUsage.VertexBuffer | BufferUsage.Dynamic));
             }
 
             var commandList = state.commandList;
+            InitDrawable(in key, entities);
+            if (!state.isValid) return;
+            if (material.Shader.IsInstanced)
+            {
+                commandList.UpdateBuffer(
+                    app.MaterialManager.TransformBuffer,
+                    0,
+                    new TransformResource
+                    {
+                        viewProjMatrix = viewProjMatrix,
+                        viewMatrix = viewMatrix,
+                        projMatrix = projMatrix,
+                        lightSpaceMatrix1 = app.ShadowRender.LightSpaceMatrix,
+                        lightSpaceMatrix2 = app.ShadowRender.GetCascadeLightViewMatrix(0),
+                        lightSpaceMatrix3 = app.ShadowRender.GetCascadeLightViewMatrix(1),
+                    });
+
+                // TODO instances only get the sun light
+                var lightValues = currentScene.LightVolumes.SunLight.GetValueArray(ref emptyTransform);
+                commandList.UpdateBuffer(app.MaterialManager.LightBuffer, 0, lightValues);
+
+                if (state.mesh.Indexed)
+                    commandList.DrawIndexed(
+                        indexCount: state.mesh.IndexCount,
+                        instanceCount: (uint)entities.Length,
+                        indexStart: 0,
+                        vertexOffset: 0,
+                        instanceStart: 0);
+                else
+                    commandList.Draw(
+                        vertexCount: state.mesh.VertexCount,
+                        instanceCount: (uint)entities.Length,
+                        vertexStart: 0,
+                        instanceStart: 0);
+            }
+            else
+            {
+                foreach (ref readonly var entity in entities)
+                {
+                    if (entity.Get<Render>().Screen)
+                    {
+                        Draw(in key, in entity);
+                    }
+                }
+            }
             commandList.End();
 
             app.GraphicsDevice.SubmitCommands(commandList);
         }
 
-        private void InitDrawable(in Drawable key)
+        private void InitDrawable(in Drawable key, ReadOnlySpan<Entity> entities)
         {
             string drawKey = key.ToString();
             var state = GetState(drawKey);
@@ -192,20 +236,30 @@ namespace Deremis.Engine.Systems
             }
             state.isValid = true;
             var pipeline = state.material.GetPipeline(0);
-            SetPipeline(pipeline, state);
+            SetPipeline(pipeline, state, entities);
         }
 
-        private void SetPipeline(Pipeline pipeline, DrawState state)
+        private void SetPipeline(Pipeline pipeline, DrawState state, ReadOnlySpan<Entity> entities)
         {
             var list = state.commandList;
             list.Begin();
             list.SetFramebuffer(app.ScreenRender.ScreenFramebuffer);
             list.SetFullViewports();
             list.UpdateBuffer(app.MaterialManager.MaterialBuffer, 0, state.material.GetValueArray());
+            list.SetPipeline(pipeline);
             list.SetVertexBuffer(0, state.mesh.VertexBuffer);
+            if (state.material.Shader.IsInstanced)
+            {
+                var worlds = new List<Matrix4x4>(entities.Length);
+                foreach (var entity in entities)
+                {
+                    worlds.Add(entity.GetWorldTransform().ToMatrix());
+                }
+                list.UpdateBuffer(state.instanceBuffer, 0, worlds.ToArray());
+                list.SetVertexBuffer(1, state.instanceBuffer);
+            }
             if (state.mesh.Indexed)
                 list.SetIndexBuffer(state.mesh.IndexBuffer, IndexFormat.UInt32);
-            list.SetPipeline(pipeline);
             list.SetGraphicsResourceSet(0, app.MaterialManager.GeneralResourceSet);
             list.SetGraphicsResourceSet(1, state.material.ResourceSet);
             state.commandList = list;

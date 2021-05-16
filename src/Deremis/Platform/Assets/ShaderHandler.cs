@@ -67,7 +67,8 @@ namespace Deremis.Platform.Assets
                         break;
                 }
             }
-            shader.Build();
+            var instanced = root.Attributes != null && root.Attributes["isInstanced"] != null;
+            shader.Build(instanced);
             loadedShaders.TryAdd(description.name, shader);
             return shader as T;
         }

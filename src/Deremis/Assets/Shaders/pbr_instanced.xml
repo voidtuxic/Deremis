@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shader version="1">
+<shader version="1" isInstanced="true">
     <config>
         <BlendState>SingleAlphaBlend</BlendState>
         <DepthStencilState depthTestEnabled="true" depthWriteEnabled="true" comparisonKind="LessEqual" />
@@ -24,7 +24,7 @@
         <texture2d name="shadowMap" />
     </resources>
     <vertex>
-#include "genericvert.glsl"
+#include "genericvert_instanced.glsl"
     </vertex>
     <fragment>
 #include "pbr.glsl"
