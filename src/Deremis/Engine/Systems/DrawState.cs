@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Numerics;
 using Deremis.Engine.Objects;
 using Veldrid;
 
@@ -6,19 +8,20 @@ namespace Deremis.Engine.Systems
 {
     public class DrawState : IDisposable
     {
-        public string key;
-        public CommandList commandList;
-        public bool isValid;
-        public Material material;
-        public Mesh mesh;
-        public DeviceBuffer instanceBuffer;
+        public string Key { get; set; }
+        public CommandList CommandList { get; set; }
+        public bool IsValid { get; set; }
+        public Material Material { get; set; }
+        public Mesh Mesh { get; set; }
+        public DeviceBuffer InstanceBuffer { get; set; }
+        public List<Matrix4x4> Worlds { get; set; }
 
         public void Dispose()
         {
-            commandList.Dispose();
-            material.Dispose();
-            mesh.Dispose();
-            instanceBuffer.Dispose();
+            CommandList.Dispose();
+            Material.Dispose();
+            Mesh.Dispose();
+            InstanceBuffer.Dispose();
         }
     }
 }

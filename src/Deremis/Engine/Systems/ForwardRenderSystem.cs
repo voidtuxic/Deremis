@@ -119,9 +119,9 @@ namespace Deremis.Engine.Systems
             var material = app.MaterialManager.GetMaterial(key.material);
             var state = GetState(key.ToString(), material.Shader.IsInstanced);
 
-            var commandList = state.commandList;
+            var commandList = state.CommandList;
             InitDraw(in key, state, entities);
-            if (!state.isValid) return;
+            if (!state.IsValid) return;
             if (material.Shader.IsInstanced)
             {
                 commandList.UpdateBuffer(
@@ -141,16 +141,16 @@ namespace Deremis.Engine.Systems
                 var lightValues = currentScene.LightVolumes.SunLight.GetValueArray(ref emptyTransform);
                 commandList.UpdateBuffer(app.MaterialManager.LightBuffer, 0, lightValues);
 
-                if (state.mesh.Indexed)
+                if (state.Mesh.Indexed)
                     commandList.DrawIndexed(
-                        indexCount: state.mesh.IndexCount,
+                        indexCount: state.Mesh.IndexCount,
                         instanceCount: (uint)entities.Length,
                         indexStart: 0,
                         vertexOffset: 0,
                         instanceStart: 0);
                 else
                     commandList.Draw(
-                        vertexCount: state.mesh.VertexCount,
+                        vertexCount: state.Mesh.VertexCount,
                         instanceCount: (uint)entities.Length,
                         vertexStart: 0,
                         instanceStart: 0);
@@ -172,48 +172,49 @@ namespace Deremis.Engine.Systems
 
         private void InitDraw(in Drawable key, DrawState state, ReadOnlySpan<Entity> entities)
         {
-            if (state.material == null) state.material = app.MaterialManager.GetMaterial(key.material);
-            if (state.mesh == null) state.mesh = GetMesh(key.mesh);
-            if (state.material == null || state.mesh == null || mainCommandList == null)
+            if (state.Material == null) state.Material = app.MaterialManager.GetMaterial(key.material);
+            if (state.Mesh == null) state.Mesh = GetMesh(key.mesh);
+            if (state.Material == null || state.Mesh == null || mainCommandList == null)
             {
-                state.isValid = false;
+                state.IsValid = false;
                 return;
             }
-            state.isValid = true;
-            var pipeline = state.material.GetPipeline(0);
+            state.IsValid = true;
+            var pipeline = state.Material.GetPipeline(0);
             SetPipeline(pipeline, state, entities);
         }
 
         private void SetPipeline(Pipeline pipeline, DrawState state, ReadOnlySpan<Entity> entities)
         {
-            var list = state.commandList;
+            var list = state.CommandList;
             list.Begin();
             list.SetFramebuffer(app.ScreenRender.ScreenFramebuffer);
             list.SetFullViewports();
-            list.UpdateBuffer(app.MaterialManager.MaterialBuffer, 0, state.material.GetValueArray());
+            list.UpdateBuffer(app.MaterialManager.MaterialBuffer, 0, state.Material.GetValueArray());
             list.SetPipeline(pipeline);
-            list.SetVertexBuffer(0, state.mesh.VertexBuffer);
-            if (state.material.Shader.IsInstanced)
+            list.SetVertexBuffer(0, state.Mesh.VertexBuffer);
+            if (state.Material.Shader.IsInstanced)
             {
-                var worlds = new List<Matrix4x4>(entities.Length);
+                var worlds = state.Worlds;
+                worlds.Clear();
                 foreach (var entity in entities)
                 {
                     worlds.Add(entity.GetWorldTransform().ToMatrix());
                 }
-                list.UpdateBuffer(state.instanceBuffer, 0, worlds.ToArray());
-                list.SetVertexBuffer(1, state.instanceBuffer);
+                list.UpdateBuffer(state.InstanceBuffer, 0, worlds.ToArray());
+                list.SetVertexBuffer(1, state.InstanceBuffer);
             }
-            if (state.mesh.Indexed)
-                list.SetIndexBuffer(state.mesh.IndexBuffer, IndexFormat.UInt32);
+            if (state.Mesh.Indexed)
+                list.SetIndexBuffer(state.Mesh.IndexBuffer, IndexFormat.UInt32);
             list.SetGraphicsResourceSet(0, app.MaterialManager.GeneralResourceSet);
-            list.SetGraphicsResourceSet(1, state.material.ResourceSet);
-            state.commandList = list;
+            list.SetGraphicsResourceSet(1, state.Material.ResourceSet);
+            state.CommandList = list;
         }
 
         private void Draw(in Drawable key, in DrawState state, in Entity entity)
         {
-            if (!state.isValid) return;
-            var commandList = state.commandList;
+            if (!state.IsValid) return;
+            var commandList = state.CommandList;
             var transform = entity.GetWorldTransform();
             var world = transform.ToMatrix();
             var normalWorld = Matrix4x4.Identity;
@@ -239,16 +240,16 @@ namespace Deremis.Engine.Systems
             var lightValues = currentScene.LightVolumes.GetNearbyValues(transform, 50);
             commandList.UpdateBuffer(app.MaterialManager.LightBuffer, 0, lightValues);
 
-            if (state.mesh.Indexed)
+            if (state.Mesh.Indexed)
                 commandList.DrawIndexed(
-                    indexCount: state.mesh.IndexCount,
+                    indexCount: state.Mesh.IndexCount,
                     instanceCount: 1,
                     indexStart: 0,
                     vertexOffset: 0,
                     instanceStart: 0);
             else
                 commandList.Draw(
-                    vertexCount: state.mesh.VertexCount,
+                    vertexCount: state.Mesh.VertexCount,
                     instanceCount: 1,
                     vertexStart: 0,
                     instanceStart: 0);

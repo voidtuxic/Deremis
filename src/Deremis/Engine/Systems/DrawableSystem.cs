@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Numerics;
 using DefaultEcs;
 using DefaultEcs.System;
 using Deremis.Engine.Systems.Components;
@@ -9,7 +11,8 @@ namespace Deremis.Engine.Systems
 {
     public abstract class DrawableSystem : AEntityMultiMapSystem<float, Drawable>
     {
-        public const uint INSTANCE_BUFFER_SIZE = 64 * 1024;
+        public const uint MAX_INSTANCE_COUNT = 1024;
+        public const uint INSTANCE_BUFFER_SIZE = 64 * MAX_INSTANCE_COUNT;
         protected readonly Application app;
         protected readonly World world;
         protected readonly CommandList mainCommandList;
@@ -38,10 +41,11 @@ namespace Deremis.Engine.Systems
             if (!drawStates.ContainsKey(key))
             {
                 var commandList = app.Factory.CreateCommandList();
-                var state = new DrawState { commandList = commandList, key = key };
+                var state = new DrawState { CommandList = commandList, Key = key };
                 if (isInstanced)
                 {
-                    state.instanceBuffer = app.Factory.CreateBuffer(new BufferDescription(INSTANCE_BUFFER_SIZE, BufferUsage.VertexBuffer | BufferUsage.Dynamic));
+                    state.Worlds = new List<Matrix4x4>((int)MAX_INSTANCE_COUNT);
+                    state.InstanceBuffer = app.Factory.CreateBuffer(new BufferDescription(INSTANCE_BUFFER_SIZE, BufferUsage.VertexBuffer | BufferUsage.Dynamic));
                 }
                 if (drawStates.TryAdd(key, state))
                 {

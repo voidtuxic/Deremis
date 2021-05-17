@@ -172,37 +172,38 @@ namespace Deremis.Engine.Systems
         protected override void Update(float deltaSeconds, in Drawable key, ReadOnlySpan<Entity> entities)
         {
             var state = GetState(key.ToString(), true);
-            if (state.mesh == null) state.mesh = app.ForwardRender.GetMesh(key.mesh);
+            if (state.Mesh == null) state.Mesh = app.ForwardRender.GetMesh(key.mesh);
 
-            var commandList = state.commandList;
+            var commandList = state.CommandList;
 
             commandList.Begin();
             SetFramebuffer(commandList);
 
             commandList.SetPipeline(MapMaterial.GetPipeline(0));
-            commandList.SetVertexBuffer(0, state.mesh.VertexBuffer);
-            var worlds = new List<Matrix4x4>(entities.Length);
+            commandList.SetVertexBuffer(0, state.Mesh.VertexBuffer);
+            var worlds = state.Worlds;
+            worlds.Clear();
             foreach (var entity in entities)
             {
                 worlds.Add(entity.GetWorldTransform().ToMatrix());
             }
-            commandList.UpdateBuffer(state.instanceBuffer, 0, worlds.ToArray());
-            commandList.SetVertexBuffer(1, state.instanceBuffer);
-            if (state.mesh.Indexed)
-                commandList.SetIndexBuffer(state.mesh.IndexBuffer, IndexFormat.UInt32);
+            commandList.UpdateBuffer(state.InstanceBuffer, 0, worlds.ToArray());
+            commandList.SetVertexBuffer(1, state.InstanceBuffer);
+            if (state.Mesh.Indexed)
+                commandList.SetIndexBuffer(state.Mesh.IndexBuffer, IndexFormat.UInt32);
             commandList.SetGraphicsResourceSet(0, app.MaterialManager.GeneralResourceSet);
             commandList.SetGraphicsResourceSet(1, MapMaterial.ResourceSet);
 
-            if (state.mesh.Indexed)
+            if (state.Mesh.Indexed)
                 commandList.DrawIndexed(
-                    indexCount: state.mesh.IndexCount,
+                    indexCount: state.Mesh.IndexCount,
                     instanceCount: (uint)entities.Length,
                     indexStart: 0,
                     vertexOffset: 0,
                     instanceStart: 0);
             else
                 commandList.Draw(
-                    vertexCount: state.mesh.VertexCount,
+                    vertexCount: state.Mesh.VertexCount,
                     instanceCount: (uint)entities.Length,
                     vertexStart: 0,
                     instanceStart: 0);
