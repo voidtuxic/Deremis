@@ -30,14 +30,14 @@ namespace Deremis.Viewer
             var hdrRadTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/gradient/gradient_rad_###_***.tga", new TextureHandler.Options(cubemap: true, mipmapCount: 5)));
             var brdfLutTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/Cubemaps/ibl_brdf_lut.png"));
 
-            var panaModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/rock001.obj"));
+            var panaModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/low.obj"));
             var tableModel = AssetManager.current.Get<Model>(new AssetDescription("Meshes/plane.obj"));
 
             var shaderfwd = AssetManager.current.Get<Shader>(new AssetDescription("Shaders/pbr_instanced.xml"));
 
-            var panaDiffuseTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/001_low_albedo.png"));
-            var panaNormalTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/001_low_normal.png"));
-            var panaMRATex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/001_low_mra.png"));
+            var panaDiffuseTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/low_albedo.png"));
+            var panaNormalTex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/low_normal.png"));
+            var panaMRATex = AssetManager.current.Get<Texture>(new AssetDescription("Textures/low_mra.png"));
 
             var scene = new Scene(app, "hello deremis");
 

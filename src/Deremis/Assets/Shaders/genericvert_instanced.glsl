@@ -23,7 +23,7 @@ void main()
     f_UV = UV;
     f_fragDepth = gl_Position.z;
 
-    mat3 normalWorld = mat3(transpose(inverse(View * worldMatrix)));
+    mat3 normalWorld = mat3(transpose(inverse(worldMatrix)));
     vec3 T = normalize(normalWorld * Tangent);
     vec3 B = normalize(normalWorld * Bitangent);
     vec3 N = normalize(normalWorld * Normal);

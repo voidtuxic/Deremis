@@ -118,7 +118,7 @@ vec3 CalculatePBR(mat4 fragParams, mat4 viewParams, mat4 fragPosLightSpace, floa
     vec3 kD = 1.5 - kS;
     kD *= 1.0 - metal;
     vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
-    vec3 ambient = (kD * diffuse + specular * 0.05) * ao;
+    vec3 ambient = (kD * diffuse + specular * 0.1) * ao;
     vec3 color = ambient*0.5 + Lo;
     return color;
 }

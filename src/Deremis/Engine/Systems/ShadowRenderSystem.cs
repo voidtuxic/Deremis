@@ -17,7 +17,7 @@ using Texture = Deremis.Engine.Objects.Texture;
 
 namespace Deremis.Engine.Systems
 {
-    public class ShadowRenderSystem : AEntityMultiMapSystem<float, Drawable>
+    public class ShadowRenderSystem : DrawableSystem
     {
         public const uint SHADOW_MAP_FAR = 50;
         public const uint SHADOW_MAP_RADIUS = 100;
@@ -38,9 +38,7 @@ namespace Deremis.Engine.Systems
             return propertyName.Equals("shadowMap");
         }
 
-        private readonly Application app;
         private readonly uint distance;
-        private readonly CommandList commandList;
         private readonly EntitySet cameraSet;
         private readonly EntitySet lightSet;
 
@@ -49,7 +47,6 @@ namespace Deremis.Engine.Systems
         private Transform mainCameraTransform;
         private Transform sunTransform;
         public Matrix4x4 LightSpaceMatrix { get; private set; }
-        private Mesh mesh;
 
         public Material MapMaterial { get; private set; }
         public Framebuffer Framebuffer { get; private set; }
@@ -64,7 +61,7 @@ namespace Deremis.Engine.Systems
             cascades.Add(cascade2);
         }
 
-        public ShadowRenderSystem(Application app, World world, uint distance) : base(
+        public ShadowRenderSystem(Application app, World world, uint distance) : base(app, world,
             world.GetEntities()
                 .With<Drawable>()
                 .With<Transform>()
@@ -72,10 +69,7 @@ namespace Deremis.Engine.Systems
                 .With<Render>(CanRenderToShadowMap)
                 .AsMultiMap<Drawable>())
         {
-            this.app = app;
             this.distance = distance;
-            commandList = app.Factory.CreateCommandList();
-            commandList.Name = "ShadowCommandList";
             cameraSet = world.GetEntities()
                 .With<Camera>()
                 .With<Transform>()
@@ -106,7 +100,7 @@ namespace Deremis.Engine.Systems
 
         public void SubmitAndWait()
         {
-            app.GraphicsDevice.SubmitCommands(commandList);
+            app.GraphicsDevice.SubmitCommands(mainCommandList);
             app.GraphicsDevice.WaitForIdle();
         }
 
@@ -132,11 +126,11 @@ namespace Deremis.Engine.Systems
 
         protected override void PreUpdate(float state)
         {
-            commandList.Begin();
-            SetFramebuffer();
-            commandList.ClearDepthStencil(0f);
-            commandList.UpdateBuffer(app.MaterialManager.MaterialBuffer, 0, MapMaterial.GetValueArray());
-            commandList.End();
+            mainCommandList.Begin();
+            SetFramebuffer(mainCommandList);
+            mainCommandList.ClearDepthStencil(0f);
+            mainCommandList.UpdateBuffer(app.MaterialManager.MaterialBuffer, 0, MapMaterial.GetValueArray());
+            mainCommandList.End();
             SubmitAndWait();
 
             Span<Entity> cameras = stackalloc Entity[cameraSet.Count];
@@ -162,56 +156,65 @@ namespace Deremis.Engine.Systems
             }
 
             UpdateLightspaceViewProj();
+
+            mainCommandList.Begin();
+            mainCommandList.UpdateBuffer(
+                    app.MaterialManager.TransformBuffer,
+                    0,
+                    new TransformResource
+                    {
+                        lightSpaceMatrix1 = LightSpaceMatrix,
+                    });
+            mainCommandList.End();
+            SubmitAndWait();
         }
 
-        protected override void PreUpdate(float state, Drawable key)
+        protected override void Update(float deltaSeconds, in Drawable key, ReadOnlySpan<Entity> entities)
         {
-            mesh = app.ForwardRender.GetMesh(key.mesh);
+            var state = GetState(key.ToString(), true);
+            if (state.mesh == null) state.mesh = app.ForwardRender.GetMesh(key.mesh);
+
+            var commandList = state.commandList;
+
             commandList.Begin();
-            SetFramebuffer();
-            commandList.SetVertexBuffer(0, mesh.VertexBuffer);
-            if (mesh.Indexed)
-                commandList.SetIndexBuffer(mesh.IndexBuffer, IndexFormat.UInt32);
+            SetFramebuffer(commandList);
+
             commandList.SetPipeline(MapMaterial.GetPipeline(0));
+            commandList.SetVertexBuffer(0, state.mesh.VertexBuffer);
+            var worlds = new List<Matrix4x4>(entities.Length);
+            foreach (var entity in entities)
+            {
+                worlds.Add(entity.GetWorldTransform().ToMatrix());
+            }
+            commandList.UpdateBuffer(state.instanceBuffer, 0, worlds.ToArray());
+            commandList.SetVertexBuffer(1, state.instanceBuffer);
+            if (state.mesh.Indexed)
+                commandList.SetIndexBuffer(state.mesh.IndexBuffer, IndexFormat.UInt32);
             commandList.SetGraphicsResourceSet(0, app.MaterialManager.GeneralResourceSet);
             commandList.SetGraphicsResourceSet(1, MapMaterial.ResourceSet);
-        }
 
-        protected override void Update(float state, in Drawable key, in Entity entity)
-        {
-            var transform = entity.GetWorldTransform();
-            var world = transform.ToMatrix();
-            commandList.UpdateBuffer(
-                app.MaterialManager.TransformBuffer,
-                0,
-                new TransformResource
-                {
-                    worldMatrix = world,
-                    lightSpaceMatrix1 = LightSpaceMatrix
-                });
-            if (mesh.Indexed)
+            if (state.mesh.Indexed)
                 commandList.DrawIndexed(
-                    indexCount: mesh.IndexCount,
-                    instanceCount: 1,
+                    indexCount: state.mesh.IndexCount,
+                    instanceCount: (uint)entities.Length,
                     indexStart: 0,
                     vertexOffset: 0,
                     instanceStart: 0);
             else
                 commandList.Draw(
-                    vertexCount: mesh.VertexCount,
-                    instanceCount: 1,
+                    vertexCount: state.mesh.VertexCount,
+                    instanceCount: (uint)entities.Length,
                     vertexStart: 0,
                     instanceStart: 0);
-        }
 
-        protected override void PostUpdate(float state, Drawable key)
-        {
             commandList.End();
+            app.GraphicsDevice.SubmitCommands(commandList);
         }
 
         protected override void PostUpdate(float state)
         {
-            SubmitAndWait();
+            app.GraphicsDevice.WaitForIdle();
+            // SubmitAndWait();
 
             foreach (var cascade in cascades)
             {
@@ -219,12 +222,7 @@ namespace Deremis.Engine.Systems
             }
         }
 
-        private static bool CanRenderToShadowMap(in Render render)
-        {
-            return render.Shadows;
-        }
-
-        private void SetFramebuffer()
+        private void SetFramebuffer(CommandList commandList)
         {
             const uint shadowMapSize = SHADOW_MAP_WIDTH;
             commandList.SetFramebuffer(Framebuffer);

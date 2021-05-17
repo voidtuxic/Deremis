@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Numerics;
 using DefaultEcs;
+using DefaultEcs.System;
 using Deremis.Engine.Objects;
 using Deremis.Platform;
 using Deremis.Platform.Assets;
@@ -9,7 +10,7 @@ using Shader = Deremis.Engine.Objects.Shader;
 
 namespace Deremis.Engine.Systems
 {
-    public class ScreenRenderSystem
+    public class ScreenRenderSystem : ISystem<float>
     {
         public const PixelFormat COLOR_PIXEL_FORMAT = PixelFormat.R32_G32_B32_A32_Float;
         public const PixelFormat DEPTH_PIXEL_FORMAT = PixelFormat.R32_Float;
@@ -40,6 +41,8 @@ namespace Deremis.Engine.Systems
         public Mesh ScreenRenderMesh { get; private set; }
 
         public Application App => app;
+
+        public bool IsEnabled { get; set; }
 
         private readonly Dictionary<string, Material> screenPassMaterials = new Dictionary<string, Material>();
         private readonly Dictionary<string, RenderTexture> renderTextures = new Dictionary<string, RenderTexture>();
@@ -323,6 +326,11 @@ namespace Deremis.Engine.Systems
             ScreenFramebuffer?.Dispose();
             ScreenColorTexture?.Dispose();
             ScreenDepthTexture?.Dispose();
+        }
+
+        public void Dispose()
+        {
+            throw new System.NotImplementedException();
         }
     }
 }

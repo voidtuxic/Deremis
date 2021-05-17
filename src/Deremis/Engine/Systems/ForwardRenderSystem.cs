@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Numerics;
 using DefaultEcs;
-using DefaultEcs.System;
 using DefaultEcs.Threading;
 using Deremis.Engine.Objects;
 using Deremis.Engine.Rendering.Helpers;
@@ -18,31 +17,16 @@ using Shader = Deremis.Engine.Objects.Shader;
 
 namespace Deremis.Engine.Systems
 {
-    public class ForwardRenderSystem : AEntityMultiMapSystem<float, Drawable>
+    public class ForwardRenderSystem : DrawableSystem
     {
-        public const uint INSTANCE_BUFFER_SIZE = 64 * 1024;
         public static ForwardRenderSystem current;
-
-        private readonly Application app;
-        private readonly CommandList mainCommandList;
 
         private Scene currentScene;
         private Transform emptyTransform = new Transform();
 
         // private readonly EntityMultiMap<Drawable> deferredObjectsMap;
 
-        internal class DrawState
-        {
-            public string key;
-            public CommandList commandList;
-            public bool isValid;
-            public Material material;
-            public Mesh mesh;
-            public DeviceBuffer instanceBuffer;
-        }
-
         private readonly ConcurrentDictionary<string, Mesh> meshes = new ConcurrentDictionary<string, Mesh>();
-        private readonly ConcurrentDictionary<string, DrawState> drawStates = new ConcurrentDictionary<string, DrawState>();
         // private readonly Dictionary<string, Material> deferredMaterials = new Dictionary<string, Material>();
 
         private Matrix4x4 viewMatrix;
@@ -51,7 +35,7 @@ namespace Deremis.Engine.Systems
 
         public RgbaFloat ClearColor { get; set; } = RgbaFloat.Black;
 
-        public ForwardRenderSystem(Application app, World world) : base(world
+        public ForwardRenderSystem(Application app, World world) : base(app, world, world
             .GetEntities()
             .With<Drawable>()
             .With<Transform>()
@@ -60,25 +44,12 @@ namespace Deremis.Engine.Systems
             .AsMultiMap<Drawable>())
         {
             current = this;
-            this.app = app;
-            mainCommandList = app.Factory.CreateCommandList();
-            mainCommandList.Name = "MainCommandList";
             // deferredObjectsMap = world.GetEntities()
             //     .With<Drawable>()
             //     .With<Transform>()
             //     .With<Deferred>()
             //     .With<Render>(CanRenderToScreen)
             //     .AsMultiMap<Drawable>();
-        }
-
-        private static bool CanRenderToScreen(in Render render)
-        {
-            return render.Screen;
-        }
-
-        private static bool CanRenderToShadowMap(in Render render)
-        {
-            return render.Shadows;
         }
 
         public void SetAsCurrentScene(Scene scene)
@@ -143,37 +114,13 @@ namespace Deremis.Engine.Systems
             app.GraphicsDevice.WaitForIdle();
         }
 
-        private DrawState GetState(string key)
-        {
-            if (!drawStates.ContainsKey(key))
-            {
-                var commandList = app.Factory.CreateCommandList();
-                var state = new DrawState { commandList = commandList, key = key };
-                if (drawStates.TryAdd(key, state))
-                {
-                    return state;
-                }
-                else
-                {
-                    commandList.Dispose();
-                    return null;
-                }
-            }
-            return drawStates[key];
-        }
-
         protected override void Update(float deltaSeconds, in Drawable key, ReadOnlySpan<Entity> entities)
         {
-            var state = GetState(key.ToString());
             var material = app.MaterialManager.GetMaterial(key.material);
-
-            if (material.Shader.IsInstanced && state.instanceBuffer == null)
-            {
-                state.instanceBuffer = app.Factory.CreateBuffer(new BufferDescription(INSTANCE_BUFFER_SIZE, BufferUsage.VertexBuffer | BufferUsage.Dynamic));
-            }
+            var state = GetState(key.ToString(), material.Shader.IsInstanced);
 
             var commandList = state.commandList;
-            InitDrawable(in key, entities);
+            InitDraw(in key, state, entities);
             if (!state.isValid) return;
             if (material.Shader.IsInstanced)
             {
@@ -214,7 +161,7 @@ namespace Deremis.Engine.Systems
                 {
                     if (entity.Get<Render>().Screen)
                     {
-                        Draw(in key, in entity);
+                        Draw(in key, in state, in entity);
                     }
                 }
             }
@@ -223,12 +170,10 @@ namespace Deremis.Engine.Systems
             app.GraphicsDevice.SubmitCommands(commandList);
         }
 
-        private void InitDrawable(in Drawable key, ReadOnlySpan<Entity> entities)
+        private void InitDraw(in Drawable key, DrawState state, ReadOnlySpan<Entity> entities)
         {
-            string drawKey = key.ToString();
-            var state = GetState(drawKey);
-            state.material = app.MaterialManager.GetMaterial(key.material);
-            state.mesh = GetMesh(key.mesh);
+            if (state.material == null) state.material = app.MaterialManager.GetMaterial(key.material);
+            if (state.mesh == null) state.mesh = GetMesh(key.mesh);
             if (state.material == null || state.mesh == null || mainCommandList == null)
             {
                 state.isValid = false;
@@ -265,9 +210,8 @@ namespace Deremis.Engine.Systems
             state.commandList = list;
         }
 
-        private void Draw(in Drawable key, in Entity entity)
+        private void Draw(in Drawable key, in DrawState state, in Entity entity)
         {
-            var state = GetState(key.ToString());
             if (!state.isValid) return;
             var commandList = state.commandList;
             var transform = entity.GetWorldTransform();

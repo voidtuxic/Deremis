@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shader version="1">
+<shader version="1" isInstanced="true">
     <config>
         <BlendState>SingleDisabled</BlendState>
         <DepthStencilState depthTestEnabled="true" depthWriteEnabled="true" comparisonKind="GreaterEqual" />
@@ -10,11 +10,17 @@
 #version 450
 
 #include "uniforms/transform.glsl"
-#include "uniforms/in_vert.glsl"
+#include "uniforms/in_vert_instanced.glsl"
 
 void main()
 {
-    gl_Position = LightSpace1 * World * vec4(Position, 1.0);
+    mat4 worldMatrix = mat4(
+        WR1,
+        WR2,
+        WR3,
+        WR4
+    );
+    gl_Position = LightSpace1 * worldMatrix * vec4(Position, 1.0);
 } 
     </vertex>
     <fragment>

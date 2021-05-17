@@ -17,7 +17,7 @@ using Texture = Deremis.Engine.Objects.Texture;
 
 namespace Deremis.Engine.Systems
 {
-    public class SSAOSystem : AEntityMultiMapSystem<float, Drawable>
+    public class SSAOSystem : DrawableSystem
     {
         public const string RenderTextureName = "ssaoTex";
         public const float TextureScale = 2f;
@@ -41,8 +41,6 @@ namespace Deremis.Engine.Systems
             name = "noise",
             path = "Textures/noise.png"
         };
-        private CommandList commandList;
-        private readonly Application app;
 
         public Framebuffer SceneFramebuffer { get; private set; }
         public Framebuffer ScreenFramebuffer { get; private set; }
@@ -57,15 +55,13 @@ namespace Deremis.Engine.Systems
         private Matrix4x4 projMatrix;
         private Mesh mesh;
 
-        public SSAOSystem(Application app, World world) : base(
+        public SSAOSystem(Application app, World world) : base(app, world,
             world.GetEntities()
                 .With<Drawable>()
                 .With<Transform>()
-                .With<Render>(CanRender)
+                .With<Render>(CanRenderToScreen)
                 .AsMultiMap<Drawable>())
         {
-            this.app = app;
-            commandList = app.Factory.CreateCommandList();
             cameraSet = world.GetEntities()
                 .With<Camera>()
                 .With<Transform>()
@@ -109,14 +105,14 @@ namespace Deremis.Engine.Systems
 
         protected override void PreUpdate(float state)
         {
-            commandList.Begin();
-            commandList.SetFramebuffer(SceneFramebuffer);
-            commandList.SetFullViewports();
-            commandList.ClearColorTarget(0, RgbaFloat.Clear);
-            commandList.ClearColorTarget(1, RgbaFloat.Clear);
-            commandList.ClearDepthStencil(1f);
-            commandList.UpdateBuffer(app.MaterialManager.MaterialBuffer, 0, GbufferMaterial.GetValueArray());
-            commandList.End();
+            mainCommandList.Begin();
+            mainCommandList.SetFramebuffer(SceneFramebuffer);
+            mainCommandList.SetFullViewports();
+            mainCommandList.ClearColorTarget(0, RgbaFloat.Clear);
+            mainCommandList.ClearColorTarget(1, RgbaFloat.Clear);
+            mainCommandList.ClearDepthStencil(1f);
+            mainCommandList.UpdateBuffer(app.MaterialManager.MaterialBuffer, 0, GbufferMaterial.GetValueArray());
+            mainCommandList.End();
             SubmitAndWait();
 
             Span<Entity> cameras = stackalloc Entity[cameraSet.Count];
@@ -135,15 +131,15 @@ namespace Deremis.Engine.Systems
         protected override void PreUpdate(float state, Drawable key)
         {
             mesh = app.ForwardRender.GetMesh(key.mesh);
-            commandList.Begin();
-            commandList.SetFramebuffer(SceneFramebuffer);
-            commandList.SetFullViewports();
-            commandList.SetVertexBuffer(0, mesh.VertexBuffer);
+            mainCommandList.Begin();
+            mainCommandList.SetFramebuffer(SceneFramebuffer);
+            mainCommandList.SetFullViewports();
+            mainCommandList.SetVertexBuffer(0, mesh.VertexBuffer);
             if (mesh.Indexed)
-                commandList.SetIndexBuffer(mesh.IndexBuffer, IndexFormat.UInt32);
-            commandList.SetPipeline(GbufferMaterial.GetPipeline(0));
-            commandList.SetGraphicsResourceSet(0, app.MaterialManager.GeneralResourceSet);
-            commandList.SetGraphicsResourceSet(1, GbufferMaterial.ResourceSet);
+                mainCommandList.SetIndexBuffer(mesh.IndexBuffer, IndexFormat.UInt32);
+            mainCommandList.SetPipeline(GbufferMaterial.GetPipeline(0));
+            mainCommandList.SetGraphicsResourceSet(0, app.MaterialManager.GeneralResourceSet);
+            mainCommandList.SetGraphicsResourceSet(1, GbufferMaterial.ResourceSet);
         }
 
         protected override void Update(float state, in Drawable key, in Entity entity)
@@ -156,7 +152,7 @@ namespace Deremis.Engine.Systems
             {
                 normalWorld = Matrix4x4.Transpose(normalWorld);
             }
-            commandList.UpdateBuffer(
+            mainCommandList.UpdateBuffer(
                 app.MaterialManager.TransformBuffer,
                 0,
                 new TransformResource
@@ -168,14 +164,14 @@ namespace Deremis.Engine.Systems
                     normalWorldMatrix = normalWorld,
                 });
             if (mesh.Indexed)
-                commandList.DrawIndexed(
+                mainCommandList.DrawIndexed(
                     indexCount: mesh.IndexCount,
                     instanceCount: 1,
                     indexStart: 0,
                     vertexOffset: 0,
                     instanceStart: 0);
             else
-                commandList.Draw(
+                mainCommandList.Draw(
                     vertexCount: mesh.VertexCount,
                     instanceCount: 1,
                     vertexStart: 0,
@@ -184,18 +180,18 @@ namespace Deremis.Engine.Systems
 
         protected override void PostUpdate(float state, Drawable key)
         {
-            commandList.End();
-            app.GraphicsDevice.SubmitCommands(commandList);
+            mainCommandList.End();
+            app.GraphicsDevice.SubmitCommands(mainCommandList);
         }
 
         protected override void PostUpdate(float state)
         {
             app.GraphicsDevice.WaitForIdle();
-            app.ScreenRender.UpdateRenderTextures(commandList, "ssao_position", "ssao_normal");
+            app.ScreenRender.UpdateRenderTextures(mainCommandList, "ssao_position", "ssao_normal");
 
-            commandList.Begin();
+            mainCommandList.Begin();
 
-            commandList.UpdateBuffer(
+            mainCommandList.UpdateBuffer(
                 app.MaterialManager.TransformBuffer,
                 0,
                 new TransformResource
@@ -204,31 +200,31 @@ namespace Deremis.Engine.Systems
                     viewMatrix = viewMatrix,
                     projMatrix = projMatrix
                 });
-            commandList.End();
+            mainCommandList.End();
 
             for (var i = 0; i < ScreenMaterials.Count; i++)
             {
                 for (var j = 0; j < ScreenMaterials[i].Shader.PassCount; j++)
                 {
-                    commandList.Begin();
-                    commandList.SetFramebuffer(ScreenFramebuffer);
-                    commandList.SetFullViewports();
-                    if (i == 0) commandList.ClearColorTarget(0, RgbaFloat.Clear);
-                    if (j == 0) commandList.UpdateBuffer(app.MaterialManager.MaterialBuffer, 0, ScreenMaterials[i].GetValueArray());
+                    mainCommandList.Begin();
+                    mainCommandList.SetFramebuffer(ScreenFramebuffer);
+                    mainCommandList.SetFullViewports();
+                    if (i == 0) mainCommandList.ClearColorTarget(0, RgbaFloat.Clear);
+                    if (j == 0) mainCommandList.UpdateBuffer(app.MaterialManager.MaterialBuffer, 0, ScreenMaterials[i].GetValueArray());
 
-                    commandList.SetVertexBuffer(0, app.ScreenRender.ScreenRenderMesh.VertexBuffer);
-                    commandList.SetPipeline(ScreenMaterials[i].GetPipeline(j));
-                    commandList.SetGraphicsResourceSet(0, app.MaterialManager.GeneralResourceSet);
-                    commandList.SetGraphicsResourceSet(1, ScreenMaterials[i].ResourceSet);
+                    mainCommandList.SetVertexBuffer(0, app.ScreenRender.ScreenRenderMesh.VertexBuffer);
+                    mainCommandList.SetPipeline(ScreenMaterials[i].GetPipeline(j));
+                    mainCommandList.SetGraphicsResourceSet(0, app.MaterialManager.GeneralResourceSet);
+                    mainCommandList.SetGraphicsResourceSet(1, ScreenMaterials[i].ResourceSet);
 
-                    commandList.Draw(
+                    mainCommandList.Draw(
                         vertexCount: app.ScreenRender.ScreenRenderMesh.VertexCount,
                         instanceCount: 1,
                         vertexStart: 0,
                         instanceStart: 0);
-                    commandList.End();
+                    mainCommandList.End();
                     SubmitAndWait();
-                    app.ScreenRender.UpdateRenderTextures(commandList, RenderTextureName);
+                    app.ScreenRender.UpdateRenderTextures(mainCommandList, RenderTextureName);
                 }
             }
             app.GraphicsDevice.WaitForIdle();
@@ -236,13 +232,8 @@ namespace Deremis.Engine.Systems
 
         public void SubmitAndWait()
         {
-            app.GraphicsDevice.SubmitCommands(commandList);
+            app.GraphicsDevice.SubmitCommands(mainCommandList);
             app.GraphicsDevice.WaitForIdle();
-        }
-
-        private static bool CanRender(in Render render)
-        {
-            return render.Screen;
         }
 
         private void DisposeScreenTargets()

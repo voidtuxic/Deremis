@@ -110,7 +110,7 @@ namespace Deremis.Platform
             MainSystem.Add(SSAO);
             MainSystem.Add(ShadowRender);
             MainSystem.Add(ForwardRender);
-            MainSystem.Add(new ActionSystem<float>(ScreenRender.Update));
+            MainSystem.Add(ScreenRender);
 
             ScreenRender.InitScreenData();
             SSAO.CreateResources();
